@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
-import { conversations as initialConvs, type Conversation } from "@/lib/mock-data";
+import { conversations as initialConvs, kanbanStages, type Conversation, type KanbanStage } from "@/lib/mock-data";
 import {
   Search,
   Phone,
@@ -21,6 +21,8 @@ import {
   Globe,
   MessageCircle,
   StickyNote,
+  LayoutList,
+  Columns3,
 } from "lucide-react";
 
 export const Route = createFileRoute("/conversas")({
