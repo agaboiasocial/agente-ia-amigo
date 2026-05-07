@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
-import { conversations as initialConvs, type Conversation } from "@/lib/mock-data";
+import { conversations as initialConvs, kanbanStages, type Conversation, type KanbanStage } from "@/lib/mock-data";
 import {
   Search,
   Phone,
@@ -21,6 +21,8 @@ import {
   Globe,
   MessageCircle,
   StickyNote,
+  LayoutList,
+  Columns3,
 } from "lucide-react";
 
 export const Route = createFileRoute("/conversas")({
@@ -40,6 +42,7 @@ const channelColor = (c: Conversation["channel"]) =>
     : "bg-brand/10 text-brand";
 
 function ConversasPage() {
+  const [view, setView] = useState<"list" | "kanban">("list");
   const [tab, setTab] = useState<(typeof tabs)[number]>("Abertas");
   const [query, setQuery] = useState("");
   const [activeId, setActiveId] = useState("c1");
@@ -47,6 +50,11 @@ function ConversasPage() {
   const [draft, setDraft] = useState("");
   const [mode, setMode] = useState<"reply" | "note">("reply");
   const [showInfo, setShowInfo] = useState(true);
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  const moveCard = (id: string, stage: KanbanStage) => {
+    setConvs((prev) => prev.map((c) => (c.id === id ? { ...c, stage } : c)));
+  };
 
   const filtered = useMemo(() => {
     return convs.filter((c) => {
@@ -87,7 +95,42 @@ function ConversasPage() {
 
   return (
     <AppLayout flush>
-      <div className="flex h-full">
+      <div className="h-full flex flex-col">
+        {/* Top toolbar with view switcher */}
+        <div className="h-12 shrink-0 bg-card border-b px-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h1 className="text-sm font-semibold text-brand">Conversas</h1>
+            <span className="text-xs text-muted-foreground">· {convs.length} no total</span>
+          </div>
+          <div className="flex items-center gap-1 bg-background rounded-lg p-1 border">
+            <button
+              onClick={() => setView("list")}
+              className={`text-xs px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${
+                view === "list" ? "bg-card shadow-sm text-brand font-semibold" : "text-muted-foreground"
+              }`}
+            >
+              <LayoutList className="h-3.5 w-3.5" /> Lista
+            </button>
+            <button
+              onClick={() => setView("kanban")}
+              className={`text-xs px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${
+                view === "kanban" ? "bg-card shadow-sm text-brand font-semibold" : "text-muted-foreground"
+              }`}
+            >
+              <Columns3 className="h-3.5 w-3.5" /> Kanban
+            </button>
+          </div>
+        </div>
+
+        {view === "kanban" ? (
+          <KanbanBoard
+            convs={convs}
+            onMove={moveCard}
+            dragId={dragId}
+            setDragId={setDragId}
+          />
+        ) : (
+        <div className="flex flex-1 min-h-0">
         {/* Column 1 */}
         <section className="w-[320px] shrink-0 border-r bg-card flex flex-col">
           <div className="p-4 border-b space-y-3">
@@ -362,6 +405,8 @@ function ConversasPage() {
             </Section>
           </aside>
         )}
+        </div>
+        )}
       </div>
     </AppLayout>
   );
@@ -383,6 +428,109 @@ function EmptyState({ text }: { text: string }) {
         <MessageCircle className="h-7 w-7 text-muted-foreground" />
       </div>
       <p className="text-sm text-muted-foreground">{text}</p>
+    </div>
+  );
+}
+
+function KanbanBoard({
+  convs,
+  onMove,
+  dragId,
+  setDragId,
+}: {
+  convs: Conversation[];
+  onMove: (id: string, stage: KanbanStage) => void;
+  dragId: string | null;
+  setDragId: (id: string | null) => void;
+}) {
+  return (
+    <div className="flex-1 min-h-0 overflow-x-auto p-4 bg-background">
+      <div className="flex gap-4 h-full min-w-max">
+        {kanbanStages.map((stage) => {
+          const items = convs.filter((c) => c.stage === stage.id);
+          return (
+            <div
+              key={stage.id}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (dragId) {
+                  onMove(dragId, stage.id);
+                  setDragId(null);
+                }
+              }}
+              className="w-[300px] shrink-0 bg-card rounded-xl border flex flex-col max-h-full"
+            >
+              <div className="px-4 py-3 border-b flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ background: stage.color }}
+                  />
+                  <h3 className="text-sm font-semibold text-foreground">{stage.label}</h3>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-background text-muted-foreground font-medium">
+                  {items.length}
+                </span>
+              </div>
+              <div className="flex-1 overflow-auto p-3 space-y-2">
+                {items.length === 0 && (
+                  <div className="text-center text-xs text-muted-foreground py-8 border-2 border-dashed rounded-lg">
+                    Arraste cards para cá
+                  </div>
+                )}
+                {items.map((c) => {
+                  const Icon = channelIcon(c.channel);
+                  return (
+                    <div
+                      key={c.id}
+                      draggable
+                      onDragStart={() => setDragId(c.id)}
+                      onDragEnd={() => setDragId(null)}
+                      className={`bg-background border rounded-lg p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${
+                        dragId === c.id ? "opacity-50 rotate-1" : ""
+                      } ${c.unread ? "border-l-4 border-l-success" : ""}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="relative shrink-0">
+                          <div className="h-8 w-8 rounded-full bg-brand/10 text-brand grid place-items-center text-[10px] font-bold">
+                            {c.avatar}
+                          </div>
+                          {c.online && (
+                            <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-success ring-2 ring-background" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-foreground truncate">{c.contactName}</span>
+                            <span className="text-[10px] text-muted-foreground shrink-0 ml-1">{c.time}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">{c.lastMessage}</p>
+                          <div className="flex items-center gap-1.5 mt-2">
+                            <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full ${channelColor(c.channel)}`}>
+                              <Icon className="h-2.5 w-2.5" />
+                              {c.channel}
+                            </span>
+                            {c.slaRemaining < 0 && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground font-semibold">
+                                SLA estourado
+                              </span>
+                            )}
+                            {c.slaRemaining > 0 && c.slaRemaining <= 10 && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-warning text-warning-foreground font-semibold">
+                                {c.slaRemaining}min
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
