@@ -95,7 +95,42 @@ function ConversasPage() {
 
   return (
     <AppLayout flush>
-      <div className="flex h-full">
+      <div className="h-full flex flex-col">
+        {/* Top toolbar with view switcher */}
+        <div className="h-12 shrink-0 bg-card border-b px-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h1 className="text-sm font-semibold text-brand">Conversas</h1>
+            <span className="text-xs text-muted-foreground">· {convs.length} no total</span>
+          </div>
+          <div className="flex items-center gap-1 bg-background rounded-lg p-1 border">
+            <button
+              onClick={() => setView("list")}
+              className={`text-xs px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${
+                view === "list" ? "bg-card shadow-sm text-brand font-semibold" : "text-muted-foreground"
+              }`}
+            >
+              <LayoutList className="h-3.5 w-3.5" /> Lista
+            </button>
+            <button
+              onClick={() => setView("kanban")}
+              className={`text-xs px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${
+                view === "kanban" ? "bg-card shadow-sm text-brand font-semibold" : "text-muted-foreground"
+              }`}
+            >
+              <Columns3 className="h-3.5 w-3.5" /> Kanban
+            </button>
+          </div>
+        </div>
+
+        {view === "kanban" ? (
+          <KanbanBoard
+            convs={convs}
+            onMove={moveCard}
+            dragId={dragId}
+            setDragId={setDragId}
+          />
+        ) : (
+        <div className="flex flex-1 min-h-0">
         {/* Column 1 */}
         <section className="w-[320px] shrink-0 border-r bg-card flex flex-col">
           <div className="p-4 border-b space-y-3">
