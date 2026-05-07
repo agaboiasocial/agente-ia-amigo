@@ -1,19 +1,41 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   component: LoginPage,
 });
 
+const TEST_CREDENTIALS = {
+  email: "teste@ias.com.br",
+  password: "teste123",
+};
+
 function LoginPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => navigate({ to: "/conversas" }), 700);
+    setTimeout(() => {
+      if (email === TEST_CREDENTIALS.email && password === TEST_CREDENTIALS.password) {
+        toast.success("Login realizado com sucesso!");
+        navigate({ to: "/conversas" });
+      } else {
+        setLoading(false);
+        toast.error("Credenciais inválidas. Use o login de teste abaixo.");
+      }
+    }, 600);
+  };
+
+  const fillTest = () => {
+    setEmail(TEST_CREDENTIALS.email);
+    setPassword(TEST_CREDENTIALS.password);
+    toast.info("Credenciais de teste preenchidas");
   };
 
   return (
@@ -50,7 +72,8 @@ function LoginPage() {
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   type="email"
-                  defaultValue="mariana@ias.com.br"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full h-10 pl-9 pr-3 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-success"
                   placeholder="seu@email.com"
                   required
@@ -63,7 +86,8 @@ function LoginPage() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   type="password"
-                  defaultValue="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full h-10 pl-9 pr-3 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-success"
                   placeholder="••••••••"
                   required
@@ -90,7 +114,26 @@ function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-xs text-muted-foreground mt-6">
+          <div className="mt-5 p-3 rounded-lg border border-warning/40 bg-warning/15">
+            <div className="flex items-start gap-2">
+              <Sparkles className="h-4 w-4 text-warning-foreground mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-semibold text-foreground">Conta de teste</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5 font-mono break-all">
+                  {TEST_CREDENTIALS.email} <span className="opacity-50">·</span> {TEST_CREDENTIALS.password}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={fillTest}
+                className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-warning text-warning-foreground hover:opacity-90 shrink-0"
+              >
+                Usar
+              </button>
+            </div>
+          </div>
+
+          <p className="text-center text-xs text-muted-foreground mt-5">
             Não tem uma conta?{" "}
             <Link to="/" className="text-brand font-medium hover:underline">
               Fale com o administrador
