@@ -431,3 +431,106 @@ function EmptyState({ text }: { text: string }) {
     </div>
   );
 }
+
+function KanbanBoard({
+  convs,
+  onMove,
+  dragId,
+  setDragId,
+}: {
+  convs: Conversation[];
+  onMove: (id: string, stage: KanbanStage) => void;
+  dragId: string | null;
+  setDragId: (id: string | null) => void;
+}) {
+  return (
+    <div className="flex-1 min-h-0 overflow-x-auto p-4 bg-background">
+      <div className="flex gap-4 h-full min-w-max">
+        {kanbanStages.map((stage) => {
+          const items = convs.filter((c) => c.stage === stage.id);
+          return (
+            <div
+              key={stage.id}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (dragId) {
+                  onMove(dragId, stage.id);
+                  setDragId(null);
+                }
+              }}
+              className="w-[300px] shrink-0 bg-card rounded-xl border flex flex-col max-h-full"
+            >
+              <div className="px-4 py-3 border-b flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ background: stage.color }}
+                  />
+                  <h3 className="text-sm font-semibold text-foreground">{stage.label}</h3>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-background text-muted-foreground font-medium">
+                  {items.length}
+                </span>
+              </div>
+              <div className="flex-1 overflow-auto p-3 space-y-2">
+                {items.length === 0 && (
+                  <div className="text-center text-xs text-muted-foreground py-8 border-2 border-dashed rounded-lg">
+                    Arraste cards para cá
+                  </div>
+                )}
+                {items.map((c) => {
+                  const Icon = channelIcon(c.channel);
+                  return (
+                    <div
+                      key={c.id}
+                      draggable
+                      onDragStart={() => setDragId(c.id)}
+                      onDragEnd={() => setDragId(null)}
+                      className={`bg-background border rounded-lg p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${
+                        dragId === c.id ? "opacity-50 rotate-1" : ""
+                      } ${c.unread ? "border-l-4 border-l-success" : ""}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="relative shrink-0">
+                          <div className="h-8 w-8 rounded-full bg-brand/10 text-brand grid place-items-center text-[10px] font-bold">
+                            {c.avatar}
+                          </div>
+                          {c.online && (
+                            <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-success ring-2 ring-background" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-foreground truncate">{c.contactName}</span>
+                            <span className="text-[10px] text-muted-foreground shrink-0 ml-1">{c.time}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">{c.lastMessage}</p>
+                          <div className="flex items-center gap-1.5 mt-2">
+                            <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full ${channelColor(c.channel)}`}>
+                              <Icon className="h-2.5 w-2.5" />
+                              {c.channel}
+                            </span>
+                            {c.slaRemaining < 0 && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground font-semibold">
+                                SLA estourado
+                              </span>
+                            )}
+                            {c.slaRemaining > 0 && c.slaRemaining <= 10 && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-warning text-warning-foreground font-semibold">
+                                {c.slaRemaining}min
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
