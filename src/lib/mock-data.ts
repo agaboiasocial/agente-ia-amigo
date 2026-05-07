@@ -1,5 +1,13 @@
 export type Channel = "WhatsApp" | "Web" | "Instagram";
 export type ConvStatus = "aberta" | "pendente" | "resolvida";
+export type KanbanStage = "novo" | "atendimento" | "aguardando" | "resolvido";
+
+export const kanbanStages: { id: KanbanStage; label: string; color: string }[] = [
+  { id: "novo", label: "Novo", color: "var(--warning)" },
+  { id: "atendimento", label: "Em atendimento", color: "var(--success)" },
+  { id: "aguardando", label: "Aguardando cliente", color: "var(--brand)" },
+  { id: "resolvido", label: "Resolvido", color: "oklch(0.65 0.02 250)" },
+];
 
 export interface Message {
   id: string;
@@ -24,6 +32,7 @@ export interface Conversation {
   messages: Message[];
   slaRemaining: number; // minutes
   openedAt: string;
+  stage: KanbanStage;
 }
 
 export interface Contact {
