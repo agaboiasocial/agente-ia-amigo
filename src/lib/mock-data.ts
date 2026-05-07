@@ -58,7 +58,7 @@ export const agents = [
 
 export const conversations: Conversation[] = [
   {
-    id: "c1",
+    id: "c1", stage: "atendimento",
     contactId: "k1",
     contactName: "João da Silva",
     avatar: initials("João Silva"),
@@ -78,7 +78,7 @@ export const conversations: Conversation[] = [
     ],
   },
   {
-    id: "c2",
+    id: "c2", stage: "novo",
     contactId: "k2",
     contactName: "Fernanda Oliveira",
     avatar: initials("Fernanda Oliveira"),
@@ -97,7 +97,7 @@ export const conversations: Conversation[] = [
     ],
   },
   {
-    id: "c3",
+    id: "c3", stage: "aguardando",
     contactId: "k3",
     contactName: "Pedro Henrique Costa",
     avatar: initials("Pedro Costa"),
@@ -116,7 +116,7 @@ export const conversations: Conversation[] = [
     ],
   },
   {
-    id: "c4",
+    id: "c4", stage: "resolvido",
     contactId: "k4",
     contactName: "Aline Rodrigues",
     avatar: initials("Aline Rodrigues"),
@@ -134,7 +134,7 @@ export const conversations: Conversation[] = [
     ],
   },
   {
-    id: "c5",
+    id: "c5", stage: "novo",
     contactId: "k5",
     contactName: "Gustavo Almeida",
     avatar: initials("Gustavo Almeida"),
@@ -152,7 +152,7 @@ export const conversations: Conversation[] = [
     ],
   },
   {
-    id: "c6",
+    id: "c6", stage: "resolvido",
     contactId: "k6",
     contactName: "Camila Ferreira",
     avatar: initials("Camila Ferreira"),
