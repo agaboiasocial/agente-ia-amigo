@@ -405,6 +405,8 @@ function ConversasPage() {
             </Section>
           </aside>
         )}
+        </div>
+        )}
       </div>
     </AppLayout>
   );
