@@ -40,6 +40,7 @@ const channelColor = (c: Conversation["channel"]) =>
     : "bg-brand/10 text-brand";
 
 function ConversasPage() {
+  const [view, setView] = useState<"list" | "kanban">("list");
   const [tab, setTab] = useState<(typeof tabs)[number]>("Abertas");
   const [query, setQuery] = useState("");
   const [activeId, setActiveId] = useState("c1");
@@ -47,6 +48,11 @@ function ConversasPage() {
   const [draft, setDraft] = useState("");
   const [mode, setMode] = useState<"reply" | "note">("reply");
   const [showInfo, setShowInfo] = useState(true);
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  const moveCard = (id: string, stage: KanbanStage) => {
+    setConvs((prev) => prev.map((c) => (c.id === id ? { ...c, stage } : c)));
+  };
 
   const filtered = useMemo(() => {
     return convs.filter((c) => {
