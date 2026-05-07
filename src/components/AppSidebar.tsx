@@ -7,10 +7,16 @@ import {
   Timer,
   Settings,
   LogOut,
+  Bot,
+  Sparkles,
+  QrCode,
 } from "lucide-react";
 
 const items = [
   { to: "/conversas", label: "Conversas", icon: MessageSquare, badge: 3 },
+  { to: "/ias", label: "IAS — Agente", icon: Bot, badge: "NOVO" as const },
+  { to: "/funcoes", label: "Funções personalizadas", icon: Sparkles },
+  { to: "/whatsapp", label: "Conectar WhatsApp", icon: QrCode },
   { to: "/contatos", label: "Contatos", icon: Users },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { to: "/auditoria", label: "Auditoria", icon: ShieldCheck },
@@ -33,7 +39,7 @@ export function AppSidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-auto">
         {items.map((it) => {
           const active = pathname.startsWith(it.to);
           const Icon = it.icon;
@@ -50,7 +56,7 @@ export function AppSidebar() {
               <Icon className="h-4 w-4" />
               <span className="flex-1">{it.label}</span>
               {it.badge && (
-                <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-warning text-warning-foreground">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-warning text-warning-foreground">
                   {it.badge}
                 </span>
               )}
