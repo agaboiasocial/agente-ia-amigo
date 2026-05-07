@@ -9,8 +9,44 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SlaRouteImport } from './routes/sla'
+import { Route as RelatoriosRouteImport } from './routes/relatorios'
+import { Route as ConversasRouteImport } from './routes/conversas'
+import { Route as ContatosRouteImport } from './routes/contatos'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as AuditoriaRouteImport } from './routes/auditoria'
 import { Route as IndexRouteImport } from './routes/index'
 
+const SlaRoute = SlaRouteImport.update({
+  id: '/sla',
+  path: '/sla',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RelatoriosRoute = RelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConversasRoute = ConversasRouteImport.update({
+  id: '/conversas',
+  path: '/conversas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContatosRoute = ContatosRouteImport.update({
+  id: '/contatos',
+  path: '/contatos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditoriaRoute = AuditoriaRouteImport.update({
+  id: '/auditoria',
+  path: '/auditoria',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +55,116 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auditoria': typeof AuditoriaRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/contatos': typeof ContatosRoute
+  '/conversas': typeof ConversasRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/sla': typeof SlaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auditoria': typeof AuditoriaRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/contatos': typeof ContatosRoute
+  '/conversas': typeof ConversasRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/sla': typeof SlaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auditoria': typeof AuditoriaRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/contatos': typeof ContatosRoute
+  '/conversas': typeof ConversasRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/sla': typeof SlaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auditoria'
+    | '/configuracoes'
+    | '/contatos'
+    | '/conversas'
+    | '/relatorios'
+    | '/sla'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auditoria'
+    | '/configuracoes'
+    | '/contatos'
+    | '/conversas'
+    | '/relatorios'
+    | '/sla'
+  id:
+    | '__root__'
+    | '/'
+    | '/auditoria'
+    | '/configuracoes'
+    | '/contatos'
+    | '/conversas'
+    | '/relatorios'
+    | '/sla'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuditoriaRoute: typeof AuditoriaRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRoute
+  ContatosRoute: typeof ContatosRoute
+  ConversasRoute: typeof ConversasRoute
+  RelatoriosRoute: typeof RelatoriosRoute
+  SlaRoute: typeof SlaRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sla': {
+      id: '/sla'
+      path: '/sla'
+      fullPath: '/sla'
+      preLoaderRoute: typeof SlaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/relatorios': {
+      id: '/relatorios'
+      path: '/relatorios'
+      fullPath: '/relatorios'
+      preLoaderRoute: typeof RelatoriosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/conversas': {
+      id: '/conversas'
+      path: '/conversas'
+      fullPath: '/conversas'
+      preLoaderRoute: typeof ConversasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contatos': {
+      id: '/contatos'
+      path: '/contatos'
+      fullPath: '/contatos'
+      preLoaderRoute: typeof ContatosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auditoria': {
+      id: '/auditoria'
+      path: '/auditoria'
+      fullPath: '/auditoria'
+      preLoaderRoute: typeof AuditoriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,7 +177,23 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuditoriaRoute: AuditoriaRoute,
+  ConfiguracoesRoute: ConfiguracoesRoute,
+  ContatosRoute: ContatosRoute,
+  ConversasRoute: ConversasRoute,
+  RelatoriosRoute: RelatoriosRoute,
+  SlaRoute: SlaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
