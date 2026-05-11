@@ -10,11 +10,13 @@ import {
   Bot,
   Sparkles,
   QrCode,
+  Zap,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 const items = [
   { to: "/conversas", label: "Conversas", icon: MessageSquare },
+  { to: "/automacoes", label: "Automação", icon: Zap },
   { to: "/ias", label: "IAS — Agente", icon: Bot },
   { to: "/funcoes", label: "Funções personalizadas", icon: Sparkles },
   { to: "/whatsapp", label: "Conectar WhatsApp", icon: QrCode },
