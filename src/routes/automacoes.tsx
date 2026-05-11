@@ -297,16 +297,22 @@ function AutomationDialog({
   const [triggerEvent, setTriggerEvent] = useState<string>("conversa_criada");
   const [actions, setActions] = useState<Action[]>([]);
 
-  // Reset on open
-  useState(() => {});
-  // sync when editing changes
-  if (open && editing && name === "" && editing.name) {
-    setName(editing.name);
-    setDescription(editing.description ?? "");
-    setTriggerLabelId(editing.trigger_label_id ?? "");
-    setTriggerEvent(editing.trigger_event);
-    setActions(editing.actions ?? []);
-  }
+  useEffect(() => {
+    if (!open) return;
+    if (editing) {
+      setName(editing.name);
+      setDescription(editing.description ?? "");
+      setTriggerLabelId(editing.trigger_label_id ?? "");
+      setTriggerEvent(editing.trigger_event);
+      setActions(editing.actions ?? []);
+    } else {
+      setName("");
+      setDescription("");
+      setTriggerLabelId("");
+      setTriggerEvent("conversa_criada");
+      setActions([]);
+    }
+  }, [open, editing]);
 
   const reset = () => {
     setName("");
