@@ -36,8 +36,8 @@ export function useConversations() {
 export function useUpdateConversation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: Partial<ConvRow> }) => {
-      const { error } = await supabase.from("conversations").update(patch).eq("id", id);
+    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
+      const { error } = await supabase.from("conversations").update(patch as never).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
