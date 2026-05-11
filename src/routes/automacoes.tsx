@@ -83,7 +83,7 @@ function useAutomations() {
       if (error) throw error;
       return (data ?? []).map((r) => ({
         ...r,
-        actions: (Array.isArray(r.actions) ? r.actions : []) as Action[],
+        actions: (Array.isArray(r.actions) ? r.actions : []) as unknown as Action[],
       })) as Automation[];
     },
   });

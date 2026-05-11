@@ -17,6 +17,7 @@ import { Route as FuncoesRouteImport } from './routes/funcoes'
 import { Route as ConversasRouteImport } from './routes/conversas'
 import { Route as ContatosRouteImport } from './routes/contatos'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as AutomacoesRouteImport } from './routes/automacoes'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -60,6 +61,11 @@ const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AutomacoesRoute = AutomacoesRouteImport.update({
+  id: '/automacoes',
+  path: '/automacoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuditoriaRoute = AuditoriaRouteImport.update({
   id: '/auditoria',
   path: '/auditoria',
@@ -74,6 +80,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auditoria': typeof AuditoriaRoute
+  '/automacoes': typeof AutomacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/contatos': typeof ContatosRoute
   '/conversas': typeof ConversasRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auditoria': typeof AuditoriaRoute
+  '/automacoes': typeof AutomacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/contatos': typeof ContatosRoute
   '/conversas': typeof ConversasRoute
@@ -99,6 +107,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auditoria': typeof AuditoriaRoute
+  '/automacoes': typeof AutomacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/contatos': typeof ContatosRoute
   '/conversas': typeof ConversasRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auditoria'
+    | '/automacoes'
     | '/configuracoes'
     | '/contatos'
     | '/conversas'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auditoria'
+    | '/automacoes'
     | '/configuracoes'
     | '/contatos'
     | '/conversas'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/auditoria'
+    | '/automacoes'
     | '/configuracoes'
     | '/contatos'
     | '/conversas'
@@ -150,6 +162,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuditoriaRoute: typeof AuditoriaRoute
+  AutomacoesRoute: typeof AutomacoesRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   ContatosRoute: typeof ContatosRoute
   ConversasRoute: typeof ConversasRoute
@@ -218,6 +231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfiguracoesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/automacoes': {
+      id: '/automacoes'
+      path: '/automacoes'
+      fullPath: '/automacoes'
+      preLoaderRoute: typeof AutomacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auditoria': {
       id: '/auditoria'
       path: '/auditoria'
@@ -238,6 +258,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuditoriaRoute: AuditoriaRoute,
+  AutomacoesRoute: AutomacoesRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   ContatosRoute: ContatosRoute,
   ConversasRoute: ConversasRoute,
