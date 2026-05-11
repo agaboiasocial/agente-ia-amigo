@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   MessageSquare,
   Users,
@@ -11,10 +11,11 @@ import {
   Sparkles,
   QrCode,
 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 const items = [
-  { to: "/conversas", label: "Conversas", icon: MessageSquare, badge: 3 },
-  { to: "/ias", label: "IAS — Agente", icon: Bot, badge: "NOVO" as const },
+  { to: "/conversas", label: "Conversas", icon: MessageSquare },
+  { to: "/ias", label: "IAS — Agente", icon: Bot },
   { to: "/funcoes", label: "Funções personalizadas", icon: Sparkles },
   { to: "/whatsapp", label: "Conectar WhatsApp", icon: QrCode },
   { to: "/contatos", label: "Contatos", icon: Users },
@@ -26,6 +27,16 @@ const items = [
 
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { profile, isAdmin, signOut, user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate({ to: "/" });
+  };
+
+  const initials = profile?.avatar_initials ?? (user?.email?.slice(0, 2).toUpperCase() ?? "??");
+  const name = profile?.display_name ?? user?.email ?? "Usuário";
 
   return (
     <aside className="hidden md:flex w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground">
@@ -55,11 +66,6 @@ export function AppSidebar() {
             >
               <Icon className="h-4 w-4" />
               <span className="flex-1">{it.label}</span>
-              {it.badge && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-warning text-warning-foreground">
-                  {it.badge}
-                </span>
-              )}
             </Link>
           );
         })}
@@ -68,17 +74,17 @@ export function AppSidebar() {
       <div className="border-t border-sidebar-border p-3 flex items-center gap-3">
         <div className="relative">
           <div className="h-9 w-9 rounded-full bg-success text-success-foreground grid place-items-center text-xs font-bold">
-            MS
+            {initials}
           </div>
           <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-success ring-2 ring-sidebar" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium truncate">Mariana Souza</div>
-          <div className="text-[11px] text-sidebar-foreground/60">Administradora</div>
+          <div className="text-sm font-medium truncate">{name}</div>
+          <div className="text-[11px] text-sidebar-foreground/60">{isAdmin ? "Administrador" : "Agente"}</div>
         </div>
-        <Link to="/" className="text-sidebar-foreground/70 hover:text-warning">
+        <button onClick={handleLogout} title="Sair" className="text-sidebar-foreground/70 hover:text-warning">
           <LogOut className="h-4 w-4" />
-        </Link>
+        </button>
       </div>
     </aside>
   );

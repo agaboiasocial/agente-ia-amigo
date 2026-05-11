@@ -14,6 +14,143 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          agent_id: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string
+          details: string | null
+          id: string
+        }
+        Insert: {
+          action: string
+          agent_id?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          agent_id?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          channel: string
+          created_at: string
+          email: string | null
+          id: string
+          labels: string[]
+          name: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          labels?: string[]
+          name: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          labels?: string[]
+          name?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      conversations: {
+        Row: {
+          assigned_to: string | null
+          channel: string
+          contact_id: string
+          created_at: string
+          id: string
+          last_message: string | null
+          last_message_at: string | null
+          opened_at: string
+          resolved_at: string | null
+          sla_minutes: number | null
+          stage: string
+          status: string
+          unread: boolean
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          channel?: string
+          contact_id: string
+          created_at?: string
+          id?: string
+          last_message?: string | null
+          last_message_at?: string | null
+          opened_at?: string
+          resolved_at?: string | null
+          sla_minutes?: number | null
+          stage?: string
+          status?: string
+          unread?: boolean
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          channel?: string
+          contact_id?: string
+          created_at?: string
+          id?: string
+          last_message?: string | null
+          last_message_at?: string | null
+          opened_at?: string
+          resolved_at?: string | null
+          sla_minutes?: number | null
+          stage?: string
+          status?: string
+          unread?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       interacoes_cidadao: {
         Row: {
           canal: string
@@ -80,15 +217,155 @@ export type Database = {
         }
         Relationships: []
       }
+      labels: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          author: string
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+          is_note: boolean
+          sender_id: string | null
+        }
+        Insert: {
+          author: string
+          body: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          is_note?: boolean
+          sender_id?: string | null
+        }
+        Update: {
+          author?: string
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          is_note?: boolean
+          sender_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_initials: string | null
+          created_at: string
+          display_name: string
+          id: string
+          online: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_initials?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          online?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_initials?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          online?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      quick_replies: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          shortcut: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          shortcut: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          shortcut?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "agente"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -215,6 +492,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "agente"],
+    },
   },
 } as const
