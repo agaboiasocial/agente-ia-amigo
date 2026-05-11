@@ -11,8 +11,10 @@ import {
   Sparkles,
   QrCode,
   Zap,
+  LifeBuoy,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useSupport } from "@/components/support/SupportCenter";
 
 const items = [
   { to: "/conversas", label: "Conversas", icon: MessageSquare },
@@ -31,6 +33,7 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { profile, isAdmin, signOut, user } = useAuth();
   const navigate = useNavigate();
+  const support = useSupport();
 
   const handleLogout = async () => {
     await signOut();
@@ -72,6 +75,16 @@ export function AppSidebar() {
           );
         })}
       </nav>
+
+      <div className="px-3 pt-2 pb-1">
+        <button
+          onClick={support.open}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground/85 hover:bg-sidebar-accent transition-colors"
+        >
+          <LifeBuoy className="h-4 w-4" />
+          <span className="flex-1 text-left">Suporte</span>
+        </button>
+      </div>
 
       <div className="border-t border-sidebar-border p-3 flex items-center gap-3">
         <div className="relative">
