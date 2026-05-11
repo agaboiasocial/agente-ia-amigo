@@ -333,6 +333,32 @@ function ConversasPage() {
               <button className="h-9 px-3 rounded-lg text-xs font-medium bg-success text-success-foreground hover:opacity-95 flex items-center gap-1.5">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Resolver
               </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="h-9 px-3 rounded-lg text-xs font-medium border hover:bg-background flex items-center gap-1.5">
+                    <Download className="h-3.5 w-3.5" style={{ color: "#2FAE7C" }} /> Exportar Conversa
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuLabel>Formato de exportação</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => { exportPdf(active); toast.success("Conversa exportada com sucesso!"); }}
+                  >
+                    <FileType className="h-4 w-4" style={{ color: "#2FAE7C" }} /> Exportar como PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => { exportTxt(active); toast.success("Conversa exportada com sucesso!"); }}
+                  >
+                    <FileText className="h-4 w-4" style={{ color: "#2FAE7C" }} /> Exportar como TXT
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => { exportCsv(active); toast.success("Conversa exportada com sucesso!"); }}
+                  >
+                    <FileSpreadsheet className="h-4 w-4" style={{ color: "#2FAE7C" }} /> Exportar como CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <button
                 onClick={() => setShowInfo((s) => !s)}
                 className="h-9 w-9 rounded-lg border hover:bg-background grid place-items-center"
