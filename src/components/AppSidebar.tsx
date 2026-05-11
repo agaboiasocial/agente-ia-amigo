@@ -76,6 +76,16 @@ export function AppSidebar() {
         })}
       </nav>
 
+      <div className="px-3 pt-2 pb-1">
+        <button
+          onClick={support.open}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground/85 hover:bg-sidebar-accent transition-colors"
+        >
+          <LifeBuoy className="h-4 w-4" />
+          <span className="flex-1 text-left">Suporte</span>
+        </button>
+      </div>
+
       <div className="border-t border-sidebar-border p-3 flex items-center gap-3">
         <div className="relative">
           <div className="h-9 w-9 rounded-full bg-success text-success-foreground grid place-items-center text-xs font-bold">
