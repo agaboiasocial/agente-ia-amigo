@@ -1,5 +1,8 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { AppSidebar } from "./AppSidebar";
+import { useAuth } from "@/hooks/use-auth";
+import { Loader2 } from "lucide-react";
 
 export function AppLayout({
   children,
@@ -12,6 +15,21 @@ export function AppLayout({
   actions?: ReactNode;
   flush?: boolean;
 }) {
+  const { session, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !session) navigate({ to: "/" });
+  }, [loading, session, navigate]);
+
+  if (loading || !session) {
+    return (
+      <div className="h-screen w-full grid place-items-center bg-background text-muted-foreground">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen w-full bg-background">
       <AppSidebar />
