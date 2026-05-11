@@ -12,6 +12,7 @@ import {
   QrCode,
   Zap,
   LifeBuoy,
+  ShieldHalf,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useSupport } from "@/components/support/SupportCenter";
@@ -75,6 +76,18 @@ export function AppSidebar() {
           );
         })}
       </nav>
+
+      {isAdmin && (
+        <div className="px-3 pt-2">
+          <Link
+            to="/super-admin"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground/85 hover:bg-sidebar-accent transition-colors"
+          >
+            <ShieldHalf className="h-4 w-4" />
+            <span className="flex-1 text-left">Super Admin</span>
+          </Link>
+        </div>
+      )}
 
       <div className="px-3 pt-2 pb-1">
         <button
