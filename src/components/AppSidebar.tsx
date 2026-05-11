@@ -33,6 +33,7 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { profile, isAdmin, signOut, user } = useAuth();
   const navigate = useNavigate();
+  const support = useSupport();
 
   const handleLogout = async () => {
     await signOut();
