@@ -314,16 +314,7 @@ function AutomationDialog({
     }
   }, [open, editing]);
 
-  const reset = () => {
-    setName("");
-    setDescription("");
-    setTriggerLabelId("");
-    setTriggerEvent("conversa_criada");
-    setActions([]);
-  };
-
   const handleClose = (v: boolean) => {
-    if (!v) reset();
     onOpenChange(v);
   };
 
