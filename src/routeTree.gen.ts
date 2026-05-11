@@ -26,6 +26,7 @@ import { Route as SuperAdminUsersRouteImport } from './routes/super-admin.users'
 import { Route as SuperAdminSidekiqRouteImport } from './routes/super-admin.sidekiq'
 import { Route as SuperAdminSettingsRouteImport } from './routes/super-admin.settings'
 import { Route as SuperAdminPlatformAppsRouteImport } from './routes/super-admin.platform-apps'
+import { Route as SuperAdminLoginRouteImport } from './routes/super-admin.login'
 import { Route as SuperAdminInstanceHealthRouteImport } from './routes/super-admin.instance-health'
 import { Route as SuperAdminAgentBotsRouteImport } from './routes/super-admin.agent-bots'
 import { Route as SuperAdminAccountsRouteImport } from './routes/super-admin.accounts'
@@ -115,6 +116,11 @@ const SuperAdminPlatformAppsRoute = SuperAdminPlatformAppsRouteImport.update({
   path: '/platform-apps',
   getParentRoute: () => SuperAdminRoute,
 } as any)
+const SuperAdminLoginRoute = SuperAdminLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
 const SuperAdminInstanceHealthRoute =
   SuperAdminInstanceHealthRouteImport.update({
     id: '/instance-health',
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/super-admin/accounts': typeof SuperAdminAccountsRoute
   '/super-admin/agent-bots': typeof SuperAdminAgentBotsRoute
   '/super-admin/instance-health': typeof SuperAdminInstanceHealthRoute
+  '/super-admin/login': typeof SuperAdminLoginRoute
   '/super-admin/platform-apps': typeof SuperAdminPlatformAppsRoute
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/sidekiq': typeof SuperAdminSidekiqRoute
@@ -169,6 +176,7 @@ export interface FileRoutesByTo {
   '/super-admin/accounts': typeof SuperAdminAccountsRoute
   '/super-admin/agent-bots': typeof SuperAdminAgentBotsRoute
   '/super-admin/instance-health': typeof SuperAdminInstanceHealthRoute
+  '/super-admin/login': typeof SuperAdminLoginRoute
   '/super-admin/platform-apps': typeof SuperAdminPlatformAppsRoute
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/sidekiq': typeof SuperAdminSidekiqRoute
@@ -192,6 +200,7 @@ export interface FileRoutesById {
   '/super-admin/accounts': typeof SuperAdminAccountsRoute
   '/super-admin/agent-bots': typeof SuperAdminAgentBotsRoute
   '/super-admin/instance-health': typeof SuperAdminInstanceHealthRoute
+  '/super-admin/login': typeof SuperAdminLoginRoute
   '/super-admin/platform-apps': typeof SuperAdminPlatformAppsRoute
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/sidekiq': typeof SuperAdminSidekiqRoute
@@ -216,6 +225,7 @@ export interface FileRouteTypes {
     | '/super-admin/accounts'
     | '/super-admin/agent-bots'
     | '/super-admin/instance-health'
+    | '/super-admin/login'
     | '/super-admin/platform-apps'
     | '/super-admin/settings'
     | '/super-admin/sidekiq'
@@ -237,6 +247,7 @@ export interface FileRouteTypes {
     | '/super-admin/accounts'
     | '/super-admin/agent-bots'
     | '/super-admin/instance-health'
+    | '/super-admin/login'
     | '/super-admin/platform-apps'
     | '/super-admin/settings'
     | '/super-admin/sidekiq'
@@ -259,6 +270,7 @@ export interface FileRouteTypes {
     | '/super-admin/accounts'
     | '/super-admin/agent-bots'
     | '/super-admin/instance-health'
+    | '/super-admin/login'
     | '/super-admin/platform-apps'
     | '/super-admin/settings'
     | '/super-admin/sidekiq'
@@ -402,6 +414,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminPlatformAppsRouteImport
       parentRoute: typeof SuperAdminRoute
     }
+    '/super-admin/login': {
+      id: '/super-admin/login'
+      path: '/login'
+      fullPath: '/super-admin/login'
+      preLoaderRoute: typeof SuperAdminLoginRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
     '/super-admin/instance-health': {
       id: '/super-admin/instance-health'
       path: '/instance-health'
@@ -430,6 +449,7 @@ interface SuperAdminRouteChildren {
   SuperAdminAccountsRoute: typeof SuperAdminAccountsRoute
   SuperAdminAgentBotsRoute: typeof SuperAdminAgentBotsRoute
   SuperAdminInstanceHealthRoute: typeof SuperAdminInstanceHealthRoute
+  SuperAdminLoginRoute: typeof SuperAdminLoginRoute
   SuperAdminPlatformAppsRoute: typeof SuperAdminPlatformAppsRoute
   SuperAdminSettingsRoute: typeof SuperAdminSettingsRoute
   SuperAdminSidekiqRoute: typeof SuperAdminSidekiqRoute
@@ -441,6 +461,7 @@ const SuperAdminRouteChildren: SuperAdminRouteChildren = {
   SuperAdminAccountsRoute: SuperAdminAccountsRoute,
   SuperAdminAgentBotsRoute: SuperAdminAgentBotsRoute,
   SuperAdminInstanceHealthRoute: SuperAdminInstanceHealthRoute,
+  SuperAdminLoginRoute: SuperAdminLoginRoute,
   SuperAdminPlatformAppsRoute: SuperAdminPlatformAppsRoute,
   SuperAdminSettingsRoute: SuperAdminSettingsRoute,
   SuperAdminSidekiqRoute: SuperAdminSidekiqRoute,
