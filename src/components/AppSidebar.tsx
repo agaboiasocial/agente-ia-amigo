@@ -11,8 +11,10 @@ import {
   Sparkles,
   QrCode,
   Zap,
+  LifeBuoy,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useSupport } from "@/components/support/SupportCenter";
 
 const items = [
   { to: "/conversas", label: "Conversas", icon: MessageSquare },
