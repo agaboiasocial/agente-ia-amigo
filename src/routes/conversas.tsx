@@ -2,6 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { conversations as initialConvs, kanbanStages, type Conversation, type KanbanStage } from "@/lib/mock-data";
+import { toast } from "sonner";
+import { jsPDF } from "jspdf";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import {
   Search,
   Phone,
@@ -23,7 +33,89 @@ import {
   StickyNote,
   LayoutList,
   Columns3,
+  Download,
+  FileText,
+  FileSpreadsheet,
+  FileType,
 } from "lucide-react";
+
+function buildExportData(c: Conversation) {
+  const start = c.messages[0]?.time ?? "-";
+  const end = c.messages[c.messages.length - 1]?.time ?? "-";
+  return {
+    contact: c.contactName,
+    channel: c.channel,
+    start,
+    end,
+    agent: c.agent,
+    messages: c.messages.map((m) => ({
+      time: m.time,
+      author: m.isNote ? "[NOTA INTERNA]" : m.from === "agente" ? "Agente" : "Cliente",
+      text: m.text,
+    })),
+  };
+}
+
+function downloadBlob(filename: string, blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportTxt(c: Conversation) {
+  const d = buildExportData(c);
+  const lines = [
+    `Contato: ${d.contact}`,
+    `Canal: ${d.channel}`,
+    `Início: ${d.start}`,
+    `Fim: ${d.end}`,
+    `Agente: ${d.agent}`,
+    "",
+    "=== Mensagens ===",
+    "",
+    ...d.messages.map((m) => `[${m.time}] ${m.author}: ${m.text}`),
+  ];
+  downloadBlob(`conversa-${c.id}.txt`, new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" }));
+}
+
+function exportCsv(c: Conversation) {
+  const d = buildExportData(c);
+  const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  const header = ["contato", "canal", "inicio", "fim", "agente", "timestamp", "autor", "mensagem"];
+  const rows = d.messages.map((m) =>
+    [d.contact, d.channel, d.start, d.end, d.agent, m.time, m.author, m.text].map(esc).join(",")
+  );
+  const csv = [header.join(","), ...rows].join("\n");
+  downloadBlob(`conversa-${c.id}.csv`, new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" }));
+}
+
+function exportPdf(c: Conversation) {
+  const d = buildExportData(c);
+  const doc = new jsPDF();
+  let y = 15;
+  doc.setFontSize(14);
+  doc.text(`Conversa - ${d.contact}`, 14, y); y += 8;
+  doc.setFontSize(10);
+  doc.text(`Canal: ${d.channel}`, 14, y); y += 6;
+  doc.text(`Início: ${d.start}   Fim: ${d.end}`, 14, y); y += 6;
+  doc.text(`Agente responsável: ${d.agent}`, 14, y); y += 8;
+  doc.setDrawColor(47, 174, 124);
+  doc.line(14, y, 196, y); y += 6;
+  doc.setFontSize(10);
+  d.messages.forEach((m) => {
+    const line = `[${m.time}] ${m.author}: ${m.text}`;
+    const wrapped = doc.splitTextToSize(line, 180);
+    if (y + wrapped.length * 5 > 285) { doc.addPage(); y = 15; }
+    doc.text(wrapped, 14, y);
+    y += wrapped.length * 5 + 2;
+  });
+  doc.save(`conversa-${c.id}.pdf`);
+}
 
 export const Route = createFileRoute("/conversas")({
   component: ConversasPage,
