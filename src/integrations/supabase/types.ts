@@ -59,6 +59,53 @@ export type Database = {
           },
         ]
       }
+      automations: {
+        Row: {
+          actions: Json
+          active: boolean
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          trigger_event: string
+          trigger_label_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          actions?: Json
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          trigger_event: string
+          trigger_label_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actions?: Json
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          trigger_event?: string
+          trigger_label_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automations_trigger_label_id_fkey"
+            columns: ["trigger_label_id"]
+            isOneToOne: false
+            referencedRelation: "labels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           channel: string
