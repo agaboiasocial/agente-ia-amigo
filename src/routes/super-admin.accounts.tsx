@@ -198,16 +198,8 @@ function AccountDialog({
   const [active, setActive] = useState(true);
   const [features, setFeatures] = useState<Record<string, boolean>>({});
 
-  // Sync state when opened
-  useState(() => {
-    if (editing) {
-      setName(editing.name);
-      setLocale(editing.locale);
-      setDomain(editing.domain ?? "");
-      setActive(editing.active);
-      setFeatures(editing.features ?? {});
-    }
-  });
+
+
 
   return (
     <Dialog
