@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WhatsappRouteImport } from './routes/whatsapp'
+import { Route as SuperAdminRouteImport } from './routes/super-admin'
 import { Route as SlaRouteImport } from './routes/sla'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as IasRouteImport } from './routes/ias'
@@ -20,10 +21,23 @@ import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as AutomacoesRouteImport } from './routes/automacoes'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
+import { Route as SuperAdminUsersRouteImport } from './routes/super-admin.users'
+import { Route as SuperAdminSidekiqRouteImport } from './routes/super-admin.sidekiq'
+import { Route as SuperAdminSettingsRouteImport } from './routes/super-admin.settings'
+import { Route as SuperAdminPlatformAppsRouteImport } from './routes/super-admin.platform-apps'
+import { Route as SuperAdminInstanceHealthRouteImport } from './routes/super-admin.instance-health'
+import { Route as SuperAdminAgentBotsRouteImport } from './routes/super-admin.agent-bots'
+import { Route as SuperAdminAccountsRouteImport } from './routes/super-admin.accounts'
 
 const WhatsappRoute = WhatsappRouteImport.update({
   id: '/whatsapp',
   path: '/whatsapp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SuperAdminRoute = SuperAdminRouteImport.update({
+  id: '/super-admin',
+  path: '/super-admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SlaRoute = SlaRouteImport.update({
@@ -76,6 +90,47 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SuperAdminIndexRoute = SuperAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminUsersRoute = SuperAdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminSidekiqRoute = SuperAdminSidekiqRouteImport.update({
+  id: '/sidekiq',
+  path: '/sidekiq',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminSettingsRoute = SuperAdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminPlatformAppsRoute = SuperAdminPlatformAppsRouteImport.update({
+  id: '/platform-apps',
+  path: '/platform-apps',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminInstanceHealthRoute =
+  SuperAdminInstanceHealthRouteImport.update({
+    id: '/instance-health',
+    path: '/instance-health',
+    getParentRoute: () => SuperAdminRoute,
+  } as any)
+const SuperAdminAgentBotsRoute = SuperAdminAgentBotsRouteImport.update({
+  id: '/agent-bots',
+  path: '/agent-bots',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminAccountsRoute = SuperAdminAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -88,7 +143,16 @@ export interface FileRoutesByFullPath {
   '/ias': typeof IasRoute
   '/relatorios': typeof RelatoriosRoute
   '/sla': typeof SlaRoute
+  '/super-admin': typeof SuperAdminRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
+  '/super-admin/accounts': typeof SuperAdminAccountsRoute
+  '/super-admin/agent-bots': typeof SuperAdminAgentBotsRoute
+  '/super-admin/instance-health': typeof SuperAdminInstanceHealthRoute
+  '/super-admin/platform-apps': typeof SuperAdminPlatformAppsRoute
+  '/super-admin/settings': typeof SuperAdminSettingsRoute
+  '/super-admin/sidekiq': typeof SuperAdminSidekiqRoute
+  '/super-admin/users': typeof SuperAdminUsersRoute
+  '/super-admin/': typeof SuperAdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,6 +166,14 @@ export interface FileRoutesByTo {
   '/relatorios': typeof RelatoriosRoute
   '/sla': typeof SlaRoute
   '/whatsapp': typeof WhatsappRoute
+  '/super-admin/accounts': typeof SuperAdminAccountsRoute
+  '/super-admin/agent-bots': typeof SuperAdminAgentBotsRoute
+  '/super-admin/instance-health': typeof SuperAdminInstanceHealthRoute
+  '/super-admin/platform-apps': typeof SuperAdminPlatformAppsRoute
+  '/super-admin/settings': typeof SuperAdminSettingsRoute
+  '/super-admin/sidekiq': typeof SuperAdminSidekiqRoute
+  '/super-admin/users': typeof SuperAdminUsersRoute
+  '/super-admin': typeof SuperAdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -115,7 +187,16 @@ export interface FileRoutesById {
   '/ias': typeof IasRoute
   '/relatorios': typeof RelatoriosRoute
   '/sla': typeof SlaRoute
+  '/super-admin': typeof SuperAdminRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
+  '/super-admin/accounts': typeof SuperAdminAccountsRoute
+  '/super-admin/agent-bots': typeof SuperAdminAgentBotsRoute
+  '/super-admin/instance-health': typeof SuperAdminInstanceHealthRoute
+  '/super-admin/platform-apps': typeof SuperAdminPlatformAppsRoute
+  '/super-admin/settings': typeof SuperAdminSettingsRoute
+  '/super-admin/sidekiq': typeof SuperAdminSidekiqRoute
+  '/super-admin/users': typeof SuperAdminUsersRoute
+  '/super-admin/': typeof SuperAdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -130,7 +211,16 @@ export interface FileRouteTypes {
     | '/ias'
     | '/relatorios'
     | '/sla'
+    | '/super-admin'
     | '/whatsapp'
+    | '/super-admin/accounts'
+    | '/super-admin/agent-bots'
+    | '/super-admin/instance-health'
+    | '/super-admin/platform-apps'
+    | '/super-admin/settings'
+    | '/super-admin/sidekiq'
+    | '/super-admin/users'
+    | '/super-admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +234,14 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/sla'
     | '/whatsapp'
+    | '/super-admin/accounts'
+    | '/super-admin/agent-bots'
+    | '/super-admin/instance-health'
+    | '/super-admin/platform-apps'
+    | '/super-admin/settings'
+    | '/super-admin/sidekiq'
+    | '/super-admin/users'
+    | '/super-admin'
   id:
     | '__root__'
     | '/'
@@ -156,7 +254,16 @@ export interface FileRouteTypes {
     | '/ias'
     | '/relatorios'
     | '/sla'
+    | '/super-admin'
     | '/whatsapp'
+    | '/super-admin/accounts'
+    | '/super-admin/agent-bots'
+    | '/super-admin/instance-health'
+    | '/super-admin/platform-apps'
+    | '/super-admin/settings'
+    | '/super-admin/sidekiq'
+    | '/super-admin/users'
+    | '/super-admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -170,6 +277,7 @@ export interface RootRouteChildren {
   IasRoute: typeof IasRoute
   RelatoriosRoute: typeof RelatoriosRoute
   SlaRoute: typeof SlaRoute
+  SuperAdminRoute: typeof SuperAdminRouteWithChildren
   WhatsappRoute: typeof WhatsappRoute
 }
 
@@ -180,6 +288,13 @@ declare module '@tanstack/react-router' {
       path: '/whatsapp'
       fullPath: '/whatsapp'
       preLoaderRoute: typeof WhatsappRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/super-admin': {
+      id: '/super-admin'
+      path: '/super-admin'
+      fullPath: '/super-admin'
+      preLoaderRoute: typeof SuperAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sla': {
@@ -252,8 +367,90 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/super-admin/': {
+      id: '/super-admin/'
+      path: '/'
+      fullPath: '/super-admin/'
+      preLoaderRoute: typeof SuperAdminIndexRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/users': {
+      id: '/super-admin/users'
+      path: '/users'
+      fullPath: '/super-admin/users'
+      preLoaderRoute: typeof SuperAdminUsersRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/sidekiq': {
+      id: '/super-admin/sidekiq'
+      path: '/sidekiq'
+      fullPath: '/super-admin/sidekiq'
+      preLoaderRoute: typeof SuperAdminSidekiqRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/settings': {
+      id: '/super-admin/settings'
+      path: '/settings'
+      fullPath: '/super-admin/settings'
+      preLoaderRoute: typeof SuperAdminSettingsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/platform-apps': {
+      id: '/super-admin/platform-apps'
+      path: '/platform-apps'
+      fullPath: '/super-admin/platform-apps'
+      preLoaderRoute: typeof SuperAdminPlatformAppsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/instance-health': {
+      id: '/super-admin/instance-health'
+      path: '/instance-health'
+      fullPath: '/super-admin/instance-health'
+      preLoaderRoute: typeof SuperAdminInstanceHealthRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/agent-bots': {
+      id: '/super-admin/agent-bots'
+      path: '/agent-bots'
+      fullPath: '/super-admin/agent-bots'
+      preLoaderRoute: typeof SuperAdminAgentBotsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/accounts': {
+      id: '/super-admin/accounts'
+      path: '/accounts'
+      fullPath: '/super-admin/accounts'
+      preLoaderRoute: typeof SuperAdminAccountsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
   }
 }
+
+interface SuperAdminRouteChildren {
+  SuperAdminAccountsRoute: typeof SuperAdminAccountsRoute
+  SuperAdminAgentBotsRoute: typeof SuperAdminAgentBotsRoute
+  SuperAdminInstanceHealthRoute: typeof SuperAdminInstanceHealthRoute
+  SuperAdminPlatformAppsRoute: typeof SuperAdminPlatformAppsRoute
+  SuperAdminSettingsRoute: typeof SuperAdminSettingsRoute
+  SuperAdminSidekiqRoute: typeof SuperAdminSidekiqRoute
+  SuperAdminUsersRoute: typeof SuperAdminUsersRoute
+  SuperAdminIndexRoute: typeof SuperAdminIndexRoute
+}
+
+const SuperAdminRouteChildren: SuperAdminRouteChildren = {
+  SuperAdminAccountsRoute: SuperAdminAccountsRoute,
+  SuperAdminAgentBotsRoute: SuperAdminAgentBotsRoute,
+  SuperAdminInstanceHealthRoute: SuperAdminInstanceHealthRoute,
+  SuperAdminPlatformAppsRoute: SuperAdminPlatformAppsRoute,
+  SuperAdminSettingsRoute: SuperAdminSettingsRoute,
+  SuperAdminSidekiqRoute: SuperAdminSidekiqRoute,
+  SuperAdminUsersRoute: SuperAdminUsersRoute,
+  SuperAdminIndexRoute: SuperAdminIndexRoute,
+}
+
+const SuperAdminRouteWithChildren = SuperAdminRoute._addFileChildren(
+  SuperAdminRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -266,6 +463,7 @@ const rootRouteChildren: RootRouteChildren = {
   IasRoute: IasRoute,
   RelatoriosRoute: RelatoriosRoute,
   SlaRoute: SlaRoute,
+  SuperAdminRoute: SuperAdminRouteWithChildren,
   WhatsappRoute: WhatsappRoute,
 }
 export const routeTree = rootRouteImport
