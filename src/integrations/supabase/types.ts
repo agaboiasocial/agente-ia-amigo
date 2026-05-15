@@ -139,6 +139,42 @@ export type Database = {
         }
         Relationships: []
       }
+      conversation_labels: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          label_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          label_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          label_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_labels_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_labels_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "labels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           assigned_to: string | null
@@ -268,20 +304,26 @@ export type Database = {
         Row: {
           color: string
           created_at: string
+          description: string | null
           id: string
           name: string
+          show_in_sidebar: boolean
         }
         Insert: {
           color?: string
           created_at?: string
+          description?: string | null
           id?: string
           name: string
+          show_in_sidebar?: boolean
         }
         Update: {
           color?: string
           created_at?: string
+          description?: string | null
           id?: string
           name?: string
+          show_in_sidebar?: boolean
         }
         Relationships: []
       }

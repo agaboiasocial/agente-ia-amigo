@@ -11,6 +11,7 @@ import {
   Sparkles,
   QrCode,
   Zap,
+  Tag,
   LifeBuoy,
   ShieldHalf,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const items = [
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { to: "/auditoria", label: "Auditoria", icon: ShieldCheck },
   { to: "/sla", label: "SLA", icon: Timer },
+  { to: "/etiquetas", label: "Etiquetas", icon: Tag },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
