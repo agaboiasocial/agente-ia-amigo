@@ -129,6 +129,48 @@ export const getWhatsAppStatus = createServerFn({ method: "POST" })
     };
   });
 
+const DisconnectInput = z.object({
+  instanceName: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_-]+$/),
+  deleteInstance: z.boolean().optional().default(true),
+});
+
+export const disconnectWhatsApp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => DisconnectInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const headers = { "Content-Type": "application/json", apikey: token() };
+    const name = encodeURIComponent(data.instanceName);
+
+    // Logout (disconnects the device)
+    try {
+      await fetch(`${baseUrl()}/instance/logout/${name}`, { method: "DELETE", headers });
+    } catch (e) {
+      console.warn("logout failed", e);
+    }
+
+    // Optionally remove the instance entirely from Evolution
+    if (data.deleteInstance) {
+      try {
+        await fetch(`${baseUrl()}/instance/delete/${name}`, { method: "DELETE", headers });
+      } catch (e) {
+        console.warn("delete failed", e);
+      }
+    }
+
+    // Reflect in our DB
+    const supabase = context.supabase;
+    if (data.deleteInstance) {
+      await supabase.from("whatsapp_instances").delete().eq("instance_name", data.instanceName);
+    } else {
+      await supabase
+        .from("whatsapp_instances")
+        .update({ status: "disconnected", updated_at: new Date().toISOString() } as never)
+        .eq("instance_name", data.instanceName);
+    }
+
+    return { ok: true };
+  });
+
 const SendMessageInput = z.object({
   conversationId: z.string().uuid(),
   body: z.string().min(1).max(4000),

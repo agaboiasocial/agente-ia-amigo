@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
-import { getWhatsAppStatus } from "@/lib/whatsapp.functions";
-import { MessageCircle, Plus, RefreshCw, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { getWhatsAppStatus, disconnectWhatsApp } from "@/lib/whatsapp.functions";
+import { MessageCircle, Plus, RefreshCw, CheckCircle2, AlertCircle, Loader2, PowerOff } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/canais")({ component: CanaisPage });
@@ -23,8 +23,10 @@ function CanaisPage() {
   const [instances, setInstances] = useState<Instance[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const navigate = useNavigate();
   const fetchStatus = useServerFn(getWhatsAppStatus);
+  const disconnectFn = useServerFn(disconnectWhatsApp);
 
   const load = async () => {
     setLoading(true);
@@ -56,6 +58,23 @@ function CanaisPage() {
       toast.error(e?.message ?? "Erro ao atualizar status");
     } finally {
       setRefreshingId(null);
+    }
+  };
+
+  const disconnect = async (inst: Instance, remove: boolean) => {
+    const msg = remove
+      ? `Remover a instância "${inst.instance_name}"? Isso desconecta o número e apaga a configuração.`
+      : `Desconectar o número "${inst.instance_name}"? A instância continuará cadastrada.`;
+    if (!confirm(msg)) return;
+    setDisconnectingId(inst.id);
+    try {
+      await disconnectFn({ data: { instanceName: inst.instance_name, deleteInstance: remove } });
+      toast.success(remove ? "Instância removida" : "Número desconectado");
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao desconectar");
+    } finally {
+      setDisconnectingId(null);
     }
   };
 
@@ -133,10 +152,25 @@ function CanaisPage() {
                     <RefreshCw className={`h-4 w-4 ${refreshingId === inst.id ? "animate-spin" : ""}`} />
                   </button>
                   <button
+                    onClick={() => disconnect(inst, false)}
+                    disabled={disconnectingId === inst.id}
+                    className="p-2 rounded-lg hover:bg-muted text-muted-foreground disabled:opacity-50"
+                    title="Desconectar número"
+                  >
+                    {disconnectingId === inst.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <PowerOff className="h-4 w-4" />}
+                  </button>
+                  <button
                     onClick={() => navigate({ to: "/conversas" })}
                     className="px-3 py-1.5 text-sm rounded-lg bg-[#0B3A5D] text-white hover:opacity-90"
                   >
                     Ver conversas
+                  </button>
+                  <button
+                    onClick={() => disconnect(inst, true)}
+                    disabled={disconnectingId === inst.id}
+                    className="px-3 py-1.5 text-sm rounded-lg border border-destructive text-destructive hover:bg-destructive/5 disabled:opacity-50"
+                  >
+                    Remover
                   </button>
                 </div>
               </div>
