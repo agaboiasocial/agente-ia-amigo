@@ -19,8 +19,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/whatsapp")({ component: Page });
 
-type ConnState = "disconnected" | "connecting" | "connected" | "error";
-
 interface Instance {
   inboxName: string;
   profileName: string;
