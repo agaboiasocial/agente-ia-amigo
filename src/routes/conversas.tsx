@@ -216,8 +216,8 @@ function ConversasPage() {
         author: "agente",
         sender_id: user?.id ?? null,
       });
-    } catch (e: any) {
-      toast.error(e.message ?? "Erro ao enviar");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro ao enviar");
     }
   };
 
