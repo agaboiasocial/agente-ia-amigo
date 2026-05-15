@@ -34,6 +34,7 @@ import { Route as SuperAdminLoginRouteImport } from './routes/super-admin.login'
 import { Route as SuperAdminInstanceHealthRouteImport } from './routes/super-admin.instance-health'
 import { Route as SuperAdminAgentBotsRouteImport } from './routes/super-admin.agent-bots'
 import { Route as SuperAdminAccountsRouteImport } from './routes/super-admin.accounts'
+import { Route as CaixasIdRouteImport } from './routes/caixas.$id'
 
 const WhatsappRoute = WhatsappRouteImport.update({
   id: '/whatsapp',
@@ -161,6 +162,11 @@ const SuperAdminAccountsRoute = SuperAdminAccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => SuperAdminRoute,
 } as any)
+const CaixasIdRoute = CaixasIdRouteImport.update({
+  id: '/caixas/$id',
+  path: '/caixas/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -179,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/sla': typeof SlaRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
+  '/caixas/$id': typeof CaixasIdRoute
   '/super-admin/accounts': typeof SuperAdminAccountsRoute
   '/super-admin/agent-bots': typeof SuperAdminAgentBotsRoute
   '/super-admin/instance-health': typeof SuperAdminInstanceHealthRoute
@@ -205,6 +212,7 @@ export interface FileRoutesByTo {
   '/relatorios': typeof RelatoriosRoute
   '/sla': typeof SlaRoute
   '/whatsapp': typeof WhatsappRoute
+  '/caixas/$id': typeof CaixasIdRoute
   '/super-admin/accounts': typeof SuperAdminAccountsRoute
   '/super-admin/agent-bots': typeof SuperAdminAgentBotsRoute
   '/super-admin/instance-health': typeof SuperAdminInstanceHealthRoute
@@ -233,6 +241,7 @@ export interface FileRoutesById {
   '/sla': typeof SlaRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
+  '/caixas/$id': typeof CaixasIdRoute
   '/super-admin/accounts': typeof SuperAdminAccountsRoute
   '/super-admin/agent-bots': typeof SuperAdminAgentBotsRoute
   '/super-admin/instance-health': typeof SuperAdminInstanceHealthRoute
@@ -262,6 +271,7 @@ export interface FileRouteTypes {
     | '/sla'
     | '/super-admin'
     | '/whatsapp'
+    | '/caixas/$id'
     | '/super-admin/accounts'
     | '/super-admin/agent-bots'
     | '/super-admin/instance-health'
@@ -288,6 +298,7 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/sla'
     | '/whatsapp'
+    | '/caixas/$id'
     | '/super-admin/accounts'
     | '/super-admin/agent-bots'
     | '/super-admin/instance-health'
@@ -315,6 +326,7 @@ export interface FileRouteTypes {
     | '/sla'
     | '/super-admin'
     | '/whatsapp'
+    | '/caixas/$id'
     | '/super-admin/accounts'
     | '/super-admin/agent-bots'
     | '/super-admin/instance-health'
@@ -343,6 +355,7 @@ export interface RootRouteChildren {
   SlaRoute: typeof SlaRoute
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
   WhatsappRoute: typeof WhatsappRoute
+  CaixasIdRoute: typeof CaixasIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -522,6 +535,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminAccountsRouteImport
       parentRoute: typeof SuperAdminRoute
     }
+    '/caixas/$id': {
+      id: '/caixas/$id'
+      path: '/caixas/$id'
+      fullPath: '/caixas/$id'
+      preLoaderRoute: typeof CaixasIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -570,6 +590,7 @@ const rootRouteChildren: RootRouteChildren = {
   SlaRoute: SlaRoute,
   SuperAdminRoute: SuperAdminRouteWithChildren,
   WhatsappRoute: WhatsappRoute,
+  CaixasIdRoute: CaixasIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
