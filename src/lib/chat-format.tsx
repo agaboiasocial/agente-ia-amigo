@@ -1,7 +1,12 @@
 import { Fragment, type ReactNode } from "react";
 
+interface FormattedMessageProps {
+  text: string;
+  className?: string;
+}
+
 // ---- Inline formatter: bold / italic / strike / inline code / link ----
-function formatInline(text: string, keyPrefix = ""): ReactNode[] {
+export function formatInline(text: string, keyPrefix = ""): ReactNode[] {
   // Tokenize while preserving order; precedence: code > link > bold > italic > strike
   const tokens: { type: string; content: string; href?: string }[] = [];
   let i = 0;
@@ -48,14 +53,14 @@ function formatInline(text: string, keyPrefix = ""): ReactNode[] {
       case "code":
         return (
           <code key={key} className="font-mono text-[0.85em] px-1.5 py-0.5 rounded"
-            style={{ background: "#F3F4F6", color: "#111827" }}>
+            style={{ background: "var(--chat-code-inline)", color: "var(--chat-code-inline-foreground)" }}>
             {t.content}
           </code>
         );
       case "link":
         return (
           <a key={key} href={t.href} target="_blank" rel="noreferrer noopener"
-            className="underline" style={{ color: "#2FAE7C" }}>
+            className="text-success underline underline-offset-2">
             {t.content}
           </a>
         );
@@ -65,7 +70,7 @@ function formatInline(text: string, keyPrefix = ""): ReactNode[] {
 }
 
 // ---- Block-level renderer ----
-export function FormattedMessage({ text }: { text: string }) {
+export function FormattedMessage({ text, className }: FormattedMessageProps) {
   const lines = text.split("\n");
   const blocks: ReactNode[] = [];
   let i = 0;
@@ -83,7 +88,7 @@ export function FormattedMessage({ text }: { text: string }) {
       i++; // skip closing fence
       blocks.push(
         <pre key={`b${blocks.length}`} className="font-mono text-[0.85em] my-2 p-3 rounded-lg overflow-x-auto"
-          style={{ background: "#1E1E2E", color: "#E5E7EB" }}>
+          style={{ background: "var(--chat-code-block)", color: "var(--chat-code-block-foreground)" }}>
           <code>{buf.join("\n")}</code>
         </pre>
       );
@@ -97,8 +102,7 @@ export function FormattedMessage({ text }: { text: string }) {
         buf.push(lines[i].slice(2)); i++;
       }
       blocks.push(
-        <blockquote key={`b${blocks.length}`} className="my-1 pl-3 py-1 text-sm"
-          style={{ borderLeft: "3px solid #2FAE7C", background: "rgba(0,0,0,0.04)" }}>
+        <blockquote key={`b${blocks.length}`} className="my-1 rounded-r-md border-l-[3px] border-success bg-[var(--chat-quote-bg)] py-1 pl-3 text-sm">
           {buf.map((l, k) => <div key={k}>{formatInline(l, `q${blocks.length}-${k}`)}</div>)}
         </blockquote>
       );
@@ -148,5 +152,5 @@ export function FormattedMessage({ text }: { text: string }) {
     i++;
   }
 
-  return <>{blocks}</>;
+  return <div className={className}>{blocks}</div>;
 }
