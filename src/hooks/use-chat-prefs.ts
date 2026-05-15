@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 export const CHAT_FONTS = ["Inter", "Roboto", "Open Sans", "Poppins", "Nunito", "Lato"] as const;
-export type ChatFont = typeof CHAT_FONTS[number];
+export type ChatFont = (typeof CHAT_FONTS)[number];
 
 interface ChatPrefs {
   font: ChatFont;
