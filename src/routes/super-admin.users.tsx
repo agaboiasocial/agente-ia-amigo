@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { SuperAdminLayout } from "@/components/super-admin/SuperAdminSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,33 +20,50 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search } from "lucide-react";
-
-type U = {
-  id: number;
-  name: string;
-  email: string;
-  account: string;
-  role: "Super Admin" | "Admin" | "Agente";
-  active: boolean;
-  createdAt: string;
-};
-
-const seed: U[] = [
-  { id: 1, name: "Carlos Lima", email: "carlos@ias.com", account: "Agente IA Social", role: "Super Admin", active: true, createdAt: "2025-01-12" },
-  { id: 2, name: "Ana Souza", email: "ana@clinica.com", account: "Clínica Guimarães | Saúde", role: "Admin", active: true, createdAt: "2025-03-04" },
-];
+import { Loader2, Search } from "lucide-react";
+import { toast } from "sonner";
+import { createAgentUser, listUsers, deleteUser } from "@/lib/users.functions";
 
 export const Route = createFileRoute("/super-admin/users")({ component: Page });
 
+type RoleValue = "admin" | "agente";
+
 function Page() {
-  const [rows, setRows] = useState<U[]>(seed);
+  const qc = useQueryClient();
+  const list = useServerFn(listUsers);
+  const create = useServerFn(createAgentUser);
+  const remove = useServerFn(deleteUser);
+
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<U | null>(null);
 
-  const filtered = rows.filter((r) =>
-    [r.name, r.email, r.account].some((v) => v.toLowerCase().includes(search.toLowerCase()))
+  const usersQuery = useQuery({
+    queryKey: ["super-admin-users"],
+    queryFn: () => list({ data: {} }),
+  });
+
+  const createMut = useMutation({
+    mutationFn: (input: { email: string; password: string; displayName: string; role: RoleValue }) =>
+      create({ data: input }),
+    onSuccess: () => {
+      toast.success("Usuário criado");
+      qc.invalidateQueries({ queryKey: ["super-admin-users"] });
+      setOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (userId: string) => remove({ data: { userId } }),
+    onSuccess: () => {
+      toast.success("Usuário removido");
+      qc.invalidateQueries({ queryKey: ["super-admin-users"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const rows = (usersQuery.data ?? []).filter((r) =>
+    [r.displayName, r.email].some((v) => v.toLowerCase().includes(search.toLowerCase())),
   );
 
   return (
@@ -53,9 +72,9 @@ function Page() {
       actions={
         <Button
           className="bg-[#2FAE7C] hover:bg-[#26926a] text-white"
-          onClick={() => { setEditing(null); setOpen(true); }}
+          onClick={() => setOpen(true)}
         >
-          New user
+          Novo agente
         </Button>
       }
     >
@@ -63,71 +82,109 @@ function Page() {
         <div className="p-4 border-b flex justify-end">
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input className="pl-9" placeholder="Search users" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input
+              className="pl-9"
+              placeholder="Buscar usuários"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
         </div>
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-slate-600">
-            <tr>
-              <th className="text-left px-4 py-2.5">Id</th>
-              <th className="text-left px-4 py-2.5">Nome</th>
-              <th className="text-left px-4 py-2.5">Email</th>
-              <th className="text-left px-4 py-2.5">Conta</th>
-              <th className="text-left px-4 py-2.5">Role</th>
-              <th className="text-left px-4 py-2.5">Status</th>
-              <th className="text-left px-4 py-2.5">Created</th>
-              <th className="text-left px-4 py-2.5">Edit</th>
-              <th className="text-left px-4 py-2.5">Destroy</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((r) => (
-              <tr key={r.id} className="border-t hover:bg-slate-50">
-                <td className="px-4 py-3">{r.id}</td>
-                <td className="px-4 py-3 font-medium">{r.name}</td>
-                <td className="px-4 py-3 text-slate-600">{r.email}</td>
-                <td className="px-4 py-3">{r.account}</td>
-                <td className="px-4 py-3">{r.role}</td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${r.active ? "bg-[#2FAE7C]/15 text-[#2FAE7C]" : "bg-slate-200 text-slate-600"}`}>
-                    {r.active ? "active" : "inactive"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-slate-600">{r.createdAt}</td>
-                <td className="px-4 py-3">
-                  <button className="text-[#0B3A5D] hover:underline" onClick={() => { setEditing(r); setOpen(true); }}>Edit</button>
-                </td>
-                <td className="px-4 py-3">
-                  <button className="text-[#EF4444] hover:underline" onClick={() => setRows((p) => p.filter((x) => x.id !== r.id))}>Destroy</button>
-                </td>
+
+        {usersQuery.isLoading ? (
+          <div className="flex items-center justify-center py-10 text-slate-500">
+            <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando…
+          </div>
+        ) : usersQuery.error ? (
+          <div className="p-6 text-sm text-[#EF4444]">
+            {(usersQuery.error as Error).message}
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="p-10 text-center text-slate-500 text-sm">Nenhum usuário encontrado.</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-slate-600">
+              <tr>
+                <th className="text-left px-4 py-2.5">Nome</th>
+                <th className="text-left px-4 py-2.5">Email</th>
+                <th className="text-left px-4 py-2.5">Papéis</th>
+                <th className="text-left px-4 py-2.5">Criado em</th>
+                <th className="text-left px-4 py-2.5"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} className="border-t hover:bg-slate-50">
+                  <td className="px-4 py-3 font-medium">{r.displayName}</td>
+                  <td className="px-4 py-3 text-slate-600">{r.email}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1">
+                      {r.roles.length === 0 ? (
+                        <span className="text-slate-400 text-xs">—</span>
+                      ) : (
+                        r.roles.map((role) => (
+                          <span
+                            key={role}
+                            className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                              role === "admin"
+                                ? "bg-[#0B3A5D]/10 text-[#0B3A5D]"
+                                : "bg-[#2FAE7C]/15 text-[#2FAE7C]"
+                            }`}
+                          >
+                            {role}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {r.createdAt ? new Date(r.createdAt).toLocaleDateString("pt-BR") : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      className="text-[#EF4444] hover:underline disabled:opacity-50"
+                      disabled={deleteMut.isPending}
+                      onClick={() => {
+                        if (confirm(`Remover ${r.displayName}? Esta ação é permanente.`)) {
+                          deleteMut.mutate(r.id);
+                        }
+                      }}
+                    >
+                      Remover
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       <UserDialog
         open={open}
         onOpenChange={setOpen}
-        editing={editing}
-        nextId={Math.max(0, ...rows.map((r) => r.id)) + 1}
-        onSave={(u) => {
-          setRows((prev) => prev.some((p) => p.id === u.id) ? prev.map((p) => p.id === u.id ? u : p) : [...prev, u]);
-          setOpen(false);
-        }}
+        submitting={createMut.isPending}
+        onSave={(u) => createMut.mutate(u)}
       />
     </SuperAdminLayout>
   );
 }
 
-function UserDialog({ open, onOpenChange, editing, nextId, onSave }: {
-  open: boolean; onOpenChange: (b: boolean) => void; editing: U | null; nextId: number; onSave: (u: U) => void;
+function UserDialog({
+  open,
+  onOpenChange,
+  submitting,
+  onSave,
+}: {
+  open: boolean;
+  onOpenChange: (b: boolean) => void;
+  submitting: boolean;
+  onSave: (u: { email: string; password: string; displayName: string; role: RoleValue }) => void;
 }) {
-  const [name, setName] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [account, setAccount] = useState("Agente IA Social");
-  const [role, setRole] = useState<U["role"]>("Agente");
+  const [role, setRole] = useState<RoleValue>("agente");
 
   return (
     <Dialog
@@ -135,59 +192,54 @@ function UserDialog({ open, onOpenChange, editing, nextId, onSave }: {
       onOpenChange={(v) => {
         onOpenChange(v);
         if (v) {
-          setName(editing?.name ?? "");
-          setEmail(editing?.email ?? "");
+          setDisplayName("");
+          setEmail("");
           setPassword("");
-          setAccount(editing?.account ?? "Agente IA Social");
-          setRole(editing?.role ?? "Agente");
+          setRole("agente");
         }
       }}
     >
       <DialogContent>
-        <DialogHeader><DialogTitle>{editing ? "Edit user" : "New user"}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Novo agente</DialogTitle>
+        </DialogHeader>
         <div className="space-y-3 py-2">
-          <div><Label>Nome</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-          <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-          {!editing && (
-            <div><Label>Senha temporária</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
-          )}
           <div>
-            <Label>Conta</Label>
-            <Select value={account} onValueChange={setAccount}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Agente IA Social">Agente IA Social</SelectItem>
-                <SelectItem value="Clínica Guimarães | Saúde">Clínica Guimarães | Saúde</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>Nome</Label>
+            <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
           </div>
           <div>
-            <Label>Role</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as U["role"])}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Label>Email</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <div>
+            <Label>Senha</Label>
+            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <p className="text-xs text-slate-500 mt-1">Mínimo 6 caracteres. Compartilhe com o agente.</p>
+          </div>
+          <div>
+            <Label>Papel</Label>
+            <Select value={role} onValueChange={(v) => setRole(v as RoleValue)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Super Admin">Super Admin</SelectItem>
-                <SelectItem value="Admin">Admin</SelectItem>
-                <SelectItem value="Agente">Agente</SelectItem>
+                <SelectItem value="agente">Agente</SelectItem>
+                <SelectItem value="admin">Administrador</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+            Cancelar
+          </Button>
           <Button
             className="bg-[#2FAE7C] hover:bg-[#26926a] text-white"
-            onClick={() => onSave({
-              id: editing?.id ?? nextId,
-              name: name || "Untitled",
-              email,
-              account,
-              role,
-              active: editing?.active ?? true,
-              createdAt: editing?.createdAt ?? new Date().toISOString().slice(0, 10),
-            })}
+            disabled={submitting || !email || !password || !displayName}
+            onClick={() => onSave({ email, password, displayName, role })}
           >
-            {editing ? "Update" : "Create"}
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar"}
           </Button>
         </DialogFooter>
       </DialogContent>
