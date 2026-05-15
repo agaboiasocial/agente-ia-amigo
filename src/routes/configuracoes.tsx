@@ -187,3 +187,77 @@ function Field({ label, value }: { label: string; value: string }) {
 function Empty({ msg }: { msg: string }) {
   return <div className="p-8 text-center text-sm text-muted-foreground">{msg}</div>;
 }
+
+function AparenciaTab() {
+  const { prefs, save } = useChatPrefs();
+  const [font, setFont] = useState<ChatFont>(prefs.font);
+  const [size, setSize] = useState<number>(prefs.size);
+
+  useEffect(() => { setFont(prefs.font); setSize(prefs.size); }, [prefs]);
+  useEffect(() => { ensureFontLoaded(font); }, [font]);
+
+  const sample =
+    "Olá! Esta é uma *mensagem* com _formatação_ e ~tachado~.\n" +
+    "Você pode usar `código inline` ou listas:\n" +
+    "- Item um\n- Item dois\n\n> E também citações elegantes.";
+
+  return (
+    <div className="bg-card rounded-xl shadow-sm border p-6 space-y-5">
+      <div>
+        <h3 className="font-semibold" style={{ color: "#0B3A5D" }}>Aparência do chat</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Configuração individual: cada agente escolhe como vê as mensagens.
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-5">
+        <label className="block">
+          <span className="text-xs font-medium">Fonte do chat</span>
+          <select
+            value={font}
+            onChange={(e) => setFont(e.target.value as ChatFont)}
+            className="mt-1 w-full h-10 px-3 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-success/40"
+          >
+            {CHAT_FONTS.map((f) => <option key={f} value={f}>{f}</option>)}
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="text-xs font-medium flex items-center justify-between">
+            <span>Tamanho da fonte</span>
+            <span className="text-muted-foreground">{size}px</span>
+          </span>
+          <input
+            type="range" min={12} max={18} step={1}
+            value={size}
+            onChange={(e) => setSize(parseInt(e.target.value, 10))}
+            className="mt-3 w-full accent-[#2FAE7C]"
+          />
+        </label>
+      </div>
+
+      <div>
+        <div className="text-xs font-medium mb-2">Pré-visualização</div>
+        <div
+          className="rounded-2xl p-4 max-w-md shadow-sm"
+          style={{
+            background: "#2FAE7C", color: "white",
+            fontFamily: `${font}, system-ui, sans-serif`, fontSize: size, lineHeight: 1.5,
+          }}
+        >
+          <FormattedMessage text={sample} />
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          onClick={() => { save({ font, size }); toast.success("Preferências salvas"); }}
+          className="h-10 px-5 rounded-lg text-sm font-semibold text-white"
+          style={{ background: "#2FAE7C" }}
+        >
+          Salvar
+        </button>
+      </div>
+    </div>
+  );
+}
