@@ -23,8 +23,10 @@ function CanaisPage() {
   const [instances, setInstances] = useState<Instance[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const navigate = useNavigate();
   const fetchStatus = useServerFn(getWhatsAppStatus);
+  const disconnectFn = useServerFn(disconnectWhatsApp);
 
   const load = async () => {
     setLoading(true);
