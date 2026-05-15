@@ -235,7 +235,17 @@ function ConfigPage() {
   );
 }
 
-function Section({ title, desc, children, action }: any) {
+function Section({
+  title,
+  desc,
+  children,
+  action,
+}: {
+  title: string;
+  desc?: string;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
   return (
     <div className="bg-card rounded-xl shadow-sm border p-6">
       <div className="flex justify-between items-start mb-5 gap-4">
