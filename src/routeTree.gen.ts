@@ -150,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/automacoes': typeof AutomacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/contatos': typeof ContatosRoute
+  '/etiquetas': typeof EtiquetasRoute
   '/conversas': typeof ConversasRoute
   '/etiquetas': typeof EtiquetasRoute
   '/funcoes': typeof FuncoesRoute
@@ -174,6 +175,7 @@ export interface FileRoutesByTo {
   '/automacoes': typeof AutomacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/contatos': typeof ContatosRoute
+  '/etiquetas': typeof EtiquetasRoute
   '/conversas': typeof ConversasRoute
   '/etiquetas': typeof EtiquetasRoute
   '/funcoes': typeof FuncoesRoute
@@ -198,6 +200,7 @@ export interface FileRoutesById {
   '/automacoes': typeof AutomacoesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/contatos': typeof ContatosRoute
+  '/etiquetas': typeof EtiquetasRoute
   '/conversas': typeof ConversasRoute
   '/etiquetas': typeof EtiquetasRoute
   '/funcoes': typeof FuncoesRoute
@@ -224,6 +227,7 @@ export interface FileRouteTypes {
     | '/automacoes'
     | '/configuracoes'
     | '/contatos'
+    | '/etiquetas'
     | '/conversas'
     | '/etiquetas'
     | '/funcoes'
@@ -248,6 +252,7 @@ export interface FileRouteTypes {
     | '/automacoes'
     | '/configuracoes'
     | '/contatos'
+    | '/etiquetas'
     | '/conversas'
     | '/etiquetas'
     | '/funcoes'
@@ -271,6 +276,7 @@ export interface FileRouteTypes {
     | '/automacoes'
     | '/configuracoes'
     | '/contatos'
+    | '/etiquetas'
     | '/conversas'
     | '/etiquetas'
     | '/funcoes'
@@ -296,6 +302,7 @@ export interface RootRouteChildren {
   AutomacoesRoute: typeof AutomacoesRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   ContatosRoute: typeof ContatosRoute
+  EtiquetasRoute: typeof EtiquetasRoute
   ConversasRoute: typeof ConversasRoute
   EtiquetasRoute: typeof EtiquetasRoute
   FuncoesRoute: typeof FuncoesRoute
@@ -369,6 +376,13 @@ declare module '@tanstack/react-router' {
       path: '/contatos'
       fullPath: '/contatos'
       preLoaderRoute: typeof ContatosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/etiquetas': {
+      id: '/etiquetas'
+      path: '/etiquetas'
+      fullPath: '/etiquetas'
+      preLoaderRoute: typeof EtiquetasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/configuracoes': {
@@ -499,6 +513,7 @@ const rootRouteChildren: RootRouteChildren = {
   AutomacoesRoute: AutomacoesRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   ContatosRoute: ContatosRoute,
+  EtiquetasRoute: EtiquetasRoute,
   ConversasRoute: ConversasRoute,
   EtiquetasRoute: EtiquetasRoute,
   FuncoesRoute: FuncoesRoute,
