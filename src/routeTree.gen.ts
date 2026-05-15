@@ -17,7 +17,6 @@ import { Route as IasRouteImport } from './routes/ias'
 import { Route as FuncoesRouteImport } from './routes/funcoes'
 import { Route as EtiquetasRouteImport } from './routes/etiquetas'
 import { Route as EquipesRouteImport } from './routes/equipes'
-import { Route as EquipesRouteImport } from './routes/equipes'
 import { Route as ConversasRouteImport } from './routes/conversas'
 import { Route as ContatosRouteImport } from './routes/contatos'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
@@ -67,11 +66,6 @@ const FuncoesRoute = FuncoesRouteImport.update({
 const EtiquetasRoute = EtiquetasRouteImport.update({
   id: '/etiquetas',
   path: '/etiquetas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EquipesRoute = EquipesRouteImport.update({
-  id: '/equipes',
-  path: '/equipes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EquipesRoute = EquipesRouteImport.update({
@@ -165,7 +159,6 @@ export interface FileRoutesByFullPath {
   '/conversas': typeof ConversasRoute
   '/equipes': typeof EquipesRoute
   '/etiquetas': typeof EtiquetasRoute
-  '/equipes': typeof EquipesRoute
   '/funcoes': typeof FuncoesRoute
   '/ias': typeof IasRoute
   '/relatorios': typeof RelatoriosRoute
@@ -191,7 +184,6 @@ export interface FileRoutesByTo {
   '/conversas': typeof ConversasRoute
   '/equipes': typeof EquipesRoute
   '/etiquetas': typeof EtiquetasRoute
-  '/equipes': typeof EquipesRoute
   '/funcoes': typeof FuncoesRoute
   '/ias': typeof IasRoute
   '/relatorios': typeof RelatoriosRoute
@@ -217,7 +209,6 @@ export interface FileRoutesById {
   '/conversas': typeof ConversasRoute
   '/equipes': typeof EquipesRoute
   '/etiquetas': typeof EtiquetasRoute
-  '/equipes': typeof EquipesRoute
   '/funcoes': typeof FuncoesRoute
   '/ias': typeof IasRoute
   '/relatorios': typeof RelatoriosRoute
@@ -245,7 +236,6 @@ export interface FileRouteTypes {
     | '/conversas'
     | '/equipes'
     | '/etiquetas'
-    | '/equipes'
     | '/funcoes'
     | '/ias'
     | '/relatorios'
@@ -271,7 +261,6 @@ export interface FileRouteTypes {
     | '/conversas'
     | '/equipes'
     | '/etiquetas'
-    | '/equipes'
     | '/funcoes'
     | '/ias'
     | '/relatorios'
@@ -296,7 +285,6 @@ export interface FileRouteTypes {
     | '/conversas'
     | '/equipes'
     | '/etiquetas'
-    | '/equipes'
     | '/funcoes'
     | '/ias'
     | '/relatorios'
@@ -323,7 +311,6 @@ export interface RootRouteChildren {
   ConversasRoute: typeof ConversasRoute
   EquipesRoute: typeof EquipesRoute
   EtiquetasRoute: typeof EtiquetasRoute
-  EquipesRoute: typeof EquipesRoute
   FuncoesRoute: typeof FuncoesRoute
   IasRoute: typeof IasRoute
   RelatoriosRoute: typeof RelatoriosRoute
@@ -381,13 +368,6 @@ declare module '@tanstack/react-router' {
       path: '/etiquetas'
       fullPath: '/etiquetas'
       preLoaderRoute: typeof EtiquetasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/equipes': {
-      id: '/equipes'
-      path: '/equipes'
-      fullPath: '/equipes'
-      preLoaderRoute: typeof EquipesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/equipes': {
@@ -542,7 +522,6 @@ const rootRouteChildren: RootRouteChildren = {
   ConversasRoute: ConversasRoute,
   EquipesRoute: EquipesRoute,
   EtiquetasRoute: EtiquetasRoute,
-  EquipesRoute: EquipesRoute,
   FuncoesRoute: FuncoesRoute,
   IasRoute: IasRoute,
   RelatoriosRoute: RelatoriosRoute,
