@@ -132,7 +132,7 @@ export function useCreateContact() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (c: Omit<ContactRow, "id" | "created_at">) => {
-      const { data, error } = await supabase.from("contacts").insert(c).select().single();
+      const { data, error } = await supabase.from("contacts").insert(c as never).select().single();
       if (error) throw error;
       return data;
     },
