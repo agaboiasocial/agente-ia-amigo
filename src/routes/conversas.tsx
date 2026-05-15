@@ -25,9 +25,6 @@ import {
   MoreVertical,
   CheckCircle2,
   ArrowLeftRight,
-  Smile,
-  Paperclip,
-  Zap,
   Send,
   PanelRightClose,
   PanelRightOpen,
@@ -44,6 +41,10 @@ import {
   Loader2,
   Inbox,
 } from "lucide-react";
+import { MessageComposer } from "@/components/MessageComposer";
+import { FormattedMessage } from "@/lib/chat-format";
+import { useChatPrefs, ensureFontLoaded } from "@/hooks/use-chat-prefs";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/conversas")({ component: ConversasPage });
 
