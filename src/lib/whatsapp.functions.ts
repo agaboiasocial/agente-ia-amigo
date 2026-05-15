@@ -64,24 +64,54 @@ export const connectWhatsApp = createServerFn({ method: "POST" })
 
     if (!qr) throw new Error("QR Code não retornado pela Evolution API");
 
-    // Register webhook so messages flow into our DB
+    // Register webhook so messages flow into our DB.
+    // Use the stable preview URL by default — it always serves the latest build,
+    // even before the project is published. Override with PUBLIC_APP_URL after publish.
+    const projectId = process.env.LOVABLE_PROJECT_ID || "b8a4d7ce-8b50-441a-a1a6-fe328bbeae50";
     const publicBase =
       process.env.PUBLIC_APP_URL ||
-      `https://project--${process.env.LOVABLE_PROJECT_ID || "b8a4d7ce-8b50-441a-a1a6-fe328bbeae50"}.lovable.app`;
+      `https://project--${projectId}-dev.lovable.app`;
     const webhookUrl = `${publicBase}/api/public/whatsapp-webhook/${encodeURIComponent(data.instanceName)}`;
 
     try {
-      await fetch(`${baseUrl()}/webhook/set/${encodeURIComponent(data.instanceName)}`, {
+      const wRes = await fetch(`${baseUrl()}/webhook/set/${encodeURIComponent(data.instanceName)}`, {
         method: "POST",
         headers,
+        // Evolution API v2 expects { webhook: { ... } }
         body: JSON.stringify({
-          url: webhookUrl,
-          webhook_by_events: false,
-          events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
+          webhook: {
+            enabled: true,
+            url: webhookUrl,
+            webhookByEvents: false,
+            webhookBase64: false,
+            events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
+          },
         }),
       });
+      if (!wRes.ok) {
+        const txt = await wRes.text().catch(() => "");
+        console.warn("webhook set failed", wRes.status, txt);
+      }
     } catch (e) {
-      console.warn("webhook set failed", e);
+      console.warn("webhook set error", e);
+    }
+
+    // Persist instance row so it shows up in /canais
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin
+        .from("whatsapp_instances")
+        .upsert(
+          {
+            instance_name: data.instanceName,
+            status: "pending",
+            webhook_url: webhookUrl,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "instance_name" },
+        );
+    } catch (e) {
+      console.warn("instance upsert failed", e);
     }
 
     return { qrCode: qr, instanceName: data.instanceName, webhookUrl };
