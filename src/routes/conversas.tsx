@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import {
   useConversations,
@@ -44,7 +44,6 @@ import {
 import { MessageComposer } from "@/components/MessageComposer";
 import { FormattedMessage } from "@/lib/chat-format";
 import { useChatPrefs, ensureFontLoaded } from "@/hooks/use-chat-prefs";
-import { useEffect } from "react";
 
 export const Route = createFileRoute("/conversas")({ component: ConversasPage });
 
@@ -143,9 +142,9 @@ function exportPdf(c: ConvRow, m: MsgRow[]) {
 }
 
 function ConversasPage() {
-  const { prefs } = useChatPrefs();
-  useEffect(() => { ensureFontLoaded(prefs.font); }, [prefs.font]);
   const { user } = useAuth();
+  const { prefs } = useChatPrefs(user?.id);
+  useEffect(() => { ensureFontLoaded(prefs.font); }, [prefs.font]);
   const { data: convs = [], isLoading } = useConversations();
   const updateConv = useUpdateConversation();
 
