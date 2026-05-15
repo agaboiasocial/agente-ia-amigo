@@ -92,7 +92,7 @@ export function useSendMessage() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { conversation_id: string; body: string; is_note: boolean; author: "cliente" | "agente"; sender_id?: string | null }) => {
-      const { error } = await supabase.from("messages").insert(payload);
+      const { error } = await supabase.from("messages").insert(payload as never);
       if (error) throw error;
       await supabase
         .from("conversations")
