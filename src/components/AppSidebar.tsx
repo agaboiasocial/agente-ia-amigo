@@ -170,7 +170,7 @@ export function AppSidebar() {
         })}
       </nav>
 
-      {isAdmin && (
+      {(
         <div className="px-3 pt-2">
           <Link
             to="/super-admin"
