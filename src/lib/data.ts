@@ -50,7 +50,7 @@ export function useCreateConversation() {
     mutationFn: async (payload: { contact_id: string; channel: string; assigned_to?: string | null }) => {
       const { data, error } = await supabase
         .from("conversations")
-        .insert({ ...payload, stage: "novo", status: "aberta" })
+        .insert({ ...payload, stage: "novo", status: "aberta" } as never)
         .select()
         .single();
       if (error) throw error;
