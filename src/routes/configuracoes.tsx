@@ -189,7 +189,8 @@ function Empty({ msg }: { msg: string }) {
 }
 
 function AparenciaTab() {
-  const { prefs, save } = useChatPrefs();
+  const { user } = useAuth();
+  const { prefs, save } = useChatPrefs(user?.id);
   const [font, setFont] = useState<ChatFont>(prefs.font);
   const [size, setSize] = useState<number>(prefs.size);
 
@@ -204,7 +205,7 @@ function AparenciaTab() {
   return (
     <div className="bg-card rounded-xl shadow-sm border p-6 space-y-5">
       <div>
-        <h3 className="font-semibold" style={{ color: "#0B3A5D" }}>Aparência do chat</h3>
+        <h3 className="font-semibold text-brand">Aparência do chat</h3>
         <p className="text-xs text-muted-foreground mt-0.5">
           Configuração individual: cada agente escolhe como vê as mensagens.
         </p>
@@ -231,7 +232,7 @@ function AparenciaTab() {
             type="range" min={12} max={18} step={1}
             value={size}
             onChange={(e) => setSize(parseInt(e.target.value, 10))}
-            className="mt-3 w-full accent-[#2FAE7C]"
+            className="mt-3 w-full accent-[var(--success)]"
           />
         </label>
       </div>
@@ -239,9 +240,8 @@ function AparenciaTab() {
       <div>
         <div className="text-xs font-medium mb-2">Pré-visualização</div>
         <div
-          className="rounded-2xl p-4 max-w-md shadow-sm"
+          className="max-w-md rounded-2xl bg-success p-4 text-success-foreground shadow-sm"
           style={{
-            background: "#2FAE7C", color: "white",
             fontFamily: `${font}, system-ui, sans-serif`, fontSize: size, lineHeight: 1.5,
           }}
         >
@@ -252,8 +252,7 @@ function AparenciaTab() {
       <div className="flex justify-end">
         <button
           onClick={() => { save({ font, size }); toast.success("Preferências salvas"); }}
-          className="h-10 px-5 rounded-lg text-sm font-semibold text-white"
-          style={{ background: "#2FAE7C" }}
+          className="h-10 rounded-lg bg-success px-5 text-sm font-semibold text-success-foreground hover:opacity-95"
         >
           Salvar
         </button>
