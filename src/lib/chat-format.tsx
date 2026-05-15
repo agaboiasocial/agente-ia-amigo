@@ -114,7 +114,7 @@ function formatInline(text: string, keyPrefix = ""): ReactNode[] {
 
 // ---- Block-level renderer ----
 export function FormattedMessage({ text, className }: FormattedMessageProps) {
-  const lines = text.split("\n");
+  const lines = (text ?? "").split("\n");
   const blocks: ReactNode[] = [];
   let i = 0;
 
