@@ -11,10 +11,14 @@ interface ChatPrefs {
 const KEY = "ias.chat.prefs";
 const DEFAULTS: ChatPrefs = { font: "Inter", size: 14 };
 
-function read(): ChatPrefs {
+function keyFor(agentId?: string | null) {
+  return agentId ? `${KEY}.${agentId}` : KEY;
+}
+
+function read(agentId?: string | null): ChatPrefs {
   if (typeof window === "undefined") return DEFAULTS;
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(keyFor(agentId)) ?? localStorage.getItem(KEY);
     if (!raw) return DEFAULTS;
     const p = JSON.parse(raw) as Partial<ChatPrefs>;
     return {
@@ -26,25 +30,25 @@ function read(): ChatPrefs {
   }
 }
 
-export function useChatPrefs() {
+export function useChatPrefs(agentId?: string | null) {
   const [prefs, setPrefs] = useState<ChatPrefs>(DEFAULTS);
 
   useEffect(() => {
-    setPrefs(read());
+    setPrefs(read(agentId));
     const onStorage = (e: StorageEvent) => {
-      if (e.key === KEY) setPrefs(read());
+      if (e.key === keyFor(agentId) || e.key === KEY) setPrefs(read(agentId));
     };
-    const onCustom = () => setPrefs(read());
+    const onCustom = () => setPrefs(read(agentId));
     window.addEventListener("storage", onStorage);
     window.addEventListener("ias:chat-prefs-changed", onCustom);
     return () => {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("ias:chat-prefs-changed", onCustom);
     };
-  }, []);
+  }, [agentId]);
 
   const save = (p: ChatPrefs) => {
-    localStorage.setItem(KEY, JSON.stringify(p));
+    localStorage.setItem(keyFor(agentId), JSON.stringify(p));
     setPrefs(p);
     window.dispatchEvent(new Event("ias:chat-prefs-changed"));
   };
