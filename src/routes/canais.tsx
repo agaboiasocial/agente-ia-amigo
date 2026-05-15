@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
-import { getWhatsAppStatus } from "@/lib/whatsapp.functions";
-import { MessageCircle, Plus, RefreshCw, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { getWhatsAppStatus, disconnectWhatsApp } from "@/lib/whatsapp.functions";
+import { MessageCircle, Plus, RefreshCw, CheckCircle2, AlertCircle, Loader2, PowerOff } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/canais")({ component: CanaisPage });
