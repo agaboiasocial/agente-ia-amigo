@@ -189,6 +189,7 @@ export type Database = {
           sla_minutes: number | null
           stage: string
           status: string
+          team_id: string | null
           unread: boolean
           updated_at: string
         }
@@ -205,6 +206,7 @@ export type Database = {
           sla_minutes?: number | null
           stage?: string
           status?: string
+          team_id?: string | null
           unread?: boolean
           updated_at?: string
         }
@@ -221,6 +223,7 @@ export type Database = {
           sla_minutes?: number | null
           stage?: string
           status?: string
+          team_id?: string | null
           unread?: boolean
           updated_at?: string
         }
@@ -230,6 +233,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -419,6 +429,71 @@ export type Database = {
         }
         Relationships: []
       }
+      team_members: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["team_role"]
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["team_role"]
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["team_role"]
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          active: boolean
+          allow_self_assign: boolean
+          auto_assign: boolean
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          allow_self_assign?: boolean
+          auto_assign?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          allow_self_assign?: boolean
+          auto_assign?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -455,6 +530,16 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "agente"
+      team_role:
+        | "coordenador"
+        | "gerente"
+        | "secretario"
+        | "agente"
+        | "administrador"
+        | "financeiro"
+        | "corretor"
+        | "corretora"
+        | "marketing"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -583,6 +668,17 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "agente"],
+      team_role: [
+        "coordenador",
+        "gerente",
+        "secretario",
+        "agente",
+        "administrador",
+        "financeiro",
+        "corretor",
+        "corretora",
+        "marketing",
+      ],
     },
   },
 } as const
