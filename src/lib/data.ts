@@ -30,6 +30,7 @@ export function useConversations() {
       if (error) throw error;
       return (data ?? []) as unknown as ConvRow[];
     },
+    refetchInterval: 5000,
   });
 }
 
