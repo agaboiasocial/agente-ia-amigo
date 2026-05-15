@@ -123,7 +123,7 @@ export function useContacts() {
     queryFn: async (): Promise<ContactRow[]> => {
       const { data, error } = await supabase.from("contacts").select("*").order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as ContactRow[];
+      return (data ?? []) as unknown as ContactRow[];
     },
   });
 }
