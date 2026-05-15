@@ -1,7 +1,8 @@
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   Bold, Italic, Strikethrough, Code, List, ListOrdered, Quote, SquareCode, Link as LinkIcon,
 } from "lucide-react";
+import { FormattedMessage } from "@/lib/chat-format";
 
 type WrapKind = "bold" | "italic" | "strike" | "code" | "codeblock" | "ul" | "ol" | "quote" | "link";
 
@@ -19,6 +20,19 @@ export function MessageComposer({
   value, onChange, onSubmit, placeholder, fontFamily, fontSize, noteMode,
 }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  const [selection, setSelection] = useState({ start: 0, end: 0 });
+
+  const activeMarks = useMemo(() => {
+    const start = selection.start;
+    const end = selection.end;
+    const probe = value.slice(Math.max(0, start - 80), Math.min(value.length, Math.max(end, start) + 80));
+    return {
+      bold: /\*[^*\n]*$/.test(probe.slice(0, Math.min(80, start))) && /[^*\n]*\*/.test(probe.slice(Math.min(80, start))),
+      italic: /_[^_\n]*$/.test(probe.slice(0, Math.min(80, start))) && /[^_\n]*_/.test(probe.slice(Math.min(80, start))),
+      strike: /~[^~\n]*$/.test(probe.slice(0, Math.min(80, start))) && /[^~\n]*~/.test(probe.slice(Math.min(80, start))),
+      code: /`[^`\n]*$/.test(probe.slice(0, Math.min(80, start))) && /[^`\n]*`/.test(probe.slice(Math.min(80, start))),
+    };
+  }, [selection, value]);
 
   // Auto-grow 2..6 lines
   useEffect(() => {
@@ -96,9 +110,14 @@ export function MessageComposer({
     }
   };
 
+  const syncSelection = () => {
+    const el = ref.current;
+    if (el) setSelection({ start: el.selectionStart, end: el.selectionEnd });
+  };
+
   const Btn = ({ k, title, children }: { k: WrapKind; title: string; children: React.ReactNode }) => (
-    <button type="button" onClick={() => wrap(k)} title={title}
-      className="h-7 w-7 grid place-items-center rounded-md transition-colors text-[#6B7280] hover:bg-background hover:text-[#2FAE7C]">
+    <button type="button" onClick={() => wrap(k)} title={title} aria-pressed={Boolean(activeMarks[k as keyof typeof activeMarks])}
+      className={`grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-success ${activeMarks[k as keyof typeof activeMarks] ? "bg-success/10 text-success" : ""}`}>
       {children}
     </button>
   );
