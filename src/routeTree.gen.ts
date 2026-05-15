@@ -21,7 +21,6 @@ import { Route as ContatosRouteImport } from './routes/contatos'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as AutomacoesRouteImport } from './routes/automacoes'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
-import { Route as EtiquetasRouteImport } from './routes/etiquetas'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
 import { Route as SuperAdminUsersRouteImport } from './routes/super-admin.users'
@@ -36,6 +35,11 @@ import { Route as SuperAdminAccountsRouteImport } from './routes/super-admin.acc
 const WhatsappRoute = WhatsappRouteImport.update({
   id: '/whatsapp',
   path: '/whatsapp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EtiquetasRoute = EtiquetasRouteImport.update({
+  id: '/etiquetas',
+  path: '/etiquetas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SuperAdminRoute = SuperAdminRouteImport.update({
