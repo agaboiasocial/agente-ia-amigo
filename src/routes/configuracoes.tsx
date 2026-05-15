@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { useAgents, useQuickReplies, useLabels } from "@/lib/data";
 import { Plus, Trash2, Code, Copy } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useChatPrefs, ensureFontLoaded, CHAT_FONTS, type ChatFont } from "@/hooks/use-chat-prefs";
+import { FormattedMessage } from "@/lib/chat-format";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/configuracoes")({ component: ConfigPage });
 
-const tabs = ["Perfil", "Agentes", "Respostas rápidas", "Labels", "Horário", "Widget"];
+const tabs = ["Perfil", "Agentes", "Aparência", "Respostas rápidas", "Labels", "Horário", "Widget"];
 
 function ConfigPage() {
   const [tab, setTab] = useState("Perfil");
@@ -71,6 +74,8 @@ function ConfigPage() {
               )}
             </Section>
           )}
+
+          {tab==="Aparência" && <AparenciaTab />}
 
           {tab==="Respostas rápidas" && (
             <Section title="Respostas rápidas" desc="Mensagens pré-definidas com atalhos."
