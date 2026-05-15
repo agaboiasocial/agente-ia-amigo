@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { useAgents, useQuickReplies, useLabels } from "@/lib/data";
 import { Plus, Trash2, Code, Copy } from "lucide-react";
@@ -243,8 +243,8 @@ function Section({
 }: {
   title: string;
   desc?: string;
-  children: React.ReactNode;
-  action?: React.ReactNode;
+  children: ReactNode;
+  action?: ReactNode;
 }) {
   return (
     <div className="bg-card rounded-xl shadow-sm border p-6">
