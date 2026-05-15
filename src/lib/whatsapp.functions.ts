@@ -96,23 +96,8 @@ export const connectWhatsApp = createServerFn({ method: "POST" })
       console.warn("webhook set error", e);
     }
 
-    // Persist instance row so it shows up in /canais
-    try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      await supabaseAdmin
-        .from("whatsapp_instances")
-        .upsert(
-          {
-            instance_name: data.instanceName,
-            status: "pending",
-            webhook_url: webhookUrl,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "instance_name" },
-        );
-    } catch (e) {
-      console.warn("instance upsert failed", e);
-    }
+    // The whatsapp_instances row is created/updated when the connection.update
+    // webhook fires after the QR is scanned (handled in the webhook route).
 
     return { qrCode: qr, instanceName: data.instanceName, webhookUrl };
   });
