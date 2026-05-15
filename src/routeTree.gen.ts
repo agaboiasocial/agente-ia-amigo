@@ -15,6 +15,7 @@ import { Route as SlaRouteImport } from './routes/sla'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as MinhaCaixaRouteImport } from './routes/minha-caixa'
 import { Route as IasRouteImport } from './routes/ias'
+import { Route as FuncoesPermissoesRouteImport } from './routes/funcoes-permissoes'
 import { Route as FuncoesRouteImport } from './routes/funcoes'
 import { Route as EtiquetasRouteImport } from './routes/etiquetas'
 import { Route as EquipesRouteImport } from './routes/equipes'
@@ -64,6 +65,11 @@ const MinhaCaixaRoute = MinhaCaixaRouteImport.update({
 const IasRoute = IasRouteImport.update({
   id: '/ias',
   path: '/ias',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FuncoesPermissoesRoute = FuncoesPermissoesRouteImport.update({
+  id: '/funcoes-permissoes',
+  path: '/funcoes-permissoes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FuncoesRoute = FuncoesRouteImport.update({
@@ -179,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/equipes': typeof EquipesRoute
   '/etiquetas': typeof EtiquetasRoute
   '/funcoes': typeof FuncoesRoute
+  '/funcoes-permissoes': typeof FuncoesPermissoesRoute
   '/ias': typeof IasRoute
   '/minha-caixa': typeof MinhaCaixaRoute
   '/relatorios': typeof RelatoriosRoute
@@ -207,6 +214,7 @@ export interface FileRoutesByTo {
   '/equipes': typeof EquipesRoute
   '/etiquetas': typeof EtiquetasRoute
   '/funcoes': typeof FuncoesRoute
+  '/funcoes-permissoes': typeof FuncoesPermissoesRoute
   '/ias': typeof IasRoute
   '/minha-caixa': typeof MinhaCaixaRoute
   '/relatorios': typeof RelatoriosRoute
@@ -235,6 +243,7 @@ export interface FileRoutesById {
   '/equipes': typeof EquipesRoute
   '/etiquetas': typeof EtiquetasRoute
   '/funcoes': typeof FuncoesRoute
+  '/funcoes-permissoes': typeof FuncoesPermissoesRoute
   '/ias': typeof IasRoute
   '/minha-caixa': typeof MinhaCaixaRoute
   '/relatorios': typeof RelatoriosRoute
@@ -265,6 +274,7 @@ export interface FileRouteTypes {
     | '/equipes'
     | '/etiquetas'
     | '/funcoes'
+    | '/funcoes-permissoes'
     | '/ias'
     | '/minha-caixa'
     | '/relatorios'
@@ -293,6 +303,7 @@ export interface FileRouteTypes {
     | '/equipes'
     | '/etiquetas'
     | '/funcoes'
+    | '/funcoes-permissoes'
     | '/ias'
     | '/minha-caixa'
     | '/relatorios'
@@ -320,6 +331,7 @@ export interface FileRouteTypes {
     | '/equipes'
     | '/etiquetas'
     | '/funcoes'
+    | '/funcoes-permissoes'
     | '/ias'
     | '/minha-caixa'
     | '/relatorios'
@@ -349,6 +361,7 @@ export interface RootRouteChildren {
   EquipesRoute: typeof EquipesRoute
   EtiquetasRoute: typeof EtiquetasRoute
   FuncoesRoute: typeof FuncoesRoute
+  FuncoesPermissoesRoute: typeof FuncoesPermissoesRoute
   IasRoute: typeof IasRoute
   MinhaCaixaRoute: typeof MinhaCaixaRoute
   RelatoriosRoute: typeof RelatoriosRoute
@@ -400,6 +413,13 @@ declare module '@tanstack/react-router' {
       path: '/ias'
       fullPath: '/ias'
       preLoaderRoute: typeof IasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/funcoes-permissoes': {
+      id: '/funcoes-permissoes'
+      path: '/funcoes-permissoes'
+      fullPath: '/funcoes-permissoes'
+      preLoaderRoute: typeof FuncoesPermissoesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/funcoes': {
@@ -584,6 +604,7 @@ const rootRouteChildren: RootRouteChildren = {
   EquipesRoute: EquipesRoute,
   EtiquetasRoute: EtiquetasRoute,
   FuncoesRoute: FuncoesRoute,
+  FuncoesPermissoesRoute: FuncoesPermissoesRoute,
   IasRoute: IasRoute,
   MinhaCaixaRoute: MinhaCaixaRoute,
   RelatoriosRoute: RelatoriosRoute,
@@ -595,13 +616,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
