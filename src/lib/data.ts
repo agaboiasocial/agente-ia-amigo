@@ -28,7 +28,7 @@ export function useConversations() {
         .select("*, contact:contacts(id, name)")
         .order("last_message_at", { ascending: false, nullsFirst: false });
       if (error) throw error;
-      return (data ?? []) as ConvRow[];
+      return (data ?? []) as unknown as ConvRow[];
     },
   });
 }
