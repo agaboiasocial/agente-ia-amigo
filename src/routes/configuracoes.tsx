@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { useAgents, useQuickReplies, useLabels } from "@/lib/data";
-import { Plus, Trash2, Code, Copy, Inbox, ArrowRight } from "lucide-react";
+import { Plus, Trash2, Code, Copy, Inbox, ArrowRight, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useChatPrefs, ensureFontLoaded, CHAT_FONTS, type ChatFont } from "@/hooks/use-chat-prefs";
 import { FormattedMessage } from "@/lib/chat-format";
@@ -29,6 +29,14 @@ function ConfigPage() {
           >
             <Inbox className="h-4 w-4 text-success" />
             <span className="text-sm font-medium flex-1">Caixas de Entrada</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-success" />
+          </Link>
+          <Link
+            to="/funcoes-permissoes"
+            className="flex items-center gap-2 bg-card border rounded-xl p-3 shadow-sm hover:border-success transition-colors group"
+          >
+            <ShieldCheck className="h-4 w-4 text-success" />
+            <span className="text-sm font-medium flex-1">Funções e Permissões</span>
             <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-success" />
           </Link>
           <div className="bg-card border rounded-xl p-2 shadow-sm">
