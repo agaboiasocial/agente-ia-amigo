@@ -25,9 +25,6 @@ import {
   MoreVertical,
   CheckCircle2,
   ArrowLeftRight,
-  Smile,
-  Paperclip,
-  Zap,
   Send,
   PanelRightClose,
   PanelRightOpen,
@@ -44,6 +41,10 @@ import {
   Loader2,
   Inbox,
 } from "lucide-react";
+import { MessageComposer } from "@/components/MessageComposer";
+import { FormattedMessage } from "@/lib/chat-format";
+import { useChatPrefs, ensureFontLoaded } from "@/hooks/use-chat-prefs";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/conversas")({ component: ConversasPage });
 
@@ -142,6 +143,8 @@ function exportPdf(c: ConvRow, m: MsgRow[]) {
 }
 
 function ConversasPage() {
+  const { prefs } = useChatPrefs();
+  useEffect(() => { ensureFontLoaded(prefs.font); }, [prefs.font]);
   const { user } = useAuth();
   const { data: convs = [], isLoading } = useConversations();
   const updateConv = useUpdateConversation();
@@ -334,12 +337,13 @@ function ConversasPage() {
                       return (
                         <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                           <div className="max-w-[70%]">
-                            <div className={`px-4 py-2.5 text-sm shadow-sm ${
+                            <div className={`px-4 py-2.5 shadow-sm ${
                               m.is_note ? "bg-warning/30 text-foreground rounded-2xl border border-warning"
                               : mine ? "bg-success text-success-foreground rounded-2xl rounded-br-md"
-                              : "bg-card text-foreground rounded-2xl rounded-bl-md"}`}>
+                              : "bg-card text-foreground rounded-2xl rounded-bl-md"}`}
+                              style={{ fontFamily: `${prefs.font}, system-ui, sans-serif`, fontSize: prefs.size, lineHeight: 1.5 }}>
                               {m.is_note && <div className="text-[10px] font-bold uppercase tracking-wider opacity-70 mb-1">Nota interna</div>}
-                              {m.body}
+                              <FormattedMessage text={m.body} />
                             </div>
                             <div className={`text-[10px] text-muted-foreground mt-1 ${mine ? "text-right" : ""}`}>
                               {new Date(m.created_at).toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}
@@ -361,13 +365,16 @@ function ConversasPage() {
                     </div>
                     <div className={`p-3 ${mode === "note" ? "bg-warning/10" : ""}`}>
                       <div className="flex items-end gap-2">
-                        <div className="flex-1 rounded-xl border bg-background px-3 py-2 flex items-center gap-2">
-                          <button className="text-muted-foreground hover:text-foreground"><Smile className="h-4 w-4" /></button>
-                          <button className="text-muted-foreground hover:text-foreground"><Paperclip className="h-4 w-4" /></button>
-                          <button className="text-muted-foreground hover:text-warning"><Zap className="h-4 w-4" /></button>
-                          <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()}
-                            placeholder={mode === "note" ? "Escreva uma nota visível só para a equipe..." : "Digite sua mensagem..."}
-                            className="flex-1 bg-transparent text-sm focus:outline-none" />
+                        <div className="flex-1 min-w-0">
+                          <MessageComposer
+                            value={draft}
+                            onChange={setDraft}
+                            onSubmit={send}
+                            placeholder={mode === "note" ? "Escreva uma nota visível só para a equipe..." : "Digite sua mensagem... (use * para negrito, _ para itálico)"}
+                            fontFamily={prefs.font}
+                            fontSize={prefs.size}
+                            noteMode={mode === "note"}
+                          />
                         </div>
                         <button onClick={send} disabled={sendMsg.isPending}
                           className="h-11 px-5 rounded-xl bg-success text-success-foreground hover:opacity-95 flex items-center gap-2 font-semibold text-sm disabled:opacity-60">
