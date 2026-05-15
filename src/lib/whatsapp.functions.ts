@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const ConnectInput = z.object({
   instanceName: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_-]+$/),
