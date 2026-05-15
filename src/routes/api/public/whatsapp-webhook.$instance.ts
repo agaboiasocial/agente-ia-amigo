@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,10 +14,21 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+// Anonymous client — all writes go through SECURITY DEFINER RPCs that bypass RLS.
+function getClient() {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL!;
+  const key =
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
 function digits(s: string | null | undefined) {
   return (s || "").replace(/\D/g, "");
 }
-
 function jidToPhone(jid: string | null | undefined) {
   if (!jid) return "";
   return digits(jid.split("@")[0]);
@@ -35,115 +46,41 @@ function extractText(msg: any): { content: string; type: string; mediaUrl: strin
   return { content: "[mensagem]", type: "text", mediaUrl: null };
 }
 
-async function handleMessageUpsert(instanceName: string, data: any) {
-  const key = data?.key || {};
+async function handleMessageUpsert(instanceName: string, item: any) {
+  const key = item?.key || {};
   const remoteJid: string = key.remoteJid || "";
-  if (!remoteJid || remoteJid.endsWith("@g.us")) return; // skip groups for now
-
-  const fromMe: boolean = !!key.fromMe;
+  if (!remoteJid || remoteJid.endsWith("@g.us")) return;
   const phone = jidToPhone(remoteJid);
   if (!phone) return;
-
+  const fromMe: boolean = !!key.fromMe;
   const messageId: string = key.id || "";
-  const pushName: string = data?.pushName || phone;
-  const { content, type, mediaUrl } = extractText(data?.message);
+  const pushName: string = item?.pushName || phone;
+  const { content, type, mediaUrl } = extractText(item?.message);
 
-  // upsert contact
-  let contactId: string | null = null;
-  {
-    const { data: existing } = await supabaseAdmin
-      .from("contacts")
-      .select("id,name")
-      .eq("phone_number", phone)
-      .maybeSingle();
-    if (existing?.id) {
-      contactId = existing.id;
-      if (!existing.name || existing.name === phone) {
-        await supabaseAdmin.from("contacts").update({ name: pushName }).eq("id", contactId);
-      }
-    } else {
-      const { data: created, error } = await supabaseAdmin
-        .from("contacts")
-        .insert({ name: pushName, phone_number: phone, channel: "whatsapp" })
-        .select("id")
-        .single();
-      if (error) { console.error("contact insert", error); return; }
-      contactId = created.id;
-    }
-  }
-
-  // upsert conversation (one open conv per contact+instance)
-  let conversationId: string | null = null;
-  {
-    const { data: existing } = await supabaseAdmin
-      .from("conversations")
-      .select("id")
-      .eq("contact_id", contactId)
-      .eq("instance_name", instanceName)
-      .in("status", ["open", "pending"])
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (existing?.id) {
-      conversationId = existing.id;
-      await supabaseAdmin
-        .from("conversations")
-        .update({
-          last_message: content,
-          last_message_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", conversationId);
-    } else {
-      const { data: created, error } = await supabaseAdmin
-        .from("conversations")
-        .insert({
-          contact_id: contactId,
-          instance_name: instanceName,
-          channel: "whatsapp",
-          status: "open",
-          last_message: content,
-          last_message_at: new Date().toISOString(),
-        })
-        .select("id")
-        .single();
-      if (error) { console.error("conv insert", error); return; }
-      conversationId = created.id;
-    }
-  }
-
-  // insert message
-  const { error: msgErr } = await supabaseAdmin.from("messages").insert({
-    conversation_id: conversationId,
-    contact_id: contactId,
-    instance_name: instanceName,
-    message_id: messageId,
-    content,
-    message_type: type,
-    media_url: mediaUrl,
-    sender_name: fromMe ? "Eu" : pushName,
-    is_from_contact: !fromMe,
-    raw_data: data,
+  const supa = getClient();
+  const { error } = await supa.rpc("process_whatsapp_message", {
+    p_instance: instanceName,
+    p_phone: phone,
+    p_push_name: pushName,
+    p_message_id: messageId,
+    p_content: content,
+    p_message_type: type,
+    p_media_url: mediaUrl,
+    p_from_me: fromMe,
+    p_raw: item,
   });
-  if (msgErr) console.error("message insert", msgErr);
+  if (error) console.error("rpc process_whatsapp_message", error);
 }
 
 async function handleConnectionUpdate(instanceName: string, data: any) {
-  const state = data?.state || data?.status || "";
-  const status = state === "open" ? "connected" : state === "close" ? "disconnected" : state || "pending";
-  await supabaseAdmin
-    .from("whatsapp_instances")
-    .upsert(
-      {
-        instance_name: instanceName,
-        status,
-        phone_number: data?.wuid ? jidToPhone(data.wuid) : undefined,
-        profile_name: data?.profileName || undefined,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "instance_name" },
-    );
+  const supa = getClient();
+  const { error } = await supa.rpc("process_whatsapp_connection", {
+    p_instance: instanceName,
+    p_state: data?.state || data?.status || "",
+    p_phone: data?.wuid ? jidToPhone(data.wuid) : "",
+    p_profile_name: data?.profileName || "",
+  });
+  if (error) console.error("rpc process_whatsapp_connection", error);
 }
 
 export const Route = createFileRoute("/api/public/whatsapp-webhook/$instance")({
@@ -165,9 +102,8 @@ export const Route = createFileRoute("/api/public/whatsapp-webhook/$instance")({
             for (const item of items) await handleMessageUpsert(instanceName, item);
           } else if (event === "connection.update" || event === "CONNECTION_UPDATE") {
             await handleConnectionUpdate(instanceName, data);
-          } else {
-            // Try to handle bare message payloads
-            if (data?.key?.remoteJid) await handleMessageUpsert(instanceName, data);
+          } else if (data?.key?.remoteJid) {
+            await handleMessageUpsert(instanceName, data);
           }
         } catch (e) {
           console.error("webhook error", e);

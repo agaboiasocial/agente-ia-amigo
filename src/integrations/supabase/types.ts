@@ -1156,6 +1156,29 @@ export type Database = {
         }
         Returns: boolean
       }
+      process_whatsapp_connection: {
+        Args: {
+          p_instance: string
+          p_phone: string
+          p_profile_name: string
+          p_state: string
+        }
+        Returns: undefined
+      }
+      process_whatsapp_message: {
+        Args: {
+          p_content: string
+          p_from_me: boolean
+          p_instance: string
+          p_media_url: string
+          p_message_id: string
+          p_message_type: string
+          p_phone: string
+          p_push_name: string
+          p_raw: Json
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "agente"
