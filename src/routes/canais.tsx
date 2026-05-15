@@ -47,9 +47,8 @@ function CanaisPage() {
         .from("whatsapp_instances")
         .update({
           status: res.state === "open" ? "connected" : res.state ?? "pending",
-          phone_number: res.number ?? inst.phone_number,
+          phone_number: res.phoneNumber ?? inst.phone_number,
           profile_name: res.profileName ?? inst.profile_name,
-          profile_pic: res.profilePic ?? inst.profile_pic,
         })
         .eq("id", inst.id);
       await load();

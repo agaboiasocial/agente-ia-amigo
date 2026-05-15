@@ -22,6 +22,7 @@ import { Route as EquipesRouteImport } from './routes/equipes'
 import { Route as ConversasRouteImport } from './routes/conversas'
 import { Route as ContatosRouteImport } from './routes/contatos'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as CanaisRouteImport } from './routes/canais'
 import { Route as CaixasEntradaRouteImport } from './routes/caixas-entrada'
 import { Route as AutomacoesRouteImport } from './routes/automacoes'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
@@ -102,6 +103,11 @@ const ContatosRoute = ContatosRouteImport.update({
 const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
   id: '/configuracoes',
   path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CanaisRoute = CanaisRouteImport.update({
+  id: '/canais',
+  path: '/canais',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CaixasEntradaRoute = CaixasEntradaRouteImport.update({
@@ -193,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/auditoria': typeof AuditoriaRoute
   '/automacoes': typeof AutomacoesRoute
   '/caixas-entrada': typeof CaixasEntradaRoute
+  '/canais': typeof CanaisRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/contatos': typeof ContatosRoute
   '/conversas': typeof ConversasRoute
@@ -224,6 +231,7 @@ export interface FileRoutesByTo {
   '/auditoria': typeof AuditoriaRoute
   '/automacoes': typeof AutomacoesRoute
   '/caixas-entrada': typeof CaixasEntradaRoute
+  '/canais': typeof CanaisRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/contatos': typeof ContatosRoute
   '/conversas': typeof ConversasRoute
@@ -255,6 +263,7 @@ export interface FileRoutesById {
   '/auditoria': typeof AuditoriaRoute
   '/automacoes': typeof AutomacoesRoute
   '/caixas-entrada': typeof CaixasEntradaRoute
+  '/canais': typeof CanaisRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/contatos': typeof ContatosRoute
   '/conversas': typeof ConversasRoute
@@ -288,6 +297,7 @@ export interface FileRouteTypes {
     | '/auditoria'
     | '/automacoes'
     | '/caixas-entrada'
+    | '/canais'
     | '/configuracoes'
     | '/contatos'
     | '/conversas'
@@ -319,6 +329,7 @@ export interface FileRouteTypes {
     | '/auditoria'
     | '/automacoes'
     | '/caixas-entrada'
+    | '/canais'
     | '/configuracoes'
     | '/contatos'
     | '/conversas'
@@ -349,6 +360,7 @@ export interface FileRouteTypes {
     | '/auditoria'
     | '/automacoes'
     | '/caixas-entrada'
+    | '/canais'
     | '/configuracoes'
     | '/contatos'
     | '/conversas'
@@ -381,6 +393,7 @@ export interface RootRouteChildren {
   AuditoriaRoute: typeof AuditoriaRoute
   AutomacoesRoute: typeof AutomacoesRoute
   CaixasEntradaRoute: typeof CaixasEntradaRoute
+  CanaisRoute: typeof CanaisRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   ContatosRoute: typeof ContatosRoute
   ConversasRoute: typeof ConversasRoute
@@ -489,6 +502,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes'
       fullPath: '/configuracoes'
       preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/canais': {
+      id: '/canais'
+      path: '/canais'
+      fullPath: '/canais'
+      preLoaderRoute: typeof CanaisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/caixas-entrada': {
@@ -640,6 +660,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuditoriaRoute: AuditoriaRoute,
   AutomacoesRoute: AutomacoesRoute,
   CaixasEntradaRoute: CaixasEntradaRoute,
+  CanaisRoute: CanaisRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   ContatosRoute: ContatosRoute,
   ConversasRoute: ConversasRoute,
