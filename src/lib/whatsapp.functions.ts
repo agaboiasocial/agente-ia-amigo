@@ -64,7 +64,27 @@ export const connectWhatsApp = createServerFn({ method: "POST" })
 
     if (!qr) throw new Error("QR Code não retornado pela Evolution API");
 
-    return { qrCode: qr, instanceName: data.instanceName };
+    // Register webhook so messages flow into our DB
+    const publicBase =
+      process.env.PUBLIC_APP_URL ||
+      `https://project--${process.env.LOVABLE_PROJECT_ID || "b8a4d7ce-8b50-441a-a1a6-fe328bbeae50"}.lovable.app`;
+    const webhookUrl = `${publicBase}/api/public/whatsapp-webhook/${encodeURIComponent(data.instanceName)}`;
+
+    try {
+      await fetch(`${baseUrl()}/webhook/set/${encodeURIComponent(data.instanceName)}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          url: webhookUrl,
+          webhook_by_events: false,
+          events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
+        }),
+      });
+    } catch (e) {
+      console.warn("webhook set failed", e);
+    }
+
+    return { qrCode: qr, instanceName: data.instanceName, webhookUrl };
   });
 
 const StatusInput = z.object({
