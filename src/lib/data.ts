@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { sendWhatsAppMessage } from "@/lib/whatsapp.functions";
 
 // ---------- Conversations ----------
 export interface ConvRow {
@@ -117,39 +119,18 @@ export function useMessages(conversationId: string | undefined) {
 
 export function useSendMessage() {
   const qc = useQueryClient();
+  const sendWhatsApp = useServerFn(sendWhatsAppMessage);
   return useMutation({
     mutationFn: async (payload: { conversation_id: string; body: string; is_note: boolean; author: "cliente" | "agente"; sender_id?: string | null; sender_name?: string | null }) => {
-      // Resolve agent_id from auth user (messages.agent_id references agents table, not auth.users)
-      let resolvedAgentId: string | null = null;
-      let resolvedSenderName: string | null = payload.sender_name ?? null;
-      if (payload.author === "agente" && payload.sender_id) {
-        const { data: agentRow } = await supabase
-          .from("agents")
-          .select("id, name")
-          .eq("auth_user_id", payload.sender_id)
-          .maybeSingle();
-        if (agentRow) {
-          resolvedAgentId = agentRow.id as string;
-          resolvedSenderName = resolvedSenderName ?? (agentRow.name as string);
-        }
-      }
-      const insertRow = {
-        conversation_id: payload.conversation_id,
-        content: payload.body,
-        is_from_contact: payload.author === "cliente",
-        is_private: payload.is_note,
-        agent_id: resolvedAgentId,
-        sender_name: resolvedSenderName ?? (payload.author === "agente" ? "Agente" : null),
-        message_type: "text",
-      };
-      const { error } = await supabase.from("messages").insert(insertRow as never);
-      if (error) throw error;
-      if (!payload.is_note) {
-        await supabase
-          .from("conversations")
-          .update({ last_message: payload.body, last_message_at: new Date().toISOString() })
-          .eq("id", payload.conversation_id);
-      }
+      if (payload.author !== "agente") throw new Error("Envio pelo cliente não é permitido no sistema");
+      await sendWhatsApp({
+        data: {
+          conversationId: payload.conversation_id,
+          body: payload.body,
+          isNote: payload.is_note,
+          senderName: payload.sender_name ?? null,
+        },
+      });
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["messages", vars.conversation_id] });

@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const ConnectInput = z.object({
   instanceName: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_-]+$/),
@@ -15,6 +17,10 @@ function token() {
   const t = process.env.EVOLUTION_API_TOKEN;
   if (!t) throw new Error("EVOLUTION_API_TOKEN não configurado");
   return t;
+}
+
+function digits(s: string | null | undefined) {
+  return (s || "").replace(/\D/g, "");
 }
 
 export const connectWhatsApp = createServerFn({ method: "POST" })
@@ -122,4 +128,92 @@ export const getWhatsAppStatus = createServerFn({ method: "POST" })
       profileName: body?.instance?.profileName || null,
       phoneNumber: body?.instance?.owner || body?.instance?.wuid || null,
     };
+  });
+
+const SendMessageInput = z.object({
+  conversationId: z.string().uuid(),
+  body: z.string().min(1).max(4000),
+  isNote: z.boolean().optional().default(false),
+  senderName: z.string().max(120).optional().nullable(),
+});
+
+export const sendWhatsAppMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => SendMessageInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const text = data.body.trim();
+    const { data: conversation, error: conversationError } = await supabaseAdmin
+      .from("conversations")
+      .select("id, contact_id, instance_name")
+      .eq("id", data.conversationId)
+      .maybeSingle();
+
+    if (conversationError) throw new Error(conversationError.message);
+    if (!conversation) throw new Error("Conversa não encontrada");
+
+    const { data: agent } = await supabaseAdmin
+      .from("agents")
+      .select("id, name")
+      .eq("auth_user_id", context.userId)
+      .maybeSingle();
+
+    const senderName = data.senderName || agent?.name || "Agente";
+    const baseMessage = {
+      conversation_id: data.conversationId,
+      contact_id: conversation.contact_id,
+      instance_name: conversation.instance_name,
+      content: text,
+      is_from_contact: false,
+      is_private: data.isNote,
+      agent_id: agent?.id ?? null,
+      sender_name: data.isNote ? senderName : "Eu",
+      message_type: "text",
+    };
+
+    if (data.isNote) {
+      const { error } = await supabaseAdmin.from("messages").insert(baseMessage as never);
+      if (error) throw new Error(error.message);
+      return { ok: true, sent: false };
+    }
+
+    if (!conversation.contact_id) throw new Error("Esta conversa não tem contato vinculado");
+
+    const { data: contact, error: contactError } = await supabaseAdmin
+      .from("contacts")
+      .select("phone_number")
+      .eq("id", conversation.contact_id)
+      .maybeSingle();
+    if (contactError) throw new Error(contactError.message);
+
+    const instanceName = conversation.instance_name;
+    const number = digits(contact?.phone_number);
+    if (!instanceName) throw new Error("Esta conversa não tem instância do WhatsApp vinculada");
+    if (!number) throw new Error("Este contato não tem número de WhatsApp válido");
+
+    const res = await fetch(`${baseUrl()}/message/sendText/${encodeURIComponent(instanceName)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: token() },
+      body: JSON.stringify({ number, text }),
+    });
+    let apiBody: any = null;
+    try { apiBody = await res.json(); } catch { apiBody = await res.text().catch(() => null); }
+    if (!res.ok) {
+      const message = apiBody?.response?.message || apiBody?.message || `Evolution API: ${res.status}`;
+      throw new Error(Array.isArray(message) ? message.join(", ") : String(message));
+    }
+
+    const messageId = apiBody?.key?.id || apiBody?.message?.key?.id || apiBody?.data?.key?.id || null;
+    const { error: insertError } = await supabaseAdmin.from("messages").insert({
+      ...baseMessage,
+      message_id: messageId,
+      raw_data: apiBody,
+    } as never);
+    if (insertError) throw new Error(insertError.message);
+
+    await supabaseAdmin
+      .from("conversations")
+      .update({ last_message: text, last_message_at: new Date().toISOString(), updated_at: new Date().toISOString() } as never)
+      .eq("id", data.conversationId);
+
+    return { ok: true, sent: true };
   });
