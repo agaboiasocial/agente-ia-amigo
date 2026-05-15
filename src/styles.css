@@ -63,6 +63,11 @@
   --success-foreground: oklch(1 0 0);
   --warning: oklch(0.83 0.14 85);               /* #F2C94C yellow */
   --warning-foreground: oklch(0.20 0.02 250);
+  --chat-code-inline: oklch(0.97 0.003 264);    /* #F3F4F6 */
+  --chat-code-inline-foreground: oklch(0.21 0.034 264);
+  --chat-code-block: oklch(0.22 0.04 286);      /* #1E1E2E */
+  --chat-code-block-foreground: oklch(0.93 0.013 255);
+  --chat-quote-bg: oklch(0.95 0.01 250);
 
   --background: oklch(0.97 0.005 250);          /* #F5F7FA */
   --foreground: oklch(0.18 0.02 270);           /* #1A1A2E */
