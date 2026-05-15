@@ -144,10 +144,21 @@ export function MessageComposer({
         <Btn k="codeblock" title="Bloco de código"><SquareCode className="h-3.5 w-3.5" /></Btn>
         <Btn k="link" title="Inserir link (Ctrl+K)"><LinkIcon className="h-3.5 w-3.5" /></Btn>
       </div>
+      {value.trim() && (
+        <div
+          className="max-h-36 overflow-auto border-b bg-muted/30 px-3 py-2 text-sm text-foreground"
+          style={taStyle}
+        >
+          <FormattedMessage text={value} />
+        </div>
+      )}
       <textarea
         ref={ref}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => { onChange(e.target.value); syncSelection(); }}
+        onSelect={syncSelection}
+        onClick={syncSelection}
+        onKeyUp={syncSelection}
         onKeyDown={handleKey}
         placeholder={placeholder ?? "Digite sua mensagem... (use * para negrito, _ para itálico)"}
         rows={2}
