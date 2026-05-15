@@ -250,6 +250,7 @@ export interface FileRouteTypes {
     | '/contatos'
     | '/conversas'
     | '/etiquetas'
+    | '/etiquetas'
     | '/funcoes'
     | '/ias'
     | '/relatorios'
