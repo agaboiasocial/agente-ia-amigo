@@ -39,6 +39,14 @@ function ConfigPage() {
             <span className="text-sm font-medium flex-1">Funções e Permissões</span>
             <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-success" />
           </Link>
+          <Link
+            to="/atributos"
+            className="flex items-center gap-2 bg-card border rounded-xl p-3 shadow-sm hover:border-success transition-colors group"
+          >
+            <Sparkles className="h-4 w-4 text-success" />
+            <span className="text-sm font-medium flex-1">Atributos Personalizados</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-success" />
+          </Link>
           <div className="bg-card border rounded-xl p-2 shadow-sm">
             {tabs.map((t) => (
               <button
