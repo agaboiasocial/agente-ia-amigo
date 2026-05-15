@@ -82,7 +82,7 @@ export function useMessages(conversationId: string | undefined) {
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as MsgRow[];
+      return (data ?? []) as unknown as MsgRow[];
     },
     enabled: !!conversationId,
   });
