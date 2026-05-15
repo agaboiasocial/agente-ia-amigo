@@ -349,13 +349,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FuncoesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/etiquetas': {
-      id: '/etiquetas'
-      path: '/etiquetas'
-      fullPath: '/etiquetas'
-      preLoaderRoute: typeof EtiquetasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/conversas': {
       id: '/conversas'
       path: '/conversas'
