@@ -12,6 +12,7 @@ import {
   QrCode,
   Zap,
   Tag,
+  Users2,
   LifeBuoy,
   ShieldHalf,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const items = [
   { to: "/funcoes", label: "Funções personalizadas", icon: Sparkles },
   { to: "/whatsapp", label: "Conectar WhatsApp", icon: QrCode },
   { to: "/contatos", label: "Contatos", icon: Users },
+  { to: "/equipes", label: "Equipes", icon: Users2 },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { to: "/auditoria", label: "Auditoria", icon: ShieldCheck },
   { to: "/sla", label: "SLA", icon: Timer },
