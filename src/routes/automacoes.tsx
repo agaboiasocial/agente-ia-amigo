@@ -125,9 +125,9 @@ function AutomacoesPage() {
         description: a.description,
         trigger_label_id: a.trigger_label_id,
         trigger_event: a.trigger_event,
-        actions: a.actions as never,
-        active: false,
-      });
+        actions: a.actions,
+        is_active: false,
+      } as never);
       if (error) throw error;
     },
     onSuccess: () => {
