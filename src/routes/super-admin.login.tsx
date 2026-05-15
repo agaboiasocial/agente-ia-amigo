@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Loader2, ShieldHalf } from "lucide-react";
@@ -7,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { checkSuperAdmin } from "@/lib/users.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/super-admin/login")({
@@ -21,6 +23,7 @@ const schema = z.object({
 function Page() {
   const navigate = useNavigate();
   const { session, isAdmin, loading } = useAuth();
+  const verifySuperAdmin = useServerFn(checkSuperAdmin);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -50,12 +53,8 @@ function Page() {
         setError(signErr?.message ?? "Falha no login");
         return;
       }
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", data.user.id);
-      const admin = !!roles?.some((r) => r.role === "admin");
-      if (!admin) {
+      const access = await verifySuperAdmin();
+      if (!access.isAdmin) {
         await supabase.auth.signOut();
         setError("Acesso restrito a super administradores.");
         return;

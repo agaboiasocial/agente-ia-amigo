@@ -13,14 +13,24 @@ const CreateInput = z.object({
 });
 
 async function assertAdmin(userId: string) {
-  const { data } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
+  const { data } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId);
   if (!data?.some((r: { role: string }) => r.role === "admin")) {
     throw new Error("Acesso restrito a administradores");
   }
 }
+
+export const checkSuperAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+
+    if (error) throw new Error(error.message);
+
+    return { isAdmin: !!data?.some((r: { role: string }) => r.role === "admin") };
+  });
 
 export const createAgentUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -55,9 +65,7 @@ export const createAgentUser = createServerFn({ method: "POST" })
 
     // If admin requested, add the admin role (keep 'agente' too — additive).
     if (data.role === "admin") {
-      await supabaseAdmin
-        .from("user_roles")
-        .insert({ user_id: userId, role: "admin" } as never);
+      await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "admin" } as never);
     }
 
     return { ok: true, userId };
@@ -82,7 +90,8 @@ export const listUsers = createServerFn({ method: "POST" })
 
     return list.users.map((u) => {
       const prof = profiles?.find((p: { user_id: string }) => p.user_id === u.id);
-      const userRoles = roles?.filter((r: { user_id: string }) => r.user_id === u.id).map((r) => r.role) ?? [];
+      const userRoles =
+        roles?.filter((r: { user_id: string }) => r.user_id === u.id).map((r) => r.role) ?? [];
       return {
         id: u.id,
         email: u.email ?? "",
