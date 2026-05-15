@@ -38,6 +38,7 @@ const items = [
   { to: "/ias", label: "IAS — Agente", icon: Bot },
   { to: "/funcoes", label: "Funções personalizadas", icon: Sparkles },
   { to: "/whatsapp", label: "Conectar WhatsApp", icon: QrCode },
+  { to: "/canais", label: "Canais Conectados", icon: Inbox },
   { to: "/contatos", label: "Contatos", icon: Users },
   { to: "/equipes", label: "Equipes", icon: Users2 },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
