@@ -119,13 +119,27 @@ export function useSendMessage() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { conversation_id: string; body: string; is_note: boolean; author: "cliente" | "agente"; sender_id?: string | null; sender_name?: string | null }) => {
+      // Resolve agent_id from auth user (messages.agent_id references agents table, not auth.users)
+      let resolvedAgentId: string | null = null;
+      let resolvedSenderName: string | null = payload.sender_name ?? null;
+      if (payload.author === "agente" && payload.sender_id) {
+        const { data: agentRow } = await supabase
+          .from("agents")
+          .select("id, name")
+          .eq("auth_user_id", payload.sender_id)
+          .maybeSingle();
+        if (agentRow) {
+          resolvedAgentId = agentRow.id as string;
+          resolvedSenderName = resolvedSenderName ?? (agentRow.name as string);
+        }
+      }
       const insertRow = {
         conversation_id: payload.conversation_id,
         content: payload.body,
         is_from_contact: payload.author === "cliente",
         is_private: payload.is_note,
-        agent_id: payload.sender_id ?? null,
-        sender_name: payload.sender_name ?? (payload.author === "agente" ? "Agente" : null),
+        agent_id: resolvedAgentId,
+        sender_name: resolvedSenderName ?? (payload.author === "agente" ? "Agente" : null),
         message_type: "text",
       };
       const { error } = await supabase.from("messages").insert(insertRow as never);
