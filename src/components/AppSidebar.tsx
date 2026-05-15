@@ -11,6 +11,7 @@ import {
   Sparkles,
   QrCode,
   Zap,
+  Tag,
   LifeBuoy,
   ShieldHalf,
 } from "lucide-react";
