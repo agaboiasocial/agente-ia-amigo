@@ -22,6 +22,19 @@ async function assertAdmin(userId: string) {
   }
 }
 
+export const checkSuperAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+
+    if (error) throw new Error(error.message);
+
+    return { isAdmin: !!data?.some((r: { role: string }) => r.role === "admin") };
+  });
+
 export const createAgentUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => CreateInput.parse(input))
