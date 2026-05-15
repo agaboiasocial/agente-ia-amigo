@@ -1,9 +1,27 @@
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
-  Bold, Italic, Strikethrough, Code, List, ListOrdered, Quote, SquareCode, Link as LinkIcon,
+  Bold,
+  Italic,
+  Strikethrough,
+  Code,
+  List,
+  ListOrdered,
+  Quote,
+  SquareCode,
+  Link as LinkIcon,
 } from "lucide-react";
+import { FormattedMessage } from "@/lib/chat-format";
 
-type WrapKind = "bold" | "italic" | "strike" | "code" | "codeblock" | "ul" | "ol" | "quote" | "link";
+type WrapKind =
+  | "bold"
+  | "italic"
+  | "strike"
+  | "code"
+  | "codeblock"
+  | "ul"
+  | "ol"
+  | "quote"
+  | "link";
 
 interface Props {
   value: string;
@@ -16,13 +34,43 @@ interface Props {
 }
 
 export function MessageComposer({
-  value, onChange, onSubmit, placeholder, fontFamily, fontSize, noteMode,
+  value,
+  onChange,
+  onSubmit,
+  placeholder,
+  fontFamily,
+  fontSize,
+  noteMode,
 }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  const [selection, setSelection] = useState({ start: 0, end: 0 });
+
+  const activeMarks = useMemo(() => {
+    const start = selection.start;
+    const end = Math.max(selection.end, start);
+    const beforeCursor = value.slice(0, start);
+    const afterCursor = value.slice(end);
+    const lineStart = value.lastIndexOf("\n", Math.max(0, start - 1)) + 1;
+    const lineEndIndex = value.indexOf("\n", start);
+    const currentLine = value.slice(lineStart, lineEndIndex === -1 ? value.length : lineEndIndex);
+    const fenceBefore = (beforeCursor.match(/```/g) ?? []).length;
+    return {
+      bold: /\*[^*\n]*$/.test(beforeCursor) && /^[^*\n]*\*/.test(afterCursor),
+      italic: /_[^_\n]*$/.test(beforeCursor) && /^[^_\n]*_/.test(afterCursor),
+      strike: /~[^~\n]*$/.test(beforeCursor) && /^[^~\n]*~/.test(afterCursor),
+      code: /`[^`\n]*$/.test(beforeCursor) && /^[^`\n]*`/.test(afterCursor),
+      ul: /^\s*[-*]\s/.test(currentLine),
+      ol: /^\s*\d+\.\s/.test(currentLine),
+      quote: /^\s*>\s/.test(currentLine),
+      codeblock: fenceBefore % 2 === 1,
+      link: /\[[^\]]*$/.test(beforeCursor) && /^[^\]]*\]\([^)]*\)/.test(afterCursor),
+    };
+  }, [selection, value]);
 
   // Auto-grow 2..6 lines
   useEffect(() => {
-    const el = ref.current; if (!el) return;
+    const el = ref.current;
+    if (!el) return;
     el.style.height = "auto";
     const lh = (fontSize ?? 14) * 1.5;
     const min = lh * 2 + 12;
@@ -31,22 +79,38 @@ export function MessageComposer({
   }, [value, fontSize]);
 
   const wrap = (kind: WrapKind) => {
-    const el = ref.current; if (!el) return;
-    const start = el.selectionStart, end = el.selectionEnd;
+    const el = ref.current;
+    if (!el) return;
+    const start = el.selectionStart,
+      end = el.selectionEnd;
     const sel = value.slice(start, end);
-    let before = "", after = "", replacement = sel;
+    let before = "",
+      after = "",
+      replacement = sel;
     let wholeLine = false;
 
     switch (kind) {
-      case "bold": before = after = "*"; break;
-      case "italic": before = after = "_"; break;
-      case "strike": before = after = "~"; break;
-      case "code": before = after = "`"; break;
-      case "codeblock": before = "```\n"; after = "\n```"; break;
+      case "bold":
+        before = after = "*";
+        break;
+      case "italic":
+        before = after = "_";
+        break;
+      case "strike":
+        before = after = "~";
+        break;
+      case "code":
+        before = after = "`";
+        break;
+      case "codeblock":
+        before = "```\n";
+        after = "\n```";
+        break;
       case "link": {
         const url = window.prompt("URL do link:", "https://");
         if (!url) return;
-        before = "["; after = `](${url})`;
+        before = "[";
+        after = `](${url})`;
         if (!sel) replacement = "texto";
         break;
       }
@@ -89,16 +153,43 @@ export function MessageComposer({
     }
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
       const k = e.key.toLowerCase();
-      if (k === "b") { e.preventDefault(); wrap("bold"); }
-      else if (k === "i") { e.preventDefault(); wrap("italic"); }
-      else if (k === "e") { e.preventDefault(); wrap("code"); }
-      else if (k === "k") { e.preventDefault(); wrap("link"); }
+      if (k === "b") {
+        e.preventDefault();
+        wrap("bold");
+      } else if (k === "i") {
+        e.preventDefault();
+        wrap("italic");
+      } else if (k === "e") {
+        e.preventDefault();
+        wrap("code");
+      } else if (k === "k") {
+        e.preventDefault();
+        wrap("link");
+      }
     }
   };
 
-  const Btn = ({ k, title, children }: { k: WrapKind; title: string; children: React.ReactNode }) => (
-    <button type="button" onClick={() => wrap(k)} title={title}
-      className="h-7 w-7 grid place-items-center rounded-md transition-colors text-[#6B7280] hover:bg-background hover:text-[#2FAE7C]">
+  const syncSelection = () => {
+    const el = ref.current;
+    if (el) setSelection({ start: el.selectionStart, end: el.selectionEnd });
+  };
+
+  const Btn = ({
+    k,
+    title,
+    children,
+  }: {
+    k: WrapKind;
+    title: string;
+    children: React.ReactNode;
+  }) => (
+    <button
+      type="button"
+      onClick={() => wrap(k)}
+      title={title}
+      aria-pressed={Boolean(activeMarks[k as keyof typeof activeMarks])}
+      className={`grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-success ${activeMarks[k as keyof typeof activeMarks] ? "bg-success/10 text-success" : ""}`}
+    >
       {children}
     </button>
   );
@@ -113,22 +204,54 @@ export function MessageComposer({
   return (
     <div className={`rounded-xl border bg-background ${noteMode ? "ring-1 ring-warning/50" : ""}`}>
       <div className="flex items-center gap-0.5 px-2 py-1.5 border-b">
-        <Btn k="bold" title="Negrito (Ctrl+B)"><Bold className="h-3.5 w-3.5" /></Btn>
-        <Btn k="italic" title="Itálico (Ctrl+I)"><Italic className="h-3.5 w-3.5" /></Btn>
-        <Btn k="strike" title="Tachado"><Strikethrough className="h-3.5 w-3.5" /></Btn>
-        <Btn k="code" title="Código inline (Ctrl+E)"><Code className="h-3.5 w-3.5" /></Btn>
+        <Btn k="bold" title="Negrito (Ctrl+B)">
+          <Bold className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn k="italic" title="Itálico (Ctrl+I)">
+          <Italic className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn k="strike" title="Tachado">
+          <Strikethrough className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn k="code" title="Código inline (Ctrl+E)">
+          <Code className="h-3.5 w-3.5" />
+        </Btn>
         <Sep />
-        <Btn k="ul" title="Lista"><List className="h-3.5 w-3.5" /></Btn>
-        <Btn k="ol" title="Lista numerada"><ListOrdered className="h-3.5 w-3.5" /></Btn>
-        <Btn k="quote" title="Citação"><Quote className="h-3.5 w-3.5" /></Btn>
+        <Btn k="ul" title="Lista">
+          <List className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn k="ol" title="Lista numerada">
+          <ListOrdered className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn k="quote" title="Citação">
+          <Quote className="h-3.5 w-3.5" />
+        </Btn>
         <Sep />
-        <Btn k="codeblock" title="Bloco de código"><SquareCode className="h-3.5 w-3.5" /></Btn>
-        <Btn k="link" title="Inserir link (Ctrl+K)"><LinkIcon className="h-3.5 w-3.5" /></Btn>
+        <Btn k="codeblock" title="Bloco de código">
+          <SquareCode className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn k="link" title="Inserir link (Ctrl+K)">
+          <LinkIcon className="h-3.5 w-3.5" />
+        </Btn>
       </div>
+      {value.trim() && (
+        <div
+          className="max-h-36 overflow-auto border-b bg-muted/30 px-3 py-2 text-sm text-foreground"
+          style={taStyle}
+        >
+          <FormattedMessage text={value} />
+        </div>
+      )}
       <textarea
         ref={ref}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          onChange(e.target.value);
+          syncSelection();
+        }}
+        onSelect={syncSelection}
+        onClick={syncSelection}
+        onKeyUp={syncSelection}
         onKeyDown={handleKey}
         placeholder={placeholder ?? "Digite sua mensagem... (use * para negrito, _ para itálico)"}
         rows={2}
