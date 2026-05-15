@@ -14,35 +14,131 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          created_at: string | null
+          domain: string | null
+          features: Json | null
+          id: string
+          locale: string | null
+          name: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          domain?: string | null
+          features?: Json | null
+          id?: string
+          locale?: string | null
+          name: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          domain?: string | null
+          features?: Json | null
+          id?: string
+          locale?: string | null
+          name?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
+      agents: {
+        Row: {
+          auth_user_id: string | null
+          avatar_url: string | null
+          created_at: string | null
+          custom_role_id: string | null
+          email: string
+          id: string
+          last_seen_at: string | null
+          name: string
+          role: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          auth_user_id?: string | null
+          avatar_url?: string | null
+          created_at?: string | null
+          custom_role_id?: string | null
+          email: string
+          id?: string
+          last_seen_at?: string | null
+          name: string
+          role?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          auth_user_id?: string | null
+          avatar_url?: string | null
+          created_at?: string | null
+          custom_role_id?: string | null
+          email?: string
+          id?: string
+          last_seen_at?: string | null
+          name?: string
+          role?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_custom_role"
+            columns: ["custom_role_id"]
+            isOneToOne: false
+            referencedRelation: "custom_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
+          action_type: string | null
           agent_id: string | null
+          agent_name: string | null
           contact_id: string | null
           conversation_id: string | null
-          created_at: string
-          details: string | null
+          created_at: string | null
+          details: Json | null
           id: string
+          ip_address: string | null
         }
         Insert: {
           action: string
+          action_type?: string | null
           agent_id?: string | null
+          agent_name?: string | null
           contact_id?: string | null
           conversation_id?: string | null
-          created_at?: string
-          details?: string | null
+          created_at?: string | null
+          details?: Json | null
           id?: string
+          ip_address?: string | null
         }
         Update: {
           action?: string
+          action_type?: string | null
           agent_id?: string | null
+          agent_name?: string | null
           contact_id?: string | null
           conversation_id?: string | null
-          created_at?: string
-          details?: string | null
+          created_at?: string | null
+          details?: Json | null
           id?: string
+          ip_address?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "audit_logs_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "audit_logs_contact_id_fkey"
             columns: ["contact_id"]
@@ -62,39 +158,33 @@ export type Database = {
       automations: {
         Row: {
           actions: Json
-          active: boolean
-          created_at: string
-          created_by: string | null
+          created_at: string | null
           description: string | null
           id: string
+          is_active: boolean | null
           name: string
           trigger_event: string
           trigger_label_id: string | null
-          updated_at: string
         }
         Insert: {
           actions?: Json
-          active?: boolean
-          created_at?: string
-          created_by?: string | null
+          created_at?: string | null
           description?: string | null
           id?: string
+          is_active?: boolean | null
           name: string
           trigger_event: string
           trigger_label_id?: string | null
-          updated_at?: string
         }
         Update: {
           actions?: Json
-          active?: boolean
-          created_at?: string
-          created_by?: string | null
+          created_at?: string | null
           description?: string | null
           id?: string
+          is_active?: boolean | null
           name?: string
           trigger_event?: string
           trigger_label_id?: string | null
-          updated_at?: string
         }
         Relationships: [
           {
@@ -106,57 +196,200 @@ export type Database = {
           },
         ]
       }
-      contacts: {
+      campaigns: {
         Row: {
-          channel: string
-          created_at: string
-          email: string | null
+          audience_filter: Json | null
+          channel: string | null
+          completed_at: string | null
+          created_at: string | null
+          description: string | null
           id: string
-          labels: string[]
+          message_template: string | null
+          n8n_workflow_url: string | null
           name: string
-          phone: string | null
-          updated_at: string
+          scheduled_at: string | null
+          stats: Json | null
+          status: string | null
         }
         Insert: {
-          channel?: string
-          created_at?: string
-          email?: string | null
+          audience_filter?: Json | null
+          channel?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
           id?: string
-          labels?: string[]
+          message_template?: string | null
+          n8n_workflow_url?: string | null
           name: string
-          phone?: string | null
-          updated_at?: string
+          scheduled_at?: string | null
+          stats?: Json | null
+          status?: string | null
         }
         Update: {
-          channel?: string
-          created_at?: string
+          audience_filter?: Json | null
+          channel?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          message_template?: string | null
+          n8n_workflow_url?: string | null
+          name?: string
+          scheduled_at?: string | null
+          stats?: Json | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      canned_responses: {
+        Row: {
+          agent_id: string | null
+          content: string
+          created_at: string | null
+          id: string
+          is_global: boolean | null
+          short_code: string
+        }
+        Insert: {
+          agent_id?: string | null
+          content: string
+          created_at?: string | null
+          id?: string
+          is_global?: boolean | null
+          short_code: string
+        }
+        Update: {
+          agent_id?: string | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_global?: boolean | null
+          short_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "canned_responses_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_tasks: {
+        Row: {
+          agent_id: string | null
+          contact_id: string | null
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          is_completed: boolean | null
+          priority: string | null
+          task_type: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_completed?: boolean | null
+          priority?: string | null
+          task_type?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_completed?: boolean | null
+          priority?: string | null
+          task_type?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_tasks_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_tasks_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          channel: string | null
+          created_at: string | null
+          custom_attributes: Json | null
+          email: string | null
+          id: string
+          name: string
+          phone_number: string | null
+          profile_pic: string | null
+          tags: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          channel?: string | null
+          created_at?: string | null
+          custom_attributes?: Json | null
           email?: string | null
           id?: string
-          labels?: string[]
+          name: string
+          phone_number?: string | null
+          profile_pic?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          channel?: string | null
+          created_at?: string | null
+          custom_attributes?: Json | null
+          email?: string | null
+          id?: string
           name?: string
-          phone?: string | null
-          updated_at?: string
+          phone_number?: string | null
+          profile_pic?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
         }
         Relationships: []
       }
       conversation_labels: {
         Row: {
-          conversation_id: string
-          created_at: string
+          conversation_id: string | null
+          created_at: string | null
           id: string
-          label_id: string
+          label_id: string | null
         }
         Insert: {
-          conversation_id: string
-          created_at?: string
+          conversation_id?: string | null
+          created_at?: string | null
           id?: string
-          label_id: string
+          label_id?: string | null
         }
         Update: {
-          conversation_id?: string
-          created_at?: string
+          conversation_id?: string | null
+          created_at?: string | null
           id?: string
-          label_id?: string
+          label_id?: string | null
         }
         Relationships: [
           {
@@ -177,60 +410,77 @@ export type Database = {
       }
       conversations: {
         Row: {
-          assigned_to: string | null
-          channel: string
-          contact_id: string
-          created_at: string
+          assigned_agent_id: string | null
+          assigned_team_id: string | null
+          channel: string | null
+          contact_id: string | null
+          created_at: string | null
+          custom_attributes: Json | null
+          first_reply_at: string | null
           id: string
           inbox_id: string | null
+          instance_name: string | null
           last_message: string | null
           last_message_at: string | null
-          opened_at: string
+          priority: string | null
           resolved_at: string | null
-          sla_minutes: number | null
-          stage: string
-          status: string
-          team_id: string | null
-          unread: boolean
-          updated_at: string
+          sla_status: string | null
+          status: string | null
+          updated_at: string | null
         }
         Insert: {
-          assigned_to?: string | null
-          channel?: string
-          contact_id: string
-          created_at?: string
+          assigned_agent_id?: string | null
+          assigned_team_id?: string | null
+          channel?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          custom_attributes?: Json | null
+          first_reply_at?: string | null
           id?: string
           inbox_id?: string | null
+          instance_name?: string | null
           last_message?: string | null
           last_message_at?: string | null
-          opened_at?: string
+          priority?: string | null
           resolved_at?: string | null
-          sla_minutes?: number | null
-          stage?: string
-          status?: string
-          team_id?: string | null
-          unread?: boolean
-          updated_at?: string
+          sla_status?: string | null
+          status?: string | null
+          updated_at?: string | null
         }
         Update: {
-          assigned_to?: string | null
-          channel?: string
-          contact_id?: string
-          created_at?: string
+          assigned_agent_id?: string | null
+          assigned_team_id?: string | null
+          channel?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          custom_attributes?: Json | null
+          first_reply_at?: string | null
           id?: string
           inbox_id?: string | null
+          instance_name?: string | null
           last_message?: string | null
           last_message_at?: string | null
-          opened_at?: string
+          priority?: string | null
           resolved_at?: string | null
-          sla_minutes?: number | null
-          stage?: string
-          status?: string
-          team_id?: string | null
-          unread?: boolean
-          updated_at?: string
+          sla_status?: string | null
+          status?: string | null
+          updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "conversations_assigned_agent_id_fkey"
+            columns: ["assigned_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_assigned_team_id_fkey"
+            columns: ["assigned_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conversations_contact_id_fkey"
             columns: ["contact_id"]
@@ -239,17 +489,116 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "conversations_inbox_id_fkey"
+            foreignKeyName: "conversations_instance_name_fkey"
+            columns: ["instance_name"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["instance_name"]
+          },
+          {
+            foreignKeyName: "fk_inbox"
             columns: ["inbox_id"]
             isOneToOne: false
             referencedRelation: "inboxes"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      custom_attribute_definitions: {
+        Row: {
+          applies_to: string
+          attribute_type: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_required: boolean | null
+          key: string
+          list_options: string[] | null
+          name: string
+          show_in_sidebar: boolean | null
+        }
+        Insert: {
+          applies_to: string
+          attribute_type: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_required?: boolean | null
+          key: string
+          list_options?: string[] | null
+          name: string
+          show_in_sidebar?: boolean | null
+        }
+        Update: {
+          applies_to?: string
+          attribute_type?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_required?: boolean | null
+          key?: string
+          list_options?: string[] | null
+          name?: string
+          show_in_sidebar?: boolean | null
+        }
+        Relationships: []
+      }
+      custom_roles: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          permissions: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          permissions?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          permissions?: Json | null
+        }
+        Relationships: []
+      }
+      inbox_agents: {
+        Row: {
+          agent_id: string | null
+          id: string
+          inbox_id: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          id?: string
+          inbox_id?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          id?: string
+          inbox_id?: string | null
+        }
+        Relationships: [
           {
-            foreignKeyName: "conversations_team_id_fkey"
-            columns: ["team_id"]
+            foreignKeyName: "inbox_agents_agent_id_fkey"
+            columns: ["agent_id"]
             isOneToOne: false
-            referencedRelation: "teams"
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbox_agents_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: false
+            referencedRelation: "inboxes"
             referencedColumns: ["id"]
           },
         ]
@@ -276,51 +625,54 @@ export type Database = {
           team_id?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "inbox_members_inbox_id_fkey"
-            columns: ["inbox_id"]
-            isOneToOne: false
-            referencedRelation: "inboxes"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       inboxes: {
         Row: {
-          active: boolean
+          away_message: string | null
+          business_hours: Json | null
           channel: string
-          config: Json
-          created_at: string
+          channel_config: Json | null
+          created_at: string | null
+          greeting_message: string | null
           id: string
+          instance_name: string | null
           name: string
-          updated_at: string
-          welcome_message: string | null
-          widget_color: string | null
+          status: string | null
         }
         Insert: {
-          active?: boolean
+          away_message?: string | null
+          business_hours?: Json | null
           channel: string
-          config?: Json
-          created_at?: string
+          channel_config?: Json | null
+          created_at?: string | null
+          greeting_message?: string | null
           id?: string
+          instance_name?: string | null
           name: string
-          updated_at?: string
-          welcome_message?: string | null
-          widget_color?: string | null
+          status?: string | null
         }
         Update: {
-          active?: boolean
+          away_message?: string | null
+          business_hours?: Json | null
           channel?: string
-          config?: Json
-          created_at?: string
+          channel_config?: Json | null
+          created_at?: string | null
+          greeting_message?: string | null
           id?: string
+          instance_name?: string | null
           name?: string
-          updated_at?: string
-          welcome_message?: string | null
-          widget_color?: string | null
+          status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "inboxes_instance_name_fkey"
+            columns: ["instance_name"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["instance_name"]
+          },
+        ]
       }
       interacoes_cidadao: {
         Row: {
@@ -390,60 +742,133 @@ export type Database = {
       }
       labels: {
         Row: {
-          color: string
-          created_at: string
+          color: string | null
+          created_at: string | null
           description: string | null
           id: string
           name: string
-          show_in_sidebar: boolean
+          show_in_sidebar: boolean | null
         }
         Insert: {
-          color?: string
-          created_at?: string
+          color?: string | null
+          created_at?: string | null
           description?: string | null
           id?: string
           name: string
-          show_in_sidebar?: boolean
+          show_in_sidebar?: boolean | null
         }
         Update: {
-          color?: string
-          created_at?: string
+          color?: string | null
+          created_at?: string | null
           description?: string | null
           id?: string
           name?: string
-          show_in_sidebar?: boolean
+          show_in_sidebar?: boolean | null
         }
         Relationships: []
       }
-      messages: {
+      macros: {
         Row: {
-          author: string
-          body: string
-          conversation_id: string
-          created_at: string
+          actions: Json
+          agent_id: string | null
+          created_at: string | null
+          description: string | null
           id: string
-          is_note: boolean
-          sender_id: string | null
+          is_global: boolean | null
+          name: string
         }
         Insert: {
-          author: string
-          body: string
-          conversation_id: string
-          created_at?: string
+          actions?: Json
+          agent_id?: string | null
+          created_at?: string | null
+          description?: string | null
           id?: string
-          is_note?: boolean
-          sender_id?: string | null
+          is_global?: boolean | null
+          name: string
         }
         Update: {
-          author?: string
-          body?: string
-          conversation_id?: string
-          created_at?: string
+          actions?: Json
+          agent_id?: string | null
+          created_at?: string | null
+          description?: string | null
           id?: string
-          is_note?: boolean
-          sender_id?: string | null
+          is_global?: boolean | null
+          name?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "macros_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          agent_id: string | null
+          contact_id: string | null
+          content: string | null
+          conversation_id: string | null
+          created_at: string | null
+          id: string
+          instance_name: string | null
+          is_from_contact: boolean | null
+          is_private: boolean | null
+          media_url: string | null
+          message_id: string | null
+          message_type: string | null
+          raw_data: Json | null
+          sender_name: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          contact_id?: string | null
+          content?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          instance_name?: string | null
+          is_from_contact?: boolean | null
+          is_private?: boolean | null
+          media_url?: string | null
+          message_id?: string | null
+          message_type?: string | null
+          raw_data?: Json | null
+          sender_name?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          contact_id?: string | null
+          content?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          instance_name?: string | null
+          is_from_contact?: boolean | null
+          is_private?: boolean | null
+          media_url?: string | null
+          message_id?: string | null
+          message_type?: string | null
+          raw_data?: Json | null
+          sender_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "messages_conversation_id_fkey"
             columns: ["conversation_id"]
@@ -507,29 +932,116 @@ export type Database = {
         }
         Relationships: []
       }
-      team_members: {
+      sla_rules: {
         Row: {
-          created_at: string
+          business_hours_only: boolean | null
+          created_at: string | null
+          first_response_time: number
           id: string
-          role: Database["public"]["Enums"]["team_role"]
-          team_id: string
-          user_id: string
+          is_active: boolean | null
+          name: string
+          priority: string | null
+          resolution_time: number
         }
         Insert: {
-          created_at?: string
+          business_hours_only?: boolean | null
+          created_at?: string | null
+          first_response_time?: number
           id?: string
-          role?: Database["public"]["Enums"]["team_role"]
-          team_id: string
-          user_id: string
+          is_active?: boolean | null
+          name: string
+          priority?: string | null
+          resolution_time?: number
         }
         Update: {
-          created_at?: string
+          business_hours_only?: boolean | null
+          created_at?: string | null
+          first_response_time?: number
           id?: string
-          role?: Database["public"]["Enums"]["team_role"]
-          team_id?: string
-          user_id?: string
+          is_active?: boolean | null
+          name?: string
+          priority?: string | null
+          resolution_time?: number
+        }
+        Relationships: []
+      }
+      support_tickets: {
+        Row: {
+          agent_id: string | null
+          attachment_url: string | null
+          category: string | null
+          created_at: string | null
+          description: string
+          id: string
+          priority: string | null
+          status: string | null
+          subject: string
+          updated_at: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          attachment_url?: string | null
+          category?: string | null
+          created_at?: string | null
+          description: string
+          id?: string
+          priority?: string | null
+          status?: string | null
+          subject: string
+          updated_at?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          attachment_url?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          priority?: string | null
+          status?: string | null
+          subject?: string
+          updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "support_tickets_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          agent_id: string | null
+          created_at: string | null
+          id: string
+          role_in_team: string | null
+          team_id: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string | null
+          id?: string
+          role_in_team?: string | null
+          team_id?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string | null
+          id?: string
+          role_in_team?: string | null
+          team_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "team_members_team_id_fkey"
             columns: ["team_id"]
@@ -541,34 +1053,31 @@ export type Database = {
       }
       teams: {
         Row: {
-          active: boolean
-          allow_self_assign: boolean
-          auto_assign: boolean
-          created_at: string
+          allow_self_assign: boolean | null
+          auto_assign: boolean | null
+          created_at: string | null
           description: string | null
           id: string
           name: string
-          updated_at: string
+          status: string | null
         }
         Insert: {
-          active?: boolean
-          allow_self_assign?: boolean
-          auto_assign?: boolean
-          created_at?: string
+          allow_self_assign?: boolean | null
+          auto_assign?: boolean | null
+          created_at?: string | null
           description?: string | null
           id?: string
           name: string
-          updated_at?: string
+          status?: string | null
         }
         Update: {
-          active?: boolean
-          allow_self_assign?: boolean
-          auto_assign?: boolean
-          created_at?: string
+          allow_self_assign?: boolean | null
+          auto_assign?: boolean | null
+          created_at?: string | null
           description?: string | null
           id?: string
           name?: string
-          updated_at?: string
+          status?: string | null
         }
         Relationships: []
       }
@@ -590,6 +1099,48 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      whatsapp_instances: {
+        Row: {
+          created_at: string | null
+          id: string
+          instance_name: string
+          phone_number: string | null
+          profile_name: string | null
+          profile_pic: string | null
+          qr_code: string | null
+          settings: Json | null
+          status: string | null
+          updated_at: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          instance_name: string
+          phone_number?: string | null
+          profile_name?: string | null
+          profile_pic?: string | null
+          qr_code?: string | null
+          settings?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          instance_name?: string
+          phone_number?: string | null
+          profile_name?: string | null
+          profile_pic?: string | null
+          qr_code?: string | null
+          settings?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          webhook_url?: string | null
         }
         Relationships: []
       }

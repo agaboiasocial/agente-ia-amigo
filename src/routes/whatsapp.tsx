@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import {
   RefreshCw,
@@ -15,10 +15,9 @@ import {
   WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/whatsapp")({ component: Page });
-
-type ConnState = "disconnected" | "connecting" | "connected" | "error";
 
 interface Instance {
   inboxName: string;
@@ -102,63 +101,137 @@ function Page() {
   );
 }
 
-/* ---------------- CONNECT FLOW ---------------- */
+/* ---------------- CONNECT FLOW (Supabase real) ---------------- */
+
+type FlowState = "form" | "loading" | "qr" | "connecting" | "error";
 
 function ConnectFlow({ onConnected }: { onConnected: (i: Instance) => void }) {
-  const [state, setState] = useState<ConnState>("disconnected");
+  const [state, setState] = useState<FlowState>("form");
+  const [instanceName, setInstanceName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [qrCode, setQrCode] = useState<string>("");
   const [seconds, setSeconds] = useState(40);
   const [error, setError] = useState<string>("");
 
-  useEffect(() => {
-    if (state !== "disconnected") return;
-    setSeconds(40);
-    const t = setInterval(() => setSeconds((s) => Math.max(0, s - 1)), 1000);
-    return () => clearInterval(t);
-  }, [state]);
+  const pollRef = useRef<number | null>(null);
+  const timerRef = useRef<number | null>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  const regenerate = () => {
-    setState("disconnected");
-    setSeconds(40);
+  const cleanup = () => {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; }
   };
 
-  const simulateScan = () => {
+  useEffect(() => () => cleanup(), []);
+
+  const handleConnected = (row: { instance_name: string; phone_number: string | null; profile_name: string | null }) => {
+    cleanup();
     setState("connecting");
     setTimeout(() => {
-      // 90% success
-      if (Math.random() > 0.1) {
-        const inst: Instance = {
-          inboxName: "Atendimento Principal",
-          profileName: "IAS Atendimento",
-          phone: "+55 (11) 98765-4321",
-          connectedAt: new Date().toISOString(),
-          webhookUrl: "https://api.ias.com.br/webhooks/whatsapp/abc123",
-          webhookActive: true,
-          lastEventAt: new Date().toISOString(),
-          autoReceive: true,
-          readReceipts: true,
-          team: "Atendimento",
-          defaultAgent: "Maria Silva",
-          welcomeMessage: "Olá! 👋 Bem-vindo ao nosso atendimento. Em que podemos ajudar?",
-          awayMessage: "No momento estamos fora do horário de atendimento. Retornaremos em breve!",
-          schedule: "Comercial (Seg–Sex 09h–18h)",
-          sentToday: 142,
-          receivedToday: 218,
-          lastActivity: "agora",
-        };
-        onConnected(inst);
-      } else {
-        setError("Não foi possível estabelecer a conexão com o WhatsApp. Verifique sua internet e tente novamente.");
-        setState("error");
-      }
-    }, 1800);
+      const inst: Instance = {
+        inboxName: row.instance_name,
+        profileName: row.profile_name || row.instance_name,
+        phone: row.phone_number || phoneNumber,
+        connectedAt: new Date().toISOString(),
+        webhookUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook/${row.instance_name}`,
+        webhookActive: true,
+        lastEventAt: new Date().toISOString(),
+        autoReceive: true,
+        readReceipts: true,
+        team: "Atendimento",
+        defaultAgent: "Sem padrão",
+        welcomeMessage: "Olá! 👋 Bem-vindo ao nosso atendimento. Em que podemos ajudar?",
+        awayMessage: "No momento estamos fora do horário de atendimento. Retornaremos em breve!",
+        schedule: "Comercial (Seg–Sex 09h–18h)",
+        sentToday: 0,
+        receivedToday: 0,
+        lastActivity: "agora",
+      };
+      onConnected(inst);
+    }, 900);
   };
+
+  const startWatching = (name: string) => {
+    const channel = supabase
+      .channel(`whatsapp-status-${name}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "whatsapp_instances", filter: `instance_name=eq.${name}` },
+        (payload) => {
+          const row = payload.new as any;
+          if (row?.status === "connected") handleConnected(row);
+        }
+      )
+      .subscribe();
+    channelRef.current = channel;
+
+    pollRef.current = window.setInterval(async () => {
+      const { data } = await supabase
+        .from("whatsapp_instances")
+        .select("instance_name,status,phone_number,profile_name,qr_code")
+        .eq("instance_name", name)
+        .maybeSingle();
+      if (data?.status === "connected") handleConnected(data as any);
+      else if (data?.qr_code && data.qr_code !== qrCode) setQrCode(data.qr_code);
+    }, 5000);
+
+    setSeconds(40);
+    timerRef.current = window.setInterval(() => {
+      setSeconds((s) => {
+        if (s <= 1) {
+          if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+  };
+
+  const startConnect = async () => {
+    if (!instanceName.trim()) { toast.error("Informe o nome da instância"); return; }
+    cleanup();
+    setError("");
+    setState("loading");
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("connect-whatsapp", {
+        body: { instanceName: instanceName.trim(), phoneNumber: phoneNumber.trim() },
+      });
+      if (fnError) throw fnError;
+      if (!data?.qrCode) throw new Error("QR Code não retornado pela função");
+      setQrCode(data.qrCode);
+      setState("qr");
+      startWatching(instanceName.trim());
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message || "Não foi possível gerar o QR Code. Tente novamente.");
+      setState("error");
+    }
+  };
+
+  const regenerate = () => { startConnect(); };
 
   return (
     <AppLayout title="Conectar WhatsApp">
       <div className="max-w-xl mx-auto">
         <div className="bg-card rounded-2xl border shadow-sm p-8">
-          {state === "disconnected" && (
-            <DisconnectedView seconds={seconds} expired={seconds === 0} onRegenerate={regenerate} onSimulateScan={simulateScan} />
+          {state === "form" && (
+            <FormView
+              instanceName={instanceName}
+              phoneNumber={phoneNumber}
+              setInstanceName={setInstanceName}
+              setPhoneNumber={setPhoneNumber}
+              onSubmit={startConnect}
+            />
+          )}
+          {state === "loading" && (
+            <div className="text-center py-10">
+              <Loader2 className="h-12 w-12 text-success animate-spin mx-auto" />
+              <p className="text-sm text-muted-foreground mt-4">Gerando QR Code...</p>
+            </div>
+          )}
+          {state === "qr" && (
+            <QrView qrCode={qrCode} seconds={seconds} expired={seconds === 0} onRegenerate={regenerate} />
           )}
           {state === "connecting" && <ConnectingView />}
           {state === "error" && <ErrorView message={error} onRetry={regenerate} />}
@@ -168,28 +241,67 @@ function ConnectFlow({ onConnected }: { onConnected: (i: Instance) => void }) {
   );
 }
 
-function DisconnectedView({
-  seconds,
-  expired,
-  onRegenerate,
-  onSimulateScan,
+function FormView({
+  instanceName, phoneNumber, setInstanceName, setPhoneNumber, onSubmit,
 }: {
-  seconds: number;
-  expired: boolean;
-  onRegenerate: () => void;
-  onSimulateScan: () => void;
+  instanceName: string; phoneNumber: string;
+  setInstanceName: (v: string) => void; setPhoneNumber: (v: string) => void;
+  onSubmit: () => void;
 }) {
+  return (
+    <div>
+      <div className="text-center mb-6">
+        <div className="h-14 w-14 rounded-2xl bg-success/15 text-success grid place-items-center mx-auto mb-3">
+          <WhatsAppIcon className="h-7 w-7" />
+        </div>
+        <h2 className="text-xl font-semibold text-brand">Conectar WhatsApp</h2>
+        <p className="text-sm text-muted-foreground mt-1">Informe os dados da instância para gerar o QR Code</p>
+      </div>
+      <div className="space-y-3">
+        <label className="block">
+          <span className="text-xs font-medium block mb-1">Nome da instância *</span>
+          <input
+            value={instanceName}
+            onChange={(e) => setInstanceName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))}
+            placeholder="atendimento-principal"
+            className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-success/40"
+          />
+        </label>
+        <label className="block">
+          <span className="text-xs font-medium block mb-1">Número (opcional)</span>
+          <input
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            placeholder="+55 11 98765-4321"
+            className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-success/40"
+          />
+        </label>
+        <button
+          onClick={onSubmit}
+          className="w-full h-11 rounded-lg bg-success text-success-foreground text-sm font-semibold hover:opacity-95 inline-flex items-center justify-center gap-1.5"
+        >
+          <WhatsAppIcon className="h-4 w-4" /> Conectar WhatsApp
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function QrView({
+  qrCode, seconds, expired, onRegenerate,
+}: { qrCode: string; seconds: number; expired: boolean; onRegenerate: () => void }) {
+  const src = qrCode.startsWith("data:") ? qrCode : `data:image/png;base64,${qrCode}`;
   return (
     <div className="text-center">
       <div className="h-14 w-14 rounded-2xl bg-success/15 text-success grid place-items-center mx-auto mb-3">
         <WhatsAppIcon className="h-7 w-7" />
       </div>
-      <h2 className="text-xl font-semibold text-brand">Conectar WhatsApp</h2>
-      <p className="text-sm text-muted-foreground mt-1">Escaneie o QR Code com seu WhatsApp para conectar</p>
+      <h2 className="text-xl font-semibold text-brand">Escaneie o QR Code</h2>
+      <p className="text-sm text-muted-foreground mt-1">Use o WhatsApp do seu celular para conectar</p>
 
       <div className="mt-6 flex justify-center">
         <div className="relative h-[280px] w-[280px] rounded-xl bg-white border p-4 grid place-items-center">
-          <FakeQR />
+          <img src={src} alt="QR Code WhatsApp" className="w-full h-full object-contain" />
           {expired && (
             <div className="absolute inset-0 rounded-xl bg-brand/85 text-brand-foreground grid place-items-center">
               <div className="text-center">
@@ -229,13 +341,10 @@ function DisconnectedView({
           </li>
         ))}
       </ol>
-
-      <button onClick={onSimulateScan} className="mt-6 text-xs text-muted-foreground underline hover:text-success">
-        Simular leitura do QR (demo)
-      </button>
     </div>
   );
 }
+
 
 function ConnectingView() {
   return (
