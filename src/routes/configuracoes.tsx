@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { useAgents, useQuickReplies, useLabels } from "@/lib/data";
-import { Plus, Trash2, Code, Copy } from "lucide-react";
+import { Plus, Trash2, Code, Copy, Inbox, ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useChatPrefs, ensureFontLoaded, CHAT_FONTS, type ChatFont } from "@/hooks/use-chat-prefs";
 import { FormattedMessage } from "@/lib/chat-format";
