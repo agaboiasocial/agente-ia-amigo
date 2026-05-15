@@ -142,7 +142,7 @@ export const sendWhatsAppMessage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const supabase = context.supabase;
     const text = data.body.trim();
-    const { data: conversation, error: conversationError } = await supabaseAdmin
+    const { data: conversation, error: conversationError } = await supabase
       .from("conversations")
       .select("id, contact_id, instance_name")
       .eq("id", data.conversationId)
@@ -151,7 +151,7 @@ export const sendWhatsAppMessage = createServerFn({ method: "POST" })
     if (conversationError) throw new Error(conversationError.message);
     if (!conversation) throw new Error("Conversa não encontrada");
 
-    const { data: agent } = await supabaseAdmin
+    const { data: agent } = await supabase
       .from("agents")
       .select("id, name")
       .eq("auth_user_id", context.userId)
@@ -171,14 +171,14 @@ export const sendWhatsAppMessage = createServerFn({ method: "POST" })
     };
 
     if (data.isNote) {
-      const { error } = await supabaseAdmin.from("messages").insert(baseMessage as never);
+      const { error } = await supabase.from("messages").insert(baseMessage as never);
       if (error) throw new Error(error.message);
       return { ok: true, sent: false };
     }
 
     if (!conversation.contact_id) throw new Error("Esta conversa não tem contato vinculado");
 
-    const { data: contact, error: contactError } = await supabaseAdmin
+    const { data: contact, error: contactError } = await supabase
       .from("contacts")
       .select("phone_number")
       .eq("id", conversation.contact_id)
@@ -203,14 +203,14 @@ export const sendWhatsAppMessage = createServerFn({ method: "POST" })
     }
 
     const messageId = apiBody?.key?.id || apiBody?.message?.key?.id || apiBody?.data?.key?.id || null;
-    const { error: insertError } = await supabaseAdmin.from("messages").insert({
+    const { error: insertError } = await supabase.from("messages").insert({
       ...baseMessage,
       message_id: messageId,
       raw_data: apiBody,
     } as never);
     if (insertError) throw new Error(insertError.message);
 
-    await supabaseAdmin
+    await supabase
       .from("conversations")
       .update({ last_message: text, last_message_at: new Date().toISOString(), updated_at: new Date().toISOString() } as never)
       .eq("id", data.conversationId);
