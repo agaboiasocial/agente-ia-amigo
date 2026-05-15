@@ -99,7 +99,7 @@ function AutomacoesPage() {
 
   const toggleActive = useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.from("automations").update({ active }).eq("id", id);
+      const { error } = await supabase.from("automations").update({ is_active: active } as never).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["automations"] }),
