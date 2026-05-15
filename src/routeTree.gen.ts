@@ -25,6 +25,7 @@ import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as CaixasEntradaRouteImport } from './routes/caixas-entrada'
 import { Route as AutomacoesRouteImport } from './routes/automacoes'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
+import { Route as AtributosRouteImport } from './routes/atributos'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
 import { Route as SuperAdminUsersRouteImport } from './routes/super-admin.users'
@@ -117,6 +118,11 @@ const AuditoriaRoute = AuditoriaRouteImport.update({
   path: '/auditoria',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AtributosRoute = AtributosRouteImport.update({
+  id: '/atributos',
+  path: '/atributos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -176,6 +182,7 @@ const CaixasIdRoute = CaixasIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/atributos': typeof AtributosRoute
   '/auditoria': typeof AuditoriaRoute
   '/automacoes': typeof AutomacoesRoute
   '/caixas-entrada': typeof CaixasEntradaRoute
@@ -205,6 +212,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/atributos': typeof AtributosRoute
   '/auditoria': typeof AuditoriaRoute
   '/automacoes': typeof AutomacoesRoute
   '/caixas-entrada': typeof CaixasEntradaRoute
@@ -234,6 +242,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/atributos': typeof AtributosRoute
   '/auditoria': typeof AuditoriaRoute
   '/automacoes': typeof AutomacoesRoute
   '/caixas-entrada': typeof CaixasEntradaRoute
@@ -265,6 +274,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/atributos'
     | '/auditoria'
     | '/automacoes'
     | '/caixas-entrada'
@@ -294,6 +304,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/atributos'
     | '/auditoria'
     | '/automacoes'
     | '/caixas-entrada'
@@ -322,6 +333,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/atributos'
     | '/auditoria'
     | '/automacoes'
     | '/caixas-entrada'
@@ -352,6 +364,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AtributosRoute: typeof AtributosRoute
   AuditoriaRoute: typeof AuditoriaRoute
   AutomacoesRoute: typeof AutomacoesRoute
   CaixasEntradaRoute: typeof CaixasEntradaRoute
@@ -485,6 +498,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditoriaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/atributos': {
+      id: '/atributos'
+      path: '/atributos'
+      fullPath: '/atributos'
+      preLoaderRoute: typeof AtributosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -595,6 +615,7 @@ const SuperAdminRouteWithChildren = SuperAdminRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AtributosRoute: AtributosRoute,
   AuditoriaRoute: AuditoriaRoute,
   AutomacoesRoute: AutomacoesRoute,
   CaixasEntradaRoute: CaixasEntradaRoute,
