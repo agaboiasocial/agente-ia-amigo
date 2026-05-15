@@ -6,7 +6,7 @@ interface FormattedMessageProps {
 }
 
 // ---- Inline formatter: bold / italic / strike / inline code / link ----
-export function formatInline(text: string, keyPrefix = ""): ReactNode[] {
+function formatInline(text: string, keyPrefix = ""): ReactNode[] {
   // Tokenize while preserving order; precedence: code > link > bold > italic > strike
   const tokens: { type: string; content: string; href?: string }[] = [];
   let i = 0;
