@@ -152,7 +152,6 @@ export interface FileRoutesByFullPath {
   '/contatos': typeof ContatosRoute
   '/etiquetas': typeof EtiquetasRoute
   '/conversas': typeof ConversasRoute
-  '/etiquetas': typeof EtiquetasRoute
   '/funcoes': typeof FuncoesRoute
   '/ias': typeof IasRoute
   '/relatorios': typeof RelatoriosRoute
@@ -177,7 +176,6 @@ export interface FileRoutesByTo {
   '/contatos': typeof ContatosRoute
   '/etiquetas': typeof EtiquetasRoute
   '/conversas': typeof ConversasRoute
-  '/etiquetas': typeof EtiquetasRoute
   '/funcoes': typeof FuncoesRoute
   '/ias': typeof IasRoute
   '/relatorios': typeof RelatoriosRoute
@@ -202,7 +200,6 @@ export interface FileRoutesById {
   '/contatos': typeof ContatosRoute
   '/etiquetas': typeof EtiquetasRoute
   '/conversas': typeof ConversasRoute
-  '/etiquetas': typeof EtiquetasRoute
   '/funcoes': typeof FuncoesRoute
   '/ias': typeof IasRoute
   '/relatorios': typeof RelatoriosRoute
@@ -229,7 +226,6 @@ export interface FileRouteTypes {
     | '/contatos'
     | '/etiquetas'
     | '/conversas'
-    | '/etiquetas'
     | '/funcoes'
     | '/ias'
     | '/relatorios'
@@ -252,9 +248,7 @@ export interface FileRouteTypes {
     | '/automacoes'
     | '/configuracoes'
     | '/contatos'
-    | '/etiquetas'
     | '/conversas'
-    | '/etiquetas'
     | '/funcoes'
     | '/ias'
     | '/relatorios'
@@ -276,9 +270,7 @@ export interface FileRouteTypes {
     | '/automacoes'
     | '/configuracoes'
     | '/contatos'
-    | '/etiquetas'
     | '/conversas'
-    | '/etiquetas'
     | '/funcoes'
     | '/ias'
     | '/relatorios'
