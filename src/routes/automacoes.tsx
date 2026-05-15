@@ -83,8 +83,9 @@ function useAutomations() {
       if (error) throw error;
       return (data ?? []).map((r) => ({
         ...r,
+        active: (r as { is_active: boolean | null }).is_active ?? false,
         actions: (Array.isArray(r.actions) ? r.actions : []) as unknown as Action[],
-      })) as Automation[];
+      })) as unknown as Automation[];
     },
   });
 }
@@ -98,7 +99,7 @@ function AutomacoesPage() {
 
   const toggleActive = useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.from("automations").update({ active }).eq("id", id);
+      const { error } = await supabase.from("automations").update({ is_active: active } as never).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["automations"] }),
@@ -124,9 +125,9 @@ function AutomacoesPage() {
         description: a.description,
         trigger_label_id: a.trigger_label_id,
         trigger_event: a.trigger_event,
-        actions: a.actions as never,
-        active: false,
-      });
+        actions: a.actions,
+        is_active: false,
+      } as never);
       if (error) throw error;
     },
     onSuccess: () => {

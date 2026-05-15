@@ -28,7 +28,7 @@ export function useConversations() {
         .select("*, contact:contacts(id, name)")
         .order("last_message_at", { ascending: false, nullsFirst: false });
       if (error) throw error;
-      return (data ?? []) as ConvRow[];
+      return (data ?? []) as unknown as ConvRow[];
     },
   });
 }
@@ -50,7 +50,7 @@ export function useCreateConversation() {
     mutationFn: async (payload: { contact_id: string; channel: string; assigned_to?: string | null }) => {
       const { data, error } = await supabase
         .from("conversations")
-        .insert({ ...payload, stage: "novo", status: "aberta" })
+        .insert({ ...payload, stage: "novo", status: "aberta" } as never)
         .select()
         .single();
       if (error) throw error;
@@ -82,7 +82,7 @@ export function useMessages(conversationId: string | undefined) {
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as MsgRow[];
+      return (data ?? []) as unknown as MsgRow[];
     },
     enabled: !!conversationId,
   });
@@ -92,7 +92,7 @@ export function useSendMessage() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { conversation_id: string; body: string; is_note: boolean; author: "cliente" | "agente"; sender_id?: string | null }) => {
-      const { error } = await supabase.from("messages").insert(payload);
+      const { error } = await supabase.from("messages").insert(payload as never);
       if (error) throw error;
       await supabase
         .from("conversations")
@@ -123,7 +123,7 @@ export function useContacts() {
     queryFn: async (): Promise<ContactRow[]> => {
       const { data, error } = await supabase.from("contacts").select("*").order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as ContactRow[];
+      return (data ?? []) as unknown as ContactRow[];
     },
   });
 }
@@ -132,7 +132,7 @@ export function useCreateContact() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (c: Omit<ContactRow, "id" | "created_at">) => {
-      const { data, error } = await supabase.from("contacts").insert(c).select().single();
+      const { data, error } = await supabase.from("contacts").insert(c as never).select().single();
       if (error) throw error;
       return data;
     },
