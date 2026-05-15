@@ -24,13 +24,23 @@ export function MessageComposer({
 
   const activeMarks = useMemo(() => {
     const start = selection.start;
-    const end = selection.end;
-    const probe = value.slice(Math.max(0, start - 80), Math.min(value.length, Math.max(end, start) + 80));
+    const end = Math.max(selection.end, start);
+    const beforeCursor = value.slice(0, start);
+    const afterCursor = value.slice(end);
+    const lineStart = value.lastIndexOf("\n", Math.max(0, start - 1)) + 1;
+    const lineEndIndex = value.indexOf("\n", start);
+    const currentLine = value.slice(lineStart, lineEndIndex === -1 ? value.length : lineEndIndex);
+    const fenceBefore = (beforeCursor.match(/```/g) ?? []).length;
     return {
-      bold: /\*[^*\n]*$/.test(probe.slice(0, Math.min(80, start))) && /[^*\n]*\*/.test(probe.slice(Math.min(80, start))),
-      italic: /_[^_\n]*$/.test(probe.slice(0, Math.min(80, start))) && /[^_\n]*_/.test(probe.slice(Math.min(80, start))),
-      strike: /~[^~\n]*$/.test(probe.slice(0, Math.min(80, start))) && /[^~\n]*~/.test(probe.slice(Math.min(80, start))),
-      code: /`[^`\n]*$/.test(probe.slice(0, Math.min(80, start))) && /[^`\n]*`/.test(probe.slice(Math.min(80, start))),
+      bold: /\*[^*\n]*$/.test(beforeCursor) && /^[^*\n]*\*/.test(afterCursor),
+      italic: /_[^_\n]*$/.test(beforeCursor) && /^[^_\n]*_/.test(afterCursor),
+      strike: /~[^~\n]*$/.test(beforeCursor) && /^[^~\n]*~/.test(afterCursor),
+      code: /`[^`\n]*$/.test(beforeCursor) && /^[^`\n]*`/.test(afterCursor),
+      ul: /^\s*[-*]\s/.test(currentLine),
+      ol: /^\s*\d+\.\s/.test(currentLine),
+      quote: /^\s*>\s/.test(currentLine),
+      codeblock: fenceBefore % 2 === 1,
+      link: /\[[^\]]*$/.test(beforeCursor) && /^[^\]]*\]\([^)]*\)/.test(afterCursor),
     };
   }, [selection, value]);
 
