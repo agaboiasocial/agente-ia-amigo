@@ -61,6 +61,23 @@ function CanaisPage() {
     }
   };
 
+  const disconnect = async (inst: Instance, remove: boolean) => {
+    const msg = remove
+      ? `Remover a instância "${inst.instance_name}"? Isso desconecta o número e apaga a configuração.`
+      : `Desconectar o número "${inst.instance_name}"? A instância continuará cadastrada.`;
+    if (!confirm(msg)) return;
+    setDisconnectingId(inst.id);
+    try {
+      await disconnectFn({ data: { instanceName: inst.instance_name, deleteInstance: remove } });
+      toast.success(remove ? "Instância removida" : "Número desconectado");
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao desconectar");
+    } finally {
+      setDisconnectingId(null);
+    }
+  };
+
   const statusBadge = (s: string | null) => {
     if (s === "connected" || s === "open")
       return <span className="inline-flex items-center gap-1 text-[#2FAE7C] text-sm"><CheckCircle2 className="h-4 w-4" /> Conectado</span>;
