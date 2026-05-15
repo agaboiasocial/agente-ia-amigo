@@ -15,7 +15,8 @@ import {
   WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { connectWhatsApp, getWhatsAppStatus } from "@/lib/whatsapp.functions";
 
 export const Route = createFileRoute("/whatsapp")({ component: Page });
 
@@ -115,26 +116,27 @@ function ConnectFlow({ onConnected }: { onConnected: (i: Instance) => void }) {
 
   const pollRef = useRef<number | null>(null);
   const timerRef = useRef<number | null>(null);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  const connectFn = useServerFn(connectWhatsApp);
+  const statusFn = useServerFn(getWhatsAppStatus);
 
   const cleanup = () => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; }
   };
 
   useEffect(() => () => cleanup(), []);
 
-  const handleConnected = (row: { instance_name: string; phone_number: string | null; profile_name: string | null }) => {
+  const handleConnected = (info: { instanceName: string; profileName: string | null; phoneNumber: string | null }) => {
     cleanup();
     setState("connecting");
     setTimeout(() => {
       const inst: Instance = {
-        inboxName: row.instance_name,
-        profileName: row.profile_name || row.instance_name,
-        phone: row.phone_number || phoneNumber,
+        inboxName: info.instanceName,
+        profileName: info.profileName || info.instanceName,
+        phone: info.phoneNumber || phoneNumber,
         connectedAt: new Date().toISOString(),
-        webhookUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook/${row.instance_name}`,
+        webhookUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook/${info.instanceName}`,
         webhookActive: true,
         lastEventAt: new Date().toISOString(),
         autoReceive: true,
@@ -153,28 +155,20 @@ function ConnectFlow({ onConnected }: { onConnected: (i: Instance) => void }) {
   };
 
   const startWatching = (name: string) => {
-    const channel = supabase
-      .channel(`whatsapp-status-${name}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "whatsapp_instances", filter: `instance_name=eq.${name}` },
-        (payload) => {
-          const row = payload.new as any;
-          if (row?.status === "connected") handleConnected(row);
-        }
-      )
-      .subscribe();
-    channelRef.current = channel;
-
     pollRef.current = window.setInterval(async () => {
-      const { data } = await supabase
-        .from("whatsapp_instances")
-        .select("instance_name,status,phone_number,profile_name,qr_code")
-        .eq("instance_name", name)
-        .maybeSingle();
-      if (data?.status === "connected") handleConnected(data as any);
-      else if (data?.qr_code && data.qr_code !== qrCode) setQrCode(data.qr_code);
-    }, 5000);
+      try {
+        const s = await statusFn({ data: { instanceName: name } });
+        if (s.connected) {
+          handleConnected({
+            instanceName: name,
+            profileName: s.profileName,
+            phoneNumber: s.phoneNumber,
+          });
+        }
+      } catch (e) {
+        console.warn("status poll failed", e);
+      }
+    }, 4000);
 
     setSeconds(40);
     timerRef.current = window.setInterval(() => {
@@ -194,11 +188,10 @@ function ConnectFlow({ onConnected }: { onConnected: (i: Instance) => void }) {
     setError("");
     setState("loading");
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("connect-whatsapp", {
-        body: { instanceName: instanceName.trim(), phoneNumber: phoneNumber.trim() },
+      const data = await connectFn({
+        data: { instanceName: instanceName.trim(), phoneNumber: phoneNumber.trim() },
       });
-      if (fnError) throw fnError;
-      if (!data?.qrCode) throw new Error("QR Code não retornado pela função");
+      if (!data?.qrCode) throw new Error("QR Code não retornado");
       setQrCode(data.qrCode);
       setState("qr");
       startWatching(instanceName.trim());
