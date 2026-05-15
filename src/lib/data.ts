@@ -30,6 +30,7 @@ export function useConversations() {
       if (error) throw error;
       return (data ?? []) as unknown as ConvRow[];
     },
+    refetchInterval: 5000,
   });
 }
 
@@ -69,6 +70,31 @@ export interface MsgRow {
   body: string;
   is_note: boolean;
   created_at: string;
+  sender_name: string | null;
+}
+
+interface RawMsgRow {
+  id: string;
+  conversation_id: string | null;
+  agent_id: string | null;
+  content: string | null;
+  is_from_contact: boolean | null;
+  is_private: boolean | null;
+  sender_name: string | null;
+  created_at: string | null;
+}
+
+function mapMsg(row: RawMsgRow): MsgRow {
+  return {
+    id: row.id,
+    conversation_id: row.conversation_id ?? "",
+    author: row.is_from_contact ? "cliente" : "agente",
+    sender_id: row.agent_id,
+    body: row.content ?? "",
+    is_note: !!row.is_private,
+    created_at: row.created_at ?? new Date().toISOString(),
+    sender_name: row.sender_name,
+  };
 }
 
 export function useMessages(conversationId: string | undefined) {
@@ -78,26 +104,38 @@ export function useMessages(conversationId: string | undefined) {
       if (!conversationId) return [];
       const { data, error } = await supabase
         .from("messages")
-        .select("*")
+        .select("id, conversation_id, agent_id, content, is_from_contact, is_private, sender_name, created_at")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as unknown as MsgRow[];
+      return ((data ?? []) as RawMsgRow[]).map(mapMsg);
     },
     enabled: !!conversationId,
+    refetchInterval: 5000,
   });
 }
 
 export function useSendMessage() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { conversation_id: string; body: string; is_note: boolean; author: "cliente" | "agente"; sender_id?: string | null }) => {
-      const { error } = await supabase.from("messages").insert(payload as never);
+    mutationFn: async (payload: { conversation_id: string; body: string; is_note: boolean; author: "cliente" | "agente"; sender_id?: string | null; sender_name?: string | null }) => {
+      const insertRow = {
+        conversation_id: payload.conversation_id,
+        content: payload.body,
+        is_from_contact: payload.author === "cliente",
+        is_private: payload.is_note,
+        agent_id: payload.sender_id ?? null,
+        sender_name: payload.sender_name ?? (payload.author === "agente" ? "Agente" : null),
+        message_type: "text",
+      };
+      const { error } = await supabase.from("messages").insert(insertRow as never);
       if (error) throw error;
-      await supabase
-        .from("conversations")
-        .update({ last_message: payload.body, last_message_at: new Date().toISOString() })
-        .eq("id", payload.conversation_id);
+      if (!payload.is_note) {
+        await supabase
+          .from("conversations")
+          .update({ last_message: payload.body, last_message_at: new Date().toISOString() })
+          .eq("id", payload.conversation_id);
+      }
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["messages", vars.conversation_id] });
