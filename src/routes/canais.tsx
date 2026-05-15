@@ -152,10 +152,25 @@ function CanaisPage() {
                     <RefreshCw className={`h-4 w-4 ${refreshingId === inst.id ? "animate-spin" : ""}`} />
                   </button>
                   <button
+                    onClick={() => disconnect(inst, false)}
+                    disabled={disconnectingId === inst.id}
+                    className="p-2 rounded-lg hover:bg-muted text-muted-foreground disabled:opacity-50"
+                    title="Desconectar número"
+                  >
+                    {disconnectingId === inst.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <PowerOff className="h-4 w-4" />}
+                  </button>
+                  <button
                     onClick={() => navigate({ to: "/conversas" })}
                     className="px-3 py-1.5 text-sm rounded-lg bg-[#0B3A5D] text-white hover:opacity-90"
                   >
                     Ver conversas
+                  </button>
+                  <button
+                    onClick={() => disconnect(inst, true)}
+                    disabled={disconnectingId === inst.id}
+                    className="px-3 py-1.5 text-sm rounded-lg border border-destructive text-destructive hover:bg-destructive/5 disabled:opacity-50"
+                  >
+                    Remover
                   </button>
                 </div>
               </div>
