@@ -182,6 +182,7 @@ export type Database = {
           contact_id: string
           created_at: string
           id: string
+          inbox_id: string | null
           last_message: string | null
           last_message_at: string | null
           opened_at: string
@@ -199,6 +200,7 @@ export type Database = {
           contact_id: string
           created_at?: string
           id?: string
+          inbox_id?: string | null
           last_message?: string | null
           last_message_at?: string | null
           opened_at?: string
@@ -216,6 +218,7 @@ export type Database = {
           contact_id?: string
           created_at?: string
           id?: string
+          inbox_id?: string | null
           last_message?: string | null
           last_message_at?: string | null
           opened_at?: string
@@ -236,6 +239,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "conversations_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: false
+            referencedRelation: "inboxes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "conversations_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
@@ -243,6 +253,74 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      inbox_members: {
+        Row: {
+          created_at: string
+          id: string
+          inbox_id: string
+          team_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inbox_id: string
+          team_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inbox_id?: string
+          team_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbox_members_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: false
+            referencedRelation: "inboxes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inboxes: {
+        Row: {
+          active: boolean
+          channel: string
+          config: Json
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          welcome_message: string | null
+          widget_color: string | null
+        }
+        Insert: {
+          active?: boolean
+          channel: string
+          config?: Json
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          welcome_message?: string | null
+          widget_color?: string | null
+        }
+        Update: {
+          active?: boolean
+          channel?: string
+          config?: Json
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          welcome_message?: string | null
+          widget_color?: string | null
+        }
+        Relationships: []
       }
       interacoes_cidadao: {
         Row: {

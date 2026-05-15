@@ -13,6 +13,7 @@ import { Route as WhatsappRouteImport } from './routes/whatsapp'
 import { Route as SuperAdminRouteImport } from './routes/super-admin'
 import { Route as SlaRouteImport } from './routes/sla'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
+import { Route as MinhaCaixaRouteImport } from './routes/minha-caixa'
 import { Route as IasRouteImport } from './routes/ias'
 import { Route as FuncoesRouteImport } from './routes/funcoes'
 import { Route as EtiquetasRouteImport } from './routes/etiquetas'
@@ -20,6 +21,7 @@ import { Route as EquipesRouteImport } from './routes/equipes'
 import { Route as ConversasRouteImport } from './routes/conversas'
 import { Route as ContatosRouteImport } from './routes/contatos'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as CaixasEntradaRouteImport } from './routes/caixas-entrada'
 import { Route as AutomacoesRouteImport } from './routes/automacoes'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
 import { Route as IndexRouteImport } from './routes/index'
@@ -32,6 +34,7 @@ import { Route as SuperAdminLoginRouteImport } from './routes/super-admin.login'
 import { Route as SuperAdminInstanceHealthRouteImport } from './routes/super-admin.instance-health'
 import { Route as SuperAdminAgentBotsRouteImport } from './routes/super-admin.agent-bots'
 import { Route as SuperAdminAccountsRouteImport } from './routes/super-admin.accounts'
+import { Route as CaixasIdRouteImport } from './routes/caixas.$id'
 
 const WhatsappRoute = WhatsappRouteImport.update({
   id: '/whatsapp',
@@ -51,6 +54,11 @@ const SlaRoute = SlaRouteImport.update({
 const RelatoriosRoute = RelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MinhaCaixaRoute = MinhaCaixaRouteImport.update({
+  id: '/minha-caixa',
+  path: '/minha-caixa',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IasRoute = IasRouteImport.update({
@@ -86,6 +94,11 @@ const ContatosRoute = ContatosRouteImport.update({
 const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
   id: '/configuracoes',
   path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CaixasEntradaRoute = CaixasEntradaRouteImport.update({
+  id: '/caixas-entrada',
+  path: '/caixas-entrada',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AutomacoesRoute = AutomacoesRouteImport.update({
@@ -149,11 +162,17 @@ const SuperAdminAccountsRoute = SuperAdminAccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => SuperAdminRoute,
 } as any)
+const CaixasIdRoute = CaixasIdRouteImport.update({
+  id: '/caixas/$id',
+  path: '/caixas/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auditoria': typeof AuditoriaRoute
   '/automacoes': typeof AutomacoesRoute
+  '/caixas-entrada': typeof CaixasEntradaRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/contatos': typeof ContatosRoute
   '/conversas': typeof ConversasRoute
@@ -161,10 +180,12 @@ export interface FileRoutesByFullPath {
   '/etiquetas': typeof EtiquetasRoute
   '/funcoes': typeof FuncoesRoute
   '/ias': typeof IasRoute
+  '/minha-caixa': typeof MinhaCaixaRoute
   '/relatorios': typeof RelatoriosRoute
   '/sla': typeof SlaRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
+  '/caixas/$id': typeof CaixasIdRoute
   '/super-admin/accounts': typeof SuperAdminAccountsRoute
   '/super-admin/agent-bots': typeof SuperAdminAgentBotsRoute
   '/super-admin/instance-health': typeof SuperAdminInstanceHealthRoute
@@ -179,6 +200,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auditoria': typeof AuditoriaRoute
   '/automacoes': typeof AutomacoesRoute
+  '/caixas-entrada': typeof CaixasEntradaRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/contatos': typeof ContatosRoute
   '/conversas': typeof ConversasRoute
@@ -186,9 +208,11 @@ export interface FileRoutesByTo {
   '/etiquetas': typeof EtiquetasRoute
   '/funcoes': typeof FuncoesRoute
   '/ias': typeof IasRoute
+  '/minha-caixa': typeof MinhaCaixaRoute
   '/relatorios': typeof RelatoriosRoute
   '/sla': typeof SlaRoute
   '/whatsapp': typeof WhatsappRoute
+  '/caixas/$id': typeof CaixasIdRoute
   '/super-admin/accounts': typeof SuperAdminAccountsRoute
   '/super-admin/agent-bots': typeof SuperAdminAgentBotsRoute
   '/super-admin/instance-health': typeof SuperAdminInstanceHealthRoute
@@ -204,6 +228,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auditoria': typeof AuditoriaRoute
   '/automacoes': typeof AutomacoesRoute
+  '/caixas-entrada': typeof CaixasEntradaRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/contatos': typeof ContatosRoute
   '/conversas': typeof ConversasRoute
@@ -211,10 +236,12 @@ export interface FileRoutesById {
   '/etiquetas': typeof EtiquetasRoute
   '/funcoes': typeof FuncoesRoute
   '/ias': typeof IasRoute
+  '/minha-caixa': typeof MinhaCaixaRoute
   '/relatorios': typeof RelatoriosRoute
   '/sla': typeof SlaRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
+  '/caixas/$id': typeof CaixasIdRoute
   '/super-admin/accounts': typeof SuperAdminAccountsRoute
   '/super-admin/agent-bots': typeof SuperAdminAgentBotsRoute
   '/super-admin/instance-health': typeof SuperAdminInstanceHealthRoute
@@ -231,6 +258,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auditoria'
     | '/automacoes'
+    | '/caixas-entrada'
     | '/configuracoes'
     | '/contatos'
     | '/conversas'
@@ -238,10 +266,12 @@ export interface FileRouteTypes {
     | '/etiquetas'
     | '/funcoes'
     | '/ias'
+    | '/minha-caixa'
     | '/relatorios'
     | '/sla'
     | '/super-admin'
     | '/whatsapp'
+    | '/caixas/$id'
     | '/super-admin/accounts'
     | '/super-admin/agent-bots'
     | '/super-admin/instance-health'
@@ -256,6 +286,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auditoria'
     | '/automacoes'
+    | '/caixas-entrada'
     | '/configuracoes'
     | '/contatos'
     | '/conversas'
@@ -263,9 +294,11 @@ export interface FileRouteTypes {
     | '/etiquetas'
     | '/funcoes'
     | '/ias'
+    | '/minha-caixa'
     | '/relatorios'
     | '/sla'
     | '/whatsapp'
+    | '/caixas/$id'
     | '/super-admin/accounts'
     | '/super-admin/agent-bots'
     | '/super-admin/instance-health'
@@ -280,6 +313,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auditoria'
     | '/automacoes'
+    | '/caixas-entrada'
     | '/configuracoes'
     | '/contatos'
     | '/conversas'
@@ -287,10 +321,12 @@ export interface FileRouteTypes {
     | '/etiquetas'
     | '/funcoes'
     | '/ias'
+    | '/minha-caixa'
     | '/relatorios'
     | '/sla'
     | '/super-admin'
     | '/whatsapp'
+    | '/caixas/$id'
     | '/super-admin/accounts'
     | '/super-admin/agent-bots'
     | '/super-admin/instance-health'
@@ -306,6 +342,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuditoriaRoute: typeof AuditoriaRoute
   AutomacoesRoute: typeof AutomacoesRoute
+  CaixasEntradaRoute: typeof CaixasEntradaRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   ContatosRoute: typeof ContatosRoute
   ConversasRoute: typeof ConversasRoute
@@ -313,10 +350,12 @@ export interface RootRouteChildren {
   EtiquetasRoute: typeof EtiquetasRoute
   FuncoesRoute: typeof FuncoesRoute
   IasRoute: typeof IasRoute
+  MinhaCaixaRoute: typeof MinhaCaixaRoute
   RelatoriosRoute: typeof RelatoriosRoute
   SlaRoute: typeof SlaRoute
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
   WhatsappRoute: typeof WhatsappRoute
+  CaixasIdRoute: typeof CaixasIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -347,6 +386,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios'
       fullPath: '/relatorios'
       preLoaderRoute: typeof RelatoriosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/minha-caixa': {
+      id: '/minha-caixa'
+      path: '/minha-caixa'
+      fullPath: '/minha-caixa'
+      preLoaderRoute: typeof MinhaCaixaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ias': {
@@ -396,6 +442,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes'
       fullPath: '/configuracoes'
       preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/caixas-entrada': {
+      id: '/caixas-entrada'
+      path: '/caixas-entrada'
+      fullPath: '/caixas-entrada'
+      preLoaderRoute: typeof CaixasEntradaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/automacoes': {
@@ -482,6 +535,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminAccountsRouteImport
       parentRoute: typeof SuperAdminRoute
     }
+    '/caixas/$id': {
+      id: '/caixas/$id'
+      path: '/caixas/$id'
+      fullPath: '/caixas/$id'
+      preLoaderRoute: typeof CaixasIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -517,6 +577,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuditoriaRoute: AuditoriaRoute,
   AutomacoesRoute: AutomacoesRoute,
+  CaixasEntradaRoute: CaixasEntradaRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   ContatosRoute: ContatosRoute,
   ConversasRoute: ConversasRoute,
@@ -524,10 +585,12 @@ const rootRouteChildren: RootRouteChildren = {
   EtiquetasRoute: EtiquetasRoute,
   FuncoesRoute: FuncoesRoute,
   IasRoute: IasRoute,
+  MinhaCaixaRoute: MinhaCaixaRoute,
   RelatoriosRoute: RelatoriosRoute,
   SlaRoute: SlaRoute,
   SuperAdminRoute: SuperAdminRouteWithChildren,
   WhatsappRoute: WhatsappRoute,
+  CaixasIdRoute: CaixasIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
