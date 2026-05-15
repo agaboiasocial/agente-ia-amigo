@@ -140,6 +140,7 @@ export const sendWhatsAppMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => SendMessageInput.parse(input))
   .handler(async ({ data, context }) => {
+    const supabase = context.supabase;
     const text = data.body.trim();
     const { data: conversation, error: conversationError } = await supabaseAdmin
       .from("conversations")
