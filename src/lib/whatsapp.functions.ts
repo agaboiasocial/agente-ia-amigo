@@ -176,6 +176,8 @@ export const sendWhatsAppMessage = createServerFn({ method: "POST" })
       return { ok: true, sent: false };
     }
 
+    if (!conversation.contact_id) throw new Error("Esta conversa não tem contato vinculado");
+
     const { data: contact, error: contactError } = await supabaseAdmin
       .from("contacts")
       .select("phone_number")
