@@ -30,6 +30,7 @@ import {
   Video,
 } from "lucide-react";
 import { toast } from "sonner";
+import logoSuporte from "@/assets/logo-suporte.png";
 
 type Status = "Aberto" | "Em andamento" | "Resolvido";
 type Ticket = {
@@ -141,6 +142,7 @@ export function SupportProvider({ children }: { children: ReactNode }) {
                   <ArrowLeft className="h-4 w-4" />
                 </button>
               )}
+              <img src={logoSuporte} alt="Suporte" className="h-8 w-8 object-contain" />
               Central de Suporte
             </SheetTitle>
             <SheetDescription className="sr-only">
