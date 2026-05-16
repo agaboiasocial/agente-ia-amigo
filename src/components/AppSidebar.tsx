@@ -27,6 +27,7 @@ import {
   Send as SendIcon,
   Facebook,
 } from "lucide-react";
+import logoIas from "@/assets/logo-ias.png";
 import { useAuth } from "@/hooks/use-auth";
 import { useSupport } from "@/components/support/SupportCenter";
 import { useInboxes, type InboxChannel } from "@/lib/inboxes";
@@ -83,9 +84,7 @@ export function AppSidebar() {
   return (
     <aside className="hidden md:flex w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground">
       <div className="px-5 py-5 flex items-center gap-2 border-b border-sidebar-border">
-        <div className="h-9 w-9 rounded-lg bg-success text-success-foreground grid place-items-center font-bold">
-          IAS
-        </div>
+        <img src={logoIas} alt="IAS" className="h-10 w-10 rounded-lg bg-white object-contain p-0.5" />
         <div className="leading-tight">
           <div className="text-sm font-semibold">Agente IA Social</div>
           <div className="text-[11px] text-sidebar-foreground/60">Atendimento</div>

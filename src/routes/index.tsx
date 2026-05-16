@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Mail, Lock, User as UserIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import logoIas from "@/assets/logo-ias.png";
 
 export const Route = createFileRoute("/")({
   component: LoginPage,
@@ -48,9 +49,7 @@ function LoginPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-3">
-            <div className="h-12 w-12 rounded-xl bg-success grid place-items-center text-white font-bold text-lg shadow-lg">
-              IAS
-            </div>
+            <img src={logoIas} alt="IAS — Agente IA Social" className="h-20 w-20 rounded-2xl bg-white object-contain p-1 shadow-lg" />
           </div>
           <h1 className="text-2xl font-bold text-white">Agente IA Social</h1>
           <p className="text-white/70 text-sm mt-1">Plataforma de atendimento ao cliente</p>
