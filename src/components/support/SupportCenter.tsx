@@ -142,7 +142,7 @@ export function SupportProvider({ children }: { children: ReactNode }) {
                   <ArrowLeft className="h-4 w-4" />
                 </button>
               )}
-              <img src={logoSuporte} alt="Suporte" className="h-8 w-8 object-contain" />
+              <img src={logoSuporte} alt="Suporte" className="h-14 w-14 object-contain" />
               Central de Suporte
             </SheetTitle>
             <SheetDescription className="sr-only">
