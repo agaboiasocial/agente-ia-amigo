@@ -22,10 +22,11 @@ async function assertAdmin(userId: string) {
 export const checkSuperAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await supabaseAdmin
+    const { supabase, userId } = context;
+    const { data, error } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", context.userId);
+      .eq("user_id", userId);
 
     if (error) throw new Error(error.message);
 
