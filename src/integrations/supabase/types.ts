@@ -22,6 +22,8 @@ export type Database = {
           id: string
           locale: string | null
           name: string
+          plan_type: string | null
+          plan_value: number | null
           status: string | null
         }
         Insert: {
@@ -31,6 +33,8 @@ export type Database = {
           id?: string
           locale?: string | null
           name: string
+          plan_type?: string | null
+          plan_value?: number | null
           status?: string | null
         }
         Update: {
@@ -40,6 +44,8 @@ export type Database = {
           id?: string
           locale?: string | null
           name?: string
+          plan_type?: string | null
+          plan_value?: number | null
           status?: string | null
         }
         Relationships: []
@@ -93,6 +99,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ai_settings: {
+        Row: {
+          buffer_seconds: number | null
+          created_at: string
+          handoff_keyword: string | null
+          id: string
+          is_active: boolean | null
+          model: string | null
+          off_hours_message: string | null
+          persona_name: string | null
+          schedule_days: string[] | null
+          schedule_enabled: boolean | null
+          schedule_end: string | null
+          schedule_start: string | null
+          system_prompt: string | null
+          temperature: number | null
+          updated_at: string
+        }
+        Insert: {
+          buffer_seconds?: number | null
+          created_at?: string
+          handoff_keyword?: string | null
+          id?: string
+          is_active?: boolean | null
+          model?: string | null
+          off_hours_message?: string | null
+          persona_name?: string | null
+          schedule_days?: string[] | null
+          schedule_enabled?: boolean | null
+          schedule_end?: string | null
+          schedule_start?: string | null
+          system_prompt?: string | null
+          temperature?: number | null
+          updated_at?: string
+        }
+        Update: {
+          buffer_seconds?: number | null
+          created_at?: string
+          handoff_keyword?: string | null
+          id?: string
+          is_active?: boolean | null
+          model?: string | null
+          off_hours_message?: string | null
+          persona_name?: string | null
+          schedule_days?: string[] | null
+          schedule_enabled?: boolean | null
+          schedule_end?: string | null
+          schedule_start?: string | null
+          system_prompt?: string | null
+          temperature?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       audit_logs: {
         Row: {
@@ -335,42 +395,96 @@ export type Database = {
       }
       contacts: {
         Row: {
+          ai_paused: boolean | null
+          assigned_to: string | null
           channel: string | null
           created_at: string | null
           custom_attributes: Json | null
           email: string | null
+          estimated_value: number | null
           id: string
+          last_contact_at: string | null
+          lead_score: number | null
+          loss_reason_id: string | null
+          lost_at: string | null
           name: string
+          notes: string | null
           phone_number: string | null
+          probability: number | null
           profile_pic: string | null
+          source: string | null
+          stage_entered_at: string | null
+          stage_id: string | null
           tags: string[] | null
           updated_at: string | null
+          won_at: string | null
         }
         Insert: {
+          ai_paused?: boolean | null
+          assigned_to?: string | null
           channel?: string | null
           created_at?: string | null
           custom_attributes?: Json | null
           email?: string | null
+          estimated_value?: number | null
           id?: string
+          last_contact_at?: string | null
+          lead_score?: number | null
+          loss_reason_id?: string | null
+          lost_at?: string | null
           name: string
+          notes?: string | null
           phone_number?: string | null
+          probability?: number | null
           profile_pic?: string | null
+          source?: string | null
+          stage_entered_at?: string | null
+          stage_id?: string | null
           tags?: string[] | null
           updated_at?: string | null
+          won_at?: string | null
         }
         Update: {
+          ai_paused?: boolean | null
+          assigned_to?: string | null
           channel?: string | null
           created_at?: string | null
           custom_attributes?: Json | null
           email?: string | null
+          estimated_value?: number | null
           id?: string
+          last_contact_at?: string | null
+          lead_score?: number | null
+          loss_reason_id?: string | null
+          lost_at?: string | null
           name?: string
+          notes?: string | null
           phone_number?: string | null
+          probability?: number | null
           profile_pic?: string | null
+          source?: string | null
+          stage_entered_at?: string | null
+          stage_id?: string | null
           tags?: string[] | null
           updated_at?: string | null
+          won_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contacts_loss_reason_id_fkey"
+            columns: ["loss_reason_id"]
+            isOneToOne: false
+            referencedRelation: "loss_reasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_labels: {
         Row: {
@@ -767,6 +881,165 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_movements: {
+        Row: {
+          contact_id: string
+          created_at: string
+          from_stage_id: string | null
+          id: string
+          loss_reason_id: string | null
+          moved_by: string | null
+          notes: string | null
+          to_stage_id: string | null
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          from_stage_id?: string | null
+          id?: string
+          loss_reason_id?: string | null
+          moved_by?: string | null
+          notes?: string | null
+          to_stage_id?: string | null
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          from_stage_id?: string | null
+          id?: string
+          loss_reason_id?: string | null
+          moved_by?: string | null
+          notes?: string | null
+          to_stage_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_movements_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_movements_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_movements_loss_reason_id_fkey"
+            columns: ["loss_reason_id"]
+            isOneToOne: false
+            referencedRelation: "loss_reasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_movements_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_notes: {
+        Row: {
+          author_id: string | null
+          contact_id: string
+          content: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          author_id?: string | null
+          contact_id: string
+          content: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          author_id?: string | null
+          contact_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_tasks: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          contact_id: string
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          is_completed: boolean
+          title: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          contact_id: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_completed?: boolean
+          title: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          contact_id?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_completed?: boolean
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_tasks_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loss_reasons: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       macros: {
         Row: {
           actions: Json
@@ -878,6 +1151,125 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          link: string | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payment_schedules: {
+        Row: {
+          amount: number
+          contact_id: string | null
+          created_at: string
+          due_date: string
+          id: string
+          notes: string | null
+          paid_at: string | null
+          status: string
+        }
+        Insert: {
+          amount?: number
+          contact_id?: string | null
+          created_at?: string
+          due_date: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          contact_id?: string | null
+          created_at?: string
+          due_date?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_schedules_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_stages: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_lost: boolean
+          is_won: boolean
+          name: string
+          position: number
+          probability: number
+          sla_hours: number | null
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_lost?: boolean
+          is_won?: boolean
+          name: string
+          position?: number
+          probability?: number
+          sla_hours?: number | null
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_lost?: boolean
+          is_won?: boolean
+          name?: string
+          position?: number
+          probability?: number
+          sla_hours?: number | null
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_initials: string | null
@@ -929,6 +1321,36 @@ export type Database = {
           message?: string
           shortcut?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      saved_views: {
+        Row: {
+          columns: string[] | null
+          created_at: string
+          created_by: string | null
+          filters: Json
+          id: string
+          is_default: boolean | null
+          name: string
+        }
+        Insert: {
+          columns?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          filters?: Json
+          id?: string
+          is_default?: boolean | null
+          name: string
+        }
+        Update: {
+          columns?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          filters?: Json
+          id?: string
+          is_default?: boolean | null
+          name?: string
         }
         Relationships: []
       }
