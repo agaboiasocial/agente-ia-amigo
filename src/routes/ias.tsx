@@ -1,17 +1,101 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
-import { Bot, Sparkles, Wand2, BookOpen, Zap, CheckCircle2 } from "lucide-react";
+import { Bot, Sparkles, Wand2, BookOpen, Zap, CheckCircle2, Save } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/ias")({ component: IASPage });
 
+const sb = supabase as any;
+const DEFAULT_SYSTEM_PROMPT =
+  "Você é o IAS, atendente virtual da nossa empresa. Seja cordial, objetivo e use português brasileiro. Sempre que não souber, ofereça transferir para um agente humano.";
+
+interface AISettings {
+  id: string;
+  persona_name: string;
+  system_prompt: string;
+  model: string;
+  temperature: number;
+  is_active: boolean;
+  handoff_keyword: string;
+  buffer_seconds: number;
+}
+
+function useAISettings() {
+  return useQuery({
+    queryKey: ["ai_settings"],
+    queryFn: async (): Promise<AISettings | null> => {
+      const { data, error } = await sb.from("ai_settings").select("*").limit(1).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
 function IASPage() {
+  const queryClient = useQueryClient();
+  const { data: settings } = useAISettings();
   const [enabled, setEnabled] = useState(true);
-  const [tone, setTone] = useState("amigavel");
+  const [personaName, setPersonaName] = useState("IAS Assistente");
+  const [model, setModel] = useState("gpt-4o-mini");
+  const [temperature, setTemperature] = useState(0.7);
+  const [handoffKeyword, setHandoffKeyword] = useState("#humano");
+  const [prompt, setPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
   const [autoReply, setAutoReply] = useState(true);
 
+  useEffect(() => {
+    if (!settings) return;
+    setEnabled(settings.is_active);
+    setPersonaName(settings.persona_name ?? "IAS Assistente");
+    setModel(settings.model ?? "gpt-4o-mini");
+    setTemperature(Number(settings.temperature ?? 0.7));
+    setHandoffKeyword(settings.handoff_keyword ?? "#humano");
+    setPrompt(settings.system_prompt ?? DEFAULT_SYSTEM_PROMPT);
+    setAutoReply((settings.buffer_seconds ?? 3) >= 0);
+  }, [settings]);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        persona_name: personaName,
+        system_prompt: prompt,
+        model,
+        temperature,
+        is_active: enabled,
+        handoff_keyword: handoffKeyword,
+        buffer_seconds: autoReply ? 3 : -1,
+        updated_at: new Date().toISOString(),
+      };
+      if (settings?.id) {
+        const { error } = await sb.from("ai_settings").update(payload).eq("id", settings.id);
+        if (error) throw error;
+        return;
+      }
+      const { error } = await sb.from("ai_settings").insert(payload);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ai_settings"] });
+      toast.success("Configuração do IAS salva");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   return (
-    <AppLayout title="IAS — Agente Inteligente">
+    <AppLayout
+      title="IAS — Agente Inteligente"
+      actions={
+        <button
+          onClick={() => save.mutate()}
+          disabled={save.isPending}
+          className="h-9 px-4 rounded-lg bg-success text-success-foreground text-sm font-semibold flex items-center gap-2 disabled:opacity-60"
+        >
+          <Save className="h-4 w-4" /> {save.isPending ? "Salvando..." : "Salvar IA"}
+        </button>
+      }
+    >
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Status card */}
         <div className="lg:col-span-2 bg-card rounded-xl border shadow-sm p-6">
@@ -37,14 +121,12 @@ function IASPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Tom de voz">
-              <select value={tone} onChange={(e) => setTone(e.target.value)}
-                className="w-full h-10 px-3 rounded-lg border bg-background text-sm">
-                <option value="amigavel">Amigável</option>
-                <option value="formal">Formal</option>
-                <option value="vendedor">Consultivo / vendas</option>
-                <option value="tecnico">Técnico</option>
-              </select>
+            <Field label="Nome do agente">
+              <input
+                value={personaName}
+                onChange={(e) => setPersonaName(e.target.value)}
+                className="w-full h-10 px-3 rounded-lg border bg-background text-sm"
+              />
             </Field>
             <Field label="Idioma principal">
               <select className="w-full h-10 px-3 rounded-lg border bg-background text-sm">
@@ -54,25 +136,37 @@ function IASPage() {
               </select>
             </Field>
             <Field label="Modelo de IA">
-              <select className="w-full h-10 px-3 rounded-lg border bg-background text-sm">
-                <option>IAS-Pro (recomendado)</option>
-                <option>IAS-Lite (econômico)</option>
-                <option>IAS-Max (raciocínio avançado)</option>
+              <select value={model} onChange={(e) => setModel(e.target.value)} className="w-full h-10 px-3 rounded-lg border bg-background text-sm">
+                <option value="gpt-4o-mini">IAS-Pro (gpt-4o-mini)</option>
+                <option value="gpt-4.1-mini">IAS-Lite (gpt-4.1-mini)</option>
+                <option value="gpt-4.1">IAS-Max (gpt-4.1)</option>
               </select>
             </Field>
-            <Field label="Encaminhar para humano após">
-              <select className="w-full h-10 px-3 rounded-lg border bg-background text-sm">
-                <option>3 mensagens sem solução</option>
-                <option>Solicitação explícita</option>
-                <option>Nunca</option>
-              </select>
+            <Field label="Palavra de transferência">
+              <input
+                value={handoffKeyword}
+                onChange={(e) => setHandoffKeyword(e.target.value)}
+                className="w-full h-10 px-3 rounded-lg border bg-background text-sm"
+              />
+            </Field>
+            <Field label="Temperatura">
+              <input
+                type="number"
+                min="0"
+                max="2"
+                step="0.1"
+                value={temperature}
+                onChange={(e) => setTemperature(Number(e.target.value))}
+                className="w-full h-10 px-3 rounded-lg border bg-background text-sm"
+              />
             </Field>
           </div>
 
           <div className="mt-5">
             <label className="text-xs font-medium">Instruções do agente (system prompt)</label>
             <textarea
-              defaultValue="Você é o IAS, atendente virtual da nossa empresa. Seja cordial, objetivo e use português brasileiro. Sempre que não souber, ofereça transferir para um agente humano."
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
               className="mt-1 w-full min-h-[120px] p-3 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-success"
             />
           </div>

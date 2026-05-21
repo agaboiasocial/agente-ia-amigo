@@ -13,12 +13,15 @@ import { Route as WhatsappRouteImport } from './routes/whatsapp'
 import { Route as SuperAdminRouteImport } from './routes/super-admin'
 import { Route as SlaRouteImport } from './routes/sla'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
+import { Route as PipelineRouteImport } from './routes/pipeline'
 import { Route as MinhaCaixaRouteImport } from './routes/minha-caixa'
 import { Route as IasRouteImport } from './routes/ias'
 import { Route as FuncoesPermissoesRouteImport } from './routes/funcoes-permissoes'
 import { Route as FuncoesRouteImport } from './routes/funcoes'
+import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as EtiquetasRouteImport } from './routes/etiquetas'
 import { Route as EquipesRouteImport } from './routes/equipes'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ConversasRouteImport } from './routes/conversas'
 import { Route as ContatosRouteImport } from './routes/contatos'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
@@ -60,6 +63,11 @@ const RelatoriosRoute = RelatoriosRouteImport.update({
   path: '/relatorios',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PipelineRoute = PipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MinhaCaixaRoute = MinhaCaixaRouteImport.update({
   id: '/minha-caixa',
   path: '/minha-caixa',
@@ -80,6 +88,11 @@ const FuncoesRoute = FuncoesRouteImport.update({
   path: '/funcoes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceiroRoute = FinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EtiquetasRoute = EtiquetasRouteImport.update({
   id: '/etiquetas',
   path: '/etiquetas',
@@ -88,6 +101,11 @@ const EtiquetasRoute = EtiquetasRouteImport.update({
 const EquipesRoute = EquipesRouteImport.update({
   id: '/equipes',
   path: '/equipes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConversasRoute = ConversasRouteImport.update({
@@ -203,12 +221,15 @@ export interface FileRoutesByFullPath {
   '/configuracoes': typeof ConfiguracoesRoute
   '/contatos': typeof ContatosRoute
   '/conversas': typeof ConversasRoute
+  '/dashboard': typeof DashboardRoute
   '/equipes': typeof EquipesRoute
   '/etiquetas': typeof EtiquetasRoute
+  '/financeiro': typeof FinanceiroRoute
   '/funcoes': typeof FuncoesRoute
   '/funcoes-permissoes': typeof FuncoesPermissoesRoute
   '/ias': typeof IasRoute
   '/minha-caixa': typeof MinhaCaixaRoute
+  '/pipeline': typeof PipelineRoute
   '/relatorios': typeof RelatoriosRoute
   '/sla': typeof SlaRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
@@ -235,12 +256,15 @@ export interface FileRoutesByTo {
   '/configuracoes': typeof ConfiguracoesRoute
   '/contatos': typeof ContatosRoute
   '/conversas': typeof ConversasRoute
+  '/dashboard': typeof DashboardRoute
   '/equipes': typeof EquipesRoute
   '/etiquetas': typeof EtiquetasRoute
+  '/financeiro': typeof FinanceiroRoute
   '/funcoes': typeof FuncoesRoute
   '/funcoes-permissoes': typeof FuncoesPermissoesRoute
   '/ias': typeof IasRoute
   '/minha-caixa': typeof MinhaCaixaRoute
+  '/pipeline': typeof PipelineRoute
   '/relatorios': typeof RelatoriosRoute
   '/sla': typeof SlaRoute
   '/whatsapp': typeof WhatsappRoute
@@ -267,12 +291,15 @@ export interface FileRoutesById {
   '/configuracoes': typeof ConfiguracoesRoute
   '/contatos': typeof ContatosRoute
   '/conversas': typeof ConversasRoute
+  '/dashboard': typeof DashboardRoute
   '/equipes': typeof EquipesRoute
   '/etiquetas': typeof EtiquetasRoute
+  '/financeiro': typeof FinanceiroRoute
   '/funcoes': typeof FuncoesRoute
   '/funcoes-permissoes': typeof FuncoesPermissoesRoute
   '/ias': typeof IasRoute
   '/minha-caixa': typeof MinhaCaixaRoute
+  '/pipeline': typeof PipelineRoute
   '/relatorios': typeof RelatoriosRoute
   '/sla': typeof SlaRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
@@ -301,12 +328,15 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/contatos'
     | '/conversas'
+    | '/dashboard'
     | '/equipes'
     | '/etiquetas'
+    | '/financeiro'
     | '/funcoes'
     | '/funcoes-permissoes'
     | '/ias'
     | '/minha-caixa'
+    | '/pipeline'
     | '/relatorios'
     | '/sla'
     | '/super-admin'
@@ -333,12 +363,15 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/contatos'
     | '/conversas'
+    | '/dashboard'
     | '/equipes'
     | '/etiquetas'
+    | '/financeiro'
     | '/funcoes'
     | '/funcoes-permissoes'
     | '/ias'
     | '/minha-caixa'
+    | '/pipeline'
     | '/relatorios'
     | '/sla'
     | '/whatsapp'
@@ -364,12 +397,15 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/contatos'
     | '/conversas'
+    | '/dashboard'
     | '/equipes'
     | '/etiquetas'
+    | '/financeiro'
     | '/funcoes'
     | '/funcoes-permissoes'
     | '/ias'
     | '/minha-caixa'
+    | '/pipeline'
     | '/relatorios'
     | '/sla'
     | '/super-admin'
@@ -397,12 +433,15 @@ export interface RootRouteChildren {
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   ContatosRoute: typeof ContatosRoute
   ConversasRoute: typeof ConversasRoute
+  DashboardRoute: typeof DashboardRoute
   EquipesRoute: typeof EquipesRoute
   EtiquetasRoute: typeof EtiquetasRoute
+  FinanceiroRoute: typeof FinanceiroRoute
   FuncoesRoute: typeof FuncoesRoute
   FuncoesPermissoesRoute: typeof FuncoesPermissoesRoute
   IasRoute: typeof IasRoute
   MinhaCaixaRoute: typeof MinhaCaixaRoute
+  PipelineRoute: typeof PipelineRoute
   RelatoriosRoute: typeof RelatoriosRoute
   SlaRoute: typeof SlaRoute
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
@@ -441,6 +480,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RelatoriosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pipeline': {
+      id: '/pipeline'
+      path: '/pipeline'
+      fullPath: '/pipeline'
+      preLoaderRoute: typeof PipelineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/minha-caixa': {
       id: '/minha-caixa'
       path: '/minha-caixa'
@@ -469,6 +515,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FuncoesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/financeiro': {
+      id: '/financeiro'
+      path: '/financeiro'
+      fullPath: '/financeiro'
+      preLoaderRoute: typeof FinanceiroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/etiquetas': {
       id: '/etiquetas'
       path: '/etiquetas'
@@ -481,6 +534,13 @@ declare module '@tanstack/react-router' {
       path: '/equipes'
       fullPath: '/equipes'
       preLoaderRoute: typeof EquipesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/conversas': {
@@ -664,12 +724,15 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracoesRoute: ConfiguracoesRoute,
   ContatosRoute: ContatosRoute,
   ConversasRoute: ConversasRoute,
+  DashboardRoute: DashboardRoute,
   EquipesRoute: EquipesRoute,
   EtiquetasRoute: EtiquetasRoute,
+  FinanceiroRoute: FinanceiroRoute,
   FuncoesRoute: FuncoesRoute,
   FuncoesPermissoesRoute: FuncoesPermissoesRoute,
   IasRoute: IasRoute,
   MinhaCaixaRoute: MinhaCaixaRoute,
+  PipelineRoute: PipelineRoute,
   RelatoriosRoute: RelatoriosRoute,
   SlaRoute: SlaRoute,
   SuperAdminRoute: SuperAdminRouteWithChildren,
@@ -680,3 +743,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

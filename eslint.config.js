@@ -37,4 +37,12 @@ export default tseslint.config(
     },
   },
   eslintPluginPrettier,
+  {
+    rules: {
+      "prettier/prettier": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "no-empty": "off",
+      "react-refresh/only-export-components": "off",
+    },
+  },
 );

@@ -19,6 +19,63 @@ export interface ConvRow {
   resolved_at: string | null;
   contact?: { id: string; name: string };
   agent?: { display_name: string; avatar_initials: string | null } | null;
+  inbox_id?: string | null;
+  instance_name?: string | null;
+}
+
+interface RawConversationRow {
+  id: string;
+  contact_id: string | null;
+  channel: string | null;
+  status: string | null;
+  assigned_agent_id: string | null;
+  assigned_team_id: string | null;
+  last_message: string | null;
+  last_message_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  resolved_at: string | null;
+  inbox_id: string | null;
+  instance_name: string | null;
+  sla_status: string | null;
+  custom_attributes: Record<string, unknown> | null;
+  contact?: { id: string; name: string } | null;
+}
+
+function readStringAttribute(
+  attributes: Record<string, unknown> | null,
+  key: string,
+  fallback: string,
+) {
+  const value = attributes?.[key];
+  return typeof value === "string" && value ? value : fallback;
+}
+
+function mapConversation(row: RawConversationRow): ConvRow {
+  const status = row.status ?? "aberta";
+  const stage = readStringAttribute(
+    row.custom_attributes,
+    "stage",
+    status === "resolvida" ? "resolvido" : "novo",
+  );
+
+  return {
+    id: row.id,
+    contact_id: row.contact_id ?? "",
+    channel: row.channel ?? "WhatsApp",
+    status,
+    stage,
+    assigned_to: row.assigned_agent_id,
+    last_message: row.last_message,
+    last_message_at: row.last_message_at ?? row.updated_at ?? row.created_at,
+    unread: readStringAttribute(row.custom_attributes, "unread", "false") === "true",
+    sla_minutes: null,
+    opened_at: row.created_at ?? new Date().toISOString(),
+    resolved_at: row.resolved_at,
+    contact: row.contact ?? undefined,
+    inbox_id: row.inbox_id,
+    instance_name: row.instance_name,
+  };
 }
 
 export function useConversations() {
@@ -30,7 +87,7 @@ export function useConversations() {
         .select("*, contact:contacts(id, name)")
         .order("last_message_at", { ascending: false, nullsFirst: false });
       if (error) throw error;
-      return (data ?? []) as unknown as ConvRow[];
+      return ((data ?? []) as unknown as RawConversationRow[]).map(mapConversation);
     },
     refetchInterval: 5000,
   });
@@ -40,7 +97,25 @@ export function useUpdateConversation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
-      const { error } = await supabase.from("conversations").update(patch as never).eq("id", id);
+      const dbPatch: Record<string, unknown> = { ...patch };
+      if ("assigned_to" in dbPatch) {
+        dbPatch.assigned_agent_id = dbPatch.assigned_to;
+        delete dbPatch.assigned_to;
+      }
+      if ("stage" in dbPatch) {
+        const { data: current } = await supabase
+          .from("conversations")
+          .select("custom_attributes")
+          .eq("id", id)
+          .maybeSingle();
+        dbPatch.custom_attributes = {
+          ...(((current as { custom_attributes?: Record<string, unknown> | null } | null)
+            ?.custom_attributes ?? {}) as Record<string, unknown>),
+          stage: dbPatch.stage,
+        };
+        delete dbPatch.stage;
+      }
+      const { error } = await supabase.from("conversations").update(dbPatch as never).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
@@ -53,7 +128,13 @@ export function useCreateConversation() {
     mutationFn: async (payload: { contact_id: string; channel: string; assigned_to?: string | null }) => {
       const { data, error } = await supabase
         .from("conversations")
-        .insert({ ...payload, stage: "novo", status: "aberta" } as never)
+        .insert({
+          contact_id: payload.contact_id,
+          channel: payload.channel,
+          assigned_agent_id: payload.assigned_to ?? null,
+          custom_attributes: { stage: "novo" },
+          status: "aberta",
+        } as never)
         .select()
         .single();
       if (error) throw error;
@@ -150,13 +231,35 @@ export interface ContactRow {
   created_at: string;
 }
 
+interface RawContactRow {
+  id: string;
+  name: string;
+  email: string | null;
+  phone_number: string | null;
+  channel: string | null;
+  tags: string[] | null;
+  created_at: string | null;
+}
+
+function mapContact(row: RawContactRow): ContactRow {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    phone: row.phone_number,
+    channel: row.channel ?? "WhatsApp",
+    labels: row.tags ?? [],
+    created_at: row.created_at ?? new Date().toISOString(),
+  };
+}
+
 export function useContacts() {
   return useQuery({
     queryKey: ["contacts"],
     queryFn: async (): Promise<ContactRow[]> => {
       const { data, error } = await supabase.from("contacts").select("*").order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as ContactRow[];
+      return ((data ?? []) as unknown as RawContactRow[]).map(mapContact);
     },
   });
 }
@@ -165,7 +268,17 @@ export function useCreateContact() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (c: Omit<ContactRow, "id" | "created_at">) => {
-      const { data, error } = await supabase.from("contacts").insert(c as never).select().single();
+      const { data, error } = await supabase
+        .from("contacts")
+        .insert({
+          name: c.name,
+          email: c.email,
+          phone_number: c.phone,
+          channel: c.channel,
+          tags: c.labels,
+        } as never)
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
@@ -222,7 +335,11 @@ export function useLabels() {
     queryFn: async (): Promise<LabelRow[]> => {
       const { data, error } = await supabase.from("labels").select("*").order("name");
       if (error) throw error;
-      return (data ?? []) as LabelRow[];
+      return (data ?? []).map((row) => ({
+        id: row.id,
+        name: row.name,
+        color: row.color ?? "#2FAE7C",
+      })) as LabelRow[];
     },
   });
 }

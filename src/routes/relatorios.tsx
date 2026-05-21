@@ -64,7 +64,7 @@ function RelatoriosPage() {
   const abertas = total - resolvidas;
 
   return (
-    <AppLayout title="Relatórios" actions={
+    <AppLayout title="Relatórios e Analytics" actions={
       <div className="flex gap-1 bg-background rounded-lg p-1">
         {periods.map((p)=>(
           <button key={p} onClick={()=>setPeriod(p)}

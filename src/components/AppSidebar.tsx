@@ -26,6 +26,8 @@ import {
   Mail,
   Send as SendIcon,
   Facebook,
+  KanbanSquare,
+  Wallet,
 } from "lucide-react";
 import logoIas from "@/assets/logo-ias.png";
 import { useAuth } from "@/hooks/use-auth";
@@ -34,15 +36,18 @@ import { useInboxes, type InboxChannel } from "@/lib/inboxes";
 import { useConversations } from "@/lib/data";
 
 const items = [
+  { to: "/dashboard", label: "Dashboard", icon: BarChart3 },
   { to: "/conversas", label: "Conversas", icon: MessageSquare },
   { to: "/automacoes", label: "Automação", icon: Zap },
   { to: "/ias", label: "IAS — Agente", icon: Bot },
   { to: "/funcoes", label: "Funções personalizadas", icon: Sparkles },
   { to: "/whatsapp", label: "Conectar WhatsApp", icon: QrCode },
   { to: "/canais", label: "Canais Conectados", icon: Inbox },
-  { to: "/contatos", label: "Contatos", icon: Users },
+  { to: "/contatos", label: "Contatos/Leads", icon: Users },
+  { to: "/pipeline", label: "Pipeline/Kanban", icon: KanbanSquare },
   { to: "/equipes", label: "Equipes", icon: Users2 },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
+  { to: "/financeiro", label: "Financeiro", icon: Wallet },
   { to: "/auditoria", label: "Auditoria", icon: ShieldCheck },
   { to: "/sla", label: "SLA", icon: Timer },
   { to: "/etiquetas", label: "Etiquetas", icon: Tag },

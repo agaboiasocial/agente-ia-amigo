@@ -22,7 +22,6 @@ export interface InboxMember {
   team_id: string | null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
 
 export function useInboxes() {

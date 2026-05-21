@@ -29,7 +29,7 @@ export const connectWhatsApp = createServerFn({ method: "POST" })
     const headers = { "Content-Type": "application/json", apikey: token() };
 
     // Try to create the instance
-    let res = await fetch(url, {
+    const res = await fetch(url, {
       method: "POST",
       headers,
       body: JSON.stringify({
