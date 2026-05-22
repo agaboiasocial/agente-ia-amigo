@@ -73,21 +73,32 @@ export default async function handler(req, res) {
     // Update our DB using admin client (bypasses RLS)
     const supa = getAdminClient();
 
+    const dbResults = {};
+
     if (deleteInstance) {
-      // Remove foreign key references first (conversations point to instance_name)
-      await supa.from("conversations").update({ instance_name: null }).eq("instance_name", instanceName);
+      // Remove ALL foreign key references before deleting
+      const { error: msgErr } = await supa.from("messages").update({ instance_name: null }).eq("instance_name", instanceName);
+      dbResults.messagesCleared = msgErr ? msgErr.message : "ok";
+
+      const { error: convErr } = await supa.from("conversations").update({ instance_name: null }).eq("instance_name", instanceName);
+      dbResults.conversationsCleared = convErr ? convErr.message : "ok";
+
       // Now delete the instance
-      const { error: dbErr } = await supa.from("whatsapp_instances").delete().eq("instance_name", instanceName);
-      if (dbErr) console.error("DB delete error:", dbErr);
+      const { data: deleted, error: dbErr } = await supa
+        .from("whatsapp_instances")
+        .delete()
+        .eq("instance_name", instanceName)
+        .select("id");
+      dbResults.instanceDeleted = dbErr ? dbErr.message : (deleted?.length || 0) + " rows";
     } else {
       const { error: dbErr } = await supa
         .from("whatsapp_instances")
         .update({ status: "disconnected", updated_at: new Date().toISOString() })
         .eq("instance_name", instanceName);
-      if (dbErr) console.error("DB update error:", dbErr);
+      dbResults.instanceUpdated = dbErr ? dbErr.message : "ok";
     }
 
-    return res.status(200).json({ ok: true, evolution: { logoutOk, deleteOk } });
+    return res.status(200).json({ ok: true, evolution: { logoutOk, deleteOk }, db: dbResults });
   } catch (error) {
     console.error("whatsapp-disconnect error:", error);
     return res.status(500).json({ error: error.message || "Internal error" });
