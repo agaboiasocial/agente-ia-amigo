@@ -6,6 +6,7 @@ import {
   useMessages,
   useSendMessage,
   useUpdateConversation,
+  useDeleteConversation,
   type ConvRow,
   type MsgRow,
 } from "@/lib/data";
@@ -40,6 +41,7 @@ import {
   FileType,
   Loader2,
   Inbox,
+  Trash2,
 } from "lucide-react";
 import { MessageComposer } from "@/components/MessageComposer";
 import { FormattedMessage } from "@/lib/chat-format";
@@ -179,6 +181,7 @@ function ConversasPage() {
   }, [prefs.font]);
   const { data: convs = [], isLoading } = useConversations();
   const updateConv = useUpdateConversation();
+  const deleteConv = useDeleteConversation();
 
   const [view, setView] = useState<"list" | "kanban">("list");
   const [tab, setTab] = useState<(typeof tabs)[number]>("Todas");
@@ -232,6 +235,19 @@ function ConversasPage() {
       patch: { status: "resolvida", stage: "resolvido", resolved_at: new Date().toISOString() },
     });
     toast.success("Conversa marcada como resolvida");
+  };
+
+  const handleDelete = async () => {
+    if (!active) return;
+    const name = active.contact?.name ?? "esta conversa";
+    if (!confirm(`Excluir "${name}" e todas as mensagens? Essa ação não pode ser desfeita.`)) return;
+    try {
+      await deleteConv.mutateAsync(active.id);
+      setActiveId(null);
+      toast.success("Conversa excluída");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro ao excluir");
+    }
   };
 
   return (
@@ -430,9 +446,21 @@ function ConversasPage() {
                           <PanelRightOpen className="h-4 w-4" />
                         )}
                       </button>
-                      <button className="h-9 w-9 rounded-lg border hover:bg-background grid place-items-center">
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="h-9 w-9 rounded-lg border hover:bg-background grid place-items-center">
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem
+                            onClick={handleDelete}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" /> Excluir conversa
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </header>
 

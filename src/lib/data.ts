@@ -149,6 +149,27 @@ export function useCreateConversation() {
   });
 }
 
+export function useDeleteConversation() {
+  const qc = useQueryClient();
+  const { session } = useAuth();
+  return useMutation({
+    mutationFn: async (conversationId: string) => {
+      const res = await fetch("/api/conversation-delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ conversationId }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Erro ao excluir conversa");
+      return json;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
+  });
+}
+
 // ---------- Messages ----------
 export interface MsgRow {
   id: string;
