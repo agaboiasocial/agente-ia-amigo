@@ -41,7 +41,6 @@ const items = [
   { to: "/equipes", label: "Equipes", icon: Users2 },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { to: "/financeiro", label: "Financeiro", icon: Wallet },
-  { to: "/empresa", label: "Empresa", icon: Building2 },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
