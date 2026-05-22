@@ -7,8 +7,7 @@
     }
   },
   "rewrites": [
-    { "source": "/_server/:path*", "destination": "/api/server" },
-    { "source": "/api/public/:path*", "destination": "/api/server" },
-    { "source": "/(.*)", "destination": "/_shell.html" }
+    { "source": "/assets/:path*", "destination": "/assets/:path*" },
+    { "source": "/(.*)", "destination": "/api/server" }
   ]
 }
