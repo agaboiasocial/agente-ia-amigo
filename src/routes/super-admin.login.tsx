@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Loader2, ShieldHalf } from "lucide-react";
@@ -126,10 +126,14 @@ function Page() {
           </Button>
         </form>
 
-        <div className="mt-6 text-center text-xs text-slate-500">
-          <Link to="/" className="hover:text-[#0B3A5D] hover:underline">
+        <div className="mt-6 text-center">
+          <button
+            type="button"
+            onClick={() => window.location.href = "/conversas"}
+            className="text-xs text-slate-500 hover:text-[#0B3A5D] hover:underline cursor-pointer"
+          >
             ← Voltar ao painel principal
-          </Link>
+          </button>
         </div>
       </div>
     </div>
