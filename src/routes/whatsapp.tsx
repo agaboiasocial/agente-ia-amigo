@@ -15,8 +15,6 @@ import {
   WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useServerFn } from "@tanstack/react-start";
-import { connectWhatsApp, getWhatsAppStatus } from "@/lib/whatsapp.functions";
 
 export const Route = createFileRoute("/whatsapp")({ component: Page });
 
@@ -117,8 +115,27 @@ function ConnectFlow({ onConnected }: { onConnected: (i: Instance) => void }) {
   const pollRef = useRef<number | null>(null);
   const timerRef = useRef<number | null>(null);
 
-  const connectFn = useServerFn(connectWhatsApp);
-  const statusFn = useServerFn(getWhatsAppStatus);
+  const connectFn = async ({ data }: { data: { instanceName: string; phoneNumber?: string } }) => {
+    const res = await fetch("/api/whatsapp-connect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || "Erro ao conectar");
+    return json;
+  };
+
+  const statusFn = async ({ data }: { data: { instanceName: string } }) => {
+    const res = await fetch("/api/whatsapp-status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || "Erro ao verificar status");
+    return json;
+  };
 
   const cleanup = () => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
