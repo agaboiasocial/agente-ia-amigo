@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { SuperAdminLayout } from "@/components/super-admin/SuperAdminSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
-import { createAgentUser, listUsers, deleteUser } from "@/lib/users.functions";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/super-admin/users")({ component: Page });
 
@@ -30,21 +29,32 @@ type RoleValue = "admin" | "agente";
 
 function Page() {
   const qc = useQueryClient();
-  const list = useServerFn(listUsers);
-  const create = useServerFn(createAgentUser);
-  const remove = useServerFn(deleteUser);
+  const { session } = useAuth();
+  const authHeaders = {
+    "Content-Type": "application/json",
+    ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+  };
 
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
 
   const usersQuery = useQuery({
     queryKey: ["super-admin-users"],
-    queryFn: () => list({ data: {} }),
+    queryFn: async () => {
+      const r = await fetch("/api/super-admin/users", { method: "GET", headers: authHeaders });
+      const json = await r.json();
+      if (!r.ok) throw new Error(json.error || "Erro ao listar usuários");
+      return json;
+    },
   });
 
   const createMut = useMutation({
-    mutationFn: (input: { email: string; password: string; displayName: string; role: RoleValue }) =>
-      create({ data: input }),
+    mutationFn: async (input: { email: string; password: string; displayName: string; role: RoleValue }) => {
+      const r = await fetch("/api/super-admin/users", { method: "POST", headers: authHeaders, body: JSON.stringify(input) });
+      const json = await r.json();
+      if (!r.ok) throw new Error(json.error || "Erro ao criar usuário");
+      return json;
+    },
     onSuccess: () => {
       toast.success("Usuário criado");
       qc.invalidateQueries({ queryKey: ["super-admin-users"] });
@@ -54,7 +64,12 @@ function Page() {
   });
 
   const deleteMut = useMutation({
-    mutationFn: (userId: string) => remove({ data: { userId } }),
+    mutationFn: async (userId: string) => {
+      const r = await fetch("/api/super-admin/users", { method: "DELETE", headers: authHeaders, body: JSON.stringify({ userId }) });
+      const json = await r.json();
+      if (!r.ok) throw new Error(json.error || "Erro ao remover usuário");
+      return json;
+    },
     onSuccess: () => {
       toast.success("Usuário removido");
       qc.invalidateQueries({ queryKey: ["super-admin-users"] });

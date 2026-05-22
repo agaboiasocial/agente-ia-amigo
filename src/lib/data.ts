@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { sendWhatsAppMessage } from "@/lib/whatsapp.functions";
+import { useAuth } from "@/hooks/use-auth";
 
 // ---------- Conversations ----------
 export interface ConvRow {
@@ -79,16 +78,20 @@ function mapConversation(row: RawConversationRow): ConvRow {
 }
 
 export function useConversations() {
+  const { accountId } = useAuth();
   return useQuery({
-    queryKey: ["conversations"],
+    queryKey: ["conversations", accountId],
     queryFn: async (): Promise<ConvRow[]> => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("conversations")
         .select("*, contact:contacts(id, name)")
         .order("last_message_at", { ascending: false, nullsFirst: false });
+      if (accountId) q = q.eq("account_id", accountId);
+      const { data, error } = await q;
       if (error) throw error;
       return ((data ?? []) as unknown as RawConversationRow[]).map(mapConversation);
     },
+    enabled: !!accountId,
     refetchInterval: 5000,
   });
 }
@@ -124,6 +127,7 @@ export function useUpdateConversation() {
 
 export function useCreateConversation() {
   const qc = useQueryClient();
+  const { accountId } = useAuth();
   return useMutation({
     mutationFn: async (payload: { contact_id: string; channel: string; assigned_to?: string | null }) => {
       const { data, error } = await supabase
@@ -134,6 +138,7 @@ export function useCreateConversation() {
           assigned_agent_id: payload.assigned_to ?? null,
           custom_attributes: { stage: "novo" },
           status: "aberta",
+          ...(accountId ? { account_id: accountId } : {}),
         } as never)
         .select()
         .single();
@@ -200,18 +205,26 @@ export function useMessages(conversationId: string | undefined) {
 
 export function useSendMessage() {
   const qc = useQueryClient();
-  const sendWhatsApp = useServerFn(sendWhatsAppMessage);
+  const { session } = useAuth();
   return useMutation({
     mutationFn: async (payload: { conversation_id: string; body: string; is_note: boolean; author: "cliente" | "agente"; sender_id?: string | null; sender_name?: string | null }) => {
       if (payload.author !== "agente") throw new Error("Envio pelo cliente não é permitido no sistema");
-      await sendWhatsApp({
-        data: {
+      const res = await fetch("/api/whatsapp-send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({
           conversationId: payload.conversation_id,
           body: payload.body,
           isNote: payload.is_note,
           senderName: payload.sender_name ?? null,
-        },
+        }),
       });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Erro ao enviar mensagem");
+      return json;
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["messages", vars.conversation_id] });
@@ -254,18 +267,23 @@ function mapContact(row: RawContactRow): ContactRow {
 }
 
 export function useContacts() {
+  const { accountId } = useAuth();
   return useQuery({
-    queryKey: ["contacts"],
+    queryKey: ["contacts", accountId],
     queryFn: async (): Promise<ContactRow[]> => {
-      const { data, error } = await supabase.from("contacts").select("*").order("created_at", { ascending: false });
+      let q = supabase.from("contacts").select("*").order("created_at", { ascending: false });
+      if (accountId) q = q.eq("account_id", accountId);
+      const { data, error } = await q;
       if (error) throw error;
       return ((data ?? []) as unknown as RawContactRow[]).map(mapContact);
     },
+    enabled: !!accountId,
   });
 }
 
 export function useCreateContact() {
   const qc = useQueryClient();
+  const { accountId } = useAuth();
   return useMutation({
     mutationFn: async (c: Omit<ContactRow, "id" | "created_at">) => {
       const { data, error } = await supabase
@@ -276,6 +294,7 @@ export function useCreateContact() {
           phone_number: c.phone,
           channel: c.channel,
           tags: c.labels,
+          ...(accountId ? { account_id: accountId } : {}),
         } as never)
         .select()
         .single();
@@ -298,17 +317,21 @@ export interface AuditRow {
 }
 
 export function useAuditLogs() {
+  const { accountId } = useAuth();
   return useQuery({
-    queryKey: ["audit_logs"],
+    queryKey: ["audit_logs", accountId],
     queryFn: async (): Promise<AuditRow[]> => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("audit_logs")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(500);
+      if (accountId) q = q.eq("account_id", accountId);
+      const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as AuditRow[];
     },
+    enabled: !!accountId,
   });
 }
 
@@ -316,13 +339,17 @@ export function useAuditLogs() {
 export interface QuickReply { id: string; shortcut: string; message: string }
 
 export function useQuickReplies() {
+  const { accountId } = useAuth();
   return useQuery({
-    queryKey: ["quick_replies"],
+    queryKey: ["quick_replies", accountId],
     queryFn: async (): Promise<QuickReply[]> => {
-      const { data, error } = await supabase.from("quick_replies").select("*").order("shortcut");
+      let q = supabase.from("quick_replies").select("*").order("shortcut");
+      if (accountId) q = q.eq("account_id", accountId);
+      const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as QuickReply[];
     },
+    enabled: !!accountId,
   });
 }
 
@@ -330,10 +357,13 @@ export function useQuickReplies() {
 export interface LabelRow { id: string; name: string; color: string }
 
 export function useLabels() {
+  const { accountId } = useAuth();
   return useQuery({
-    queryKey: ["labels"],
+    queryKey: ["labels", accountId],
     queryFn: async (): Promise<LabelRow[]> => {
-      const { data, error } = await supabase.from("labels").select("*").order("name");
+      let q = supabase.from("labels").select("*").order("name");
+      if (accountId) q = q.eq("account_id", accountId);
+      const { data, error } = await q;
       if (error) throw error;
       return (data ?? []).map((row) => ({
         id: row.id,
@@ -341,6 +371,7 @@ export function useLabels() {
         color: row.color ?? "#2FAE7C",
       })) as LabelRow[];
     },
+    enabled: !!accountId,
   });
 }
 
@@ -348,15 +379,19 @@ export function useLabels() {
 export interface AgentRow { user_id: string; display_name: string; avatar_initials: string | null; online: boolean }
 
 export function useAgents() {
+  const { accountId } = useAuth();
   return useQuery({
-    queryKey: ["agents"],
+    queryKey: ["agents", accountId],
     queryFn: async (): Promise<AgentRow[]> => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("profiles")
         .select("user_id, display_name, avatar_initials, online")
         .order("display_name");
+      if (accountId) q = q.eq("account_id", accountId);
+      const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as AgentRow[];
     },
+    enabled: !!accountId,
   });
 }

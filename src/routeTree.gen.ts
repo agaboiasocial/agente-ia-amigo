@@ -22,6 +22,7 @@ import { Route as FuncoesRouteImport } from './routes/funcoes'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as EtiquetasRouteImport } from './routes/etiquetas'
 import { Route as EquipesRouteImport } from './routes/equipes'
+import { Route as EmpresaRouteImport } from './routes/empresa'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ConversasRouteImport } from './routes/conversas'
 import { Route as ContatosRouteImport } from './routes/contatos'
@@ -109,6 +110,11 @@ const EtiquetasRoute = EtiquetasRouteImport.update({
 const EquipesRoute = EquipesRouteImport.update({
   id: '/equipes',
   path: '/equipes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmpresaRoute = EmpresaRouteImport.update({
+  id: '/empresa',
+  path: '/empresa',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -240,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/contatos': typeof ContatosRoute
   '/conversas': typeof ConversasRoute
   '/dashboard': typeof DashboardRoute
+  '/empresa': typeof EmpresaRoute
   '/equipes': typeof EquipesRoute
   '/etiquetas': typeof EtiquetasRoute
   '/financeiro': typeof FinanceiroRoute
@@ -278,6 +285,7 @@ export interface FileRoutesByTo {
   '/contatos': typeof ContatosRoute
   '/conversas': typeof ConversasRoute
   '/dashboard': typeof DashboardRoute
+  '/empresa': typeof EmpresaRoute
   '/equipes': typeof EquipesRoute
   '/etiquetas': typeof EtiquetasRoute
   '/financeiro': typeof FinanceiroRoute
@@ -316,6 +324,7 @@ export interface FileRoutesById {
   '/contatos': typeof ContatosRoute
   '/conversas': typeof ConversasRoute
   '/dashboard': typeof DashboardRoute
+  '/empresa': typeof EmpresaRoute
   '/equipes': typeof EquipesRoute
   '/etiquetas': typeof EtiquetasRoute
   '/financeiro': typeof FinanceiroRoute
@@ -356,6 +365,7 @@ export interface FileRouteTypes {
     | '/contatos'
     | '/conversas'
     | '/dashboard'
+    | '/empresa'
     | '/equipes'
     | '/etiquetas'
     | '/financeiro'
@@ -394,6 +404,7 @@ export interface FileRouteTypes {
     | '/contatos'
     | '/conversas'
     | '/dashboard'
+    | '/empresa'
     | '/equipes'
     | '/etiquetas'
     | '/financeiro'
@@ -431,6 +442,7 @@ export interface FileRouteTypes {
     | '/contatos'
     | '/conversas'
     | '/dashboard'
+    | '/empresa'
     | '/equipes'
     | '/etiquetas'
     | '/financeiro'
@@ -470,6 +482,7 @@ export interface RootRouteChildren {
   ContatosRoute: typeof ContatosRoute
   ConversasRoute: typeof ConversasRoute
   DashboardRoute: typeof DashboardRoute
+  EmpresaRoute: typeof EmpresaRoute
   EquipesRoute: typeof EquipesRoute
   EtiquetasRoute: typeof EtiquetasRoute
   FinanceiroRoute: typeof FinanceiroRoute
@@ -578,6 +591,13 @@ declare module '@tanstack/react-router' {
       path: '/equipes'
       fullPath: '/equipes'
       preLoaderRoute: typeof EquipesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/empresa': {
+      id: '/empresa'
+      path: '/empresa'
+      fullPath: '/empresa'
+      preLoaderRoute: typeof EmpresaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -787,6 +807,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContatosRoute: ContatosRoute,
   ConversasRoute: ConversasRoute,
   DashboardRoute: DashboardRoute,
+  EmpresaRoute: EmpresaRoute,
   EquipesRoute: EquipesRoute,
   EtiquetasRoute: EtiquetasRoute,
   FinanceiroRoute: FinanceiroRoute,
@@ -806,3 +827,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

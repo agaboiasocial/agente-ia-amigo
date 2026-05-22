@@ -2,8 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { useServerFn } from "@tanstack/react-start";
-import { getWhatsAppStatus, disconnectWhatsApp } from "@/lib/whatsapp.functions";
+import { useAuth } from "@/hooks/use-auth";
 import { MessageCircle, Plus, RefreshCw, CheckCircle2, AlertCircle, Loader2, PowerOff } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,15 +24,16 @@ function CanaisPage() {
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const navigate = useNavigate();
-  const fetchStatus = useServerFn(getWhatsAppStatus);
-  const disconnectFn = useServerFn(disconnectWhatsApp);
+  const { accountId } = useAuth();
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    let q = supabase
       .from("whatsapp_instances")
       .select("*")
       .order("created_at", { ascending: false });
+    if (accountId) q = q.eq("account_id", accountId);
+    const { data, error } = await q;
     if (error) toast.error(error.message);
     else setInstances((data as Instance[]) ?? []);
     setLoading(false);
@@ -44,7 +44,12 @@ function CanaisPage() {
   const refreshOne = async (inst: Instance) => {
     setRefreshingId(inst.id);
     try {
-      const res = await fetchStatus({ data: { instanceName: inst.instance_name } });
+      const r = await fetch("/api/whatsapp-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instanceName: inst.instance_name }),
+      });
+      const res = await r.json();
       await supabase
         .from("whatsapp_instances")
         .update({
@@ -68,7 +73,13 @@ function CanaisPage() {
     if (!confirm(msg)) return;
     setDisconnectingId(inst.id);
     try {
-      await disconnectFn({ data: { instanceName: inst.instance_name, deleteInstance: remove } });
+      const r = await fetch("/api/whatsapp-disconnect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instanceName: inst.instance_name, deleteInstance: remove }),
+      });
+      const json = await r.json();
+      if (!r.ok) throw new Error(json.error || "Erro ao desconectar");
       toast.success(remove ? "Instância removida" : "Número desconectado");
       await load();
     } catch (e: any) {
