@@ -26,11 +26,12 @@ function useAdminDashboard() {
   return useQuery({
     queryKey: ["super_admin_dashboard"],
     queryFn: async (): Promise<AdminStats> => {
+      const safe = async (p: Promise<any>) => { try { const r = await p; return r; } catch { return { data: [] }; } };
       const [acctRes, profilesRes, contactsRes, convsRes] = await Promise.all([
-        sb.from("accounts").select("*").order("name"),
-        sb.from("profiles").select("user_id, account_id"),
-        sb.from("contacts").select("id, account_id"),
-        sb.from("conversations").select("id, account_id"),
+        safe(sb.from("accounts").select("*").order("name")),
+        safe(sb.from("profiles").select("user_id, account_id")),
+        safe(sb.from("contacts").select("id, account_id")),
+        safe(sb.from("conversations").select("id, account_id")),
       ]);
 
       const accounts: any[] = acctRes.data ?? [];

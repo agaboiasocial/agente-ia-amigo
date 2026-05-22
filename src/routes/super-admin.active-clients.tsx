@@ -35,10 +35,11 @@ function useActiveClients() {
   return useQuery({
     queryKey: ["admin_active_clients"],
     queryFn: async (): Promise<{ accounts: AccountWithStats[]; totalMRR: number; totalLeads: number; totalUsers: number }> => {
+      const safe = async (p: Promise<any>) => { try { const r = await p; return r; } catch { return { data: [] }; } };
       const [acctRes, contactsRes, profilesRes] = await Promise.all([
-        sb.from("accounts").select("*").order("name"),
-        sb.from("contacts").select("id, account_id"),
-        sb.from("profiles").select("id, account_id"),
+        safe(sb.from("accounts").select("*").order("name")),
+        safe(sb.from("contacts").select("id, account_id")),
+        safe(sb.from("profiles").select("id, account_id")),
       ]);
       const accounts: any[] = acctRes.data ?? [];
       const contacts: any[] = contactsRes.data ?? [];

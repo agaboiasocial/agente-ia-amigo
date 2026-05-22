@@ -13,8 +13,7 @@ function useWebhookAccounts() {
   return useQuery({
     queryKey: ["admin_webhooks"],
     queryFn: async () => {
-      const { data, error } = await sb.from("accounts").select("*").order("name");
-      if (error) throw error;
+      const { data } = await sb.from("accounts").select("*").order("name");
       return (data ?? []) as { id: string; name: string; locale: string; created_at: string }[];
     },
   });
