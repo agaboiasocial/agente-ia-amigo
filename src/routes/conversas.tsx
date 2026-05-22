@@ -86,6 +86,18 @@ function safeFileName(name: string) {
     .slice(0, 120);
 }
 
+function mediaSrc(message: MsgRow) {
+  if (!message.media_url) return "";
+  if (message.media_url.startsWith("data:")) return message.media_url;
+  if (
+    message.media_url.includes("supabase.co/storage") ||
+    message.media_url.includes("/storage/v1/object/public/")
+  ) {
+    return message.media_url;
+  }
+  return `/api/message-media?id=${encodeURIComponent(message.id)}`;
+}
+
 const channelIcon = (c: string) =>
   c === "WhatsApp" ? MessageCircle : c === "Instagram" ? Instagram : Globe;
 const channelColor = (c: string) =>
@@ -595,27 +607,27 @@ function ConversasPage() {
                                 {m.message_type === "image" && m.media_url ? (
                                   <div>
                                     <img
-                                      src={m.media_url}
+                                      src={mediaSrc(m)}
                                       alt="imagem"
                                       className="max-w-full max-h-72 rounded-lg mb-1 cursor-pointer"
-                                      onClick={() => window.open(m.media_url!, "_blank")}
+                                      onClick={() => window.open(mediaSrc(m), "_blank")}
                                     />
                                     {m.body && m.body !== "[imagem]" && <FormattedMessage text={m.body} />}
                                   </div>
                                 ) : m.message_type === "video" && m.media_url ? (
                                   <div>
                                     <video
-                                      src={m.media_url}
+                                      src={mediaSrc(m)}
                                       controls
                                       className="max-w-full max-h-72 rounded-lg mb-1"
                                     />
                                     {m.body && m.body !== "[vídeo]" && <FormattedMessage text={m.body} />}
                                   </div>
                                 ) : m.message_type === "audio" && m.media_url ? (
-                                  <audio src={m.media_url} controls className="max-w-full min-w-[200px]" />
+                                  <audio src={mediaSrc(m)} controls className="max-w-full min-w-[200px]" />
                                 ) : m.message_type === "document" && m.media_url ? (
                                   <a
-                                    href={m.media_url}
+                                    href={mediaSrc(m)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-2 text-sm underline"
