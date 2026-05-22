@@ -30,6 +30,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useSupport } from "@/components/support/SupportCenter";
 import { useInboxes, type InboxChannel } from "@/lib/inboxes";
 import { useConversations } from "@/lib/data";
+import { useNotifications } from "@/hooks/use-notifications";
 
 const items = [
   { to: "/dashboard", label: "Dashboard", icon: BarChart3 },
@@ -62,6 +63,7 @@ export function AppSidebar() {
   const [inboxOpen, setInboxOpen] = useState(true);
   const { data: inboxes = [] } = useInboxes();
   const { data: convs = [] } = useConversations();
+  const { unreadCount } = useNotifications();
 
   const handleLogout = async () => {
     await signOut();
@@ -105,7 +107,7 @@ export function AppSidebar() {
                 active={pathname.startsWith("/minha-caixa")}
                 icon={UserIcon}
                 label="Minha Caixa"
-                count={myCount}
+                count={unreadCount || myCount}
               />
               <SubLink
                 to="/caixas/nao-atribuidas"

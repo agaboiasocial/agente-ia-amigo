@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useNotifications } from "@/hooks/use-notifications";
-import { Bell, Check, CheckCheck, Trash2, X } from "lucide-react";
+import { Bell, CheckCheck, Inbox, Trash2, X } from "lucide-react";
 
 export function NotificationCenter() {
   const [open, setOpen] = useState(false);
@@ -46,7 +46,16 @@ export function NotificationCenter() {
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-11 z-50 w-80 max-h-[480px] rounded-xl border bg-card shadow-xl flex flex-col">
             <header className="flex items-center justify-between border-b px-4 py-3">
-              <h3 className="text-sm font-semibold text-brand">Notificações</h3>
+              <button
+                onClick={() => {
+                  navigate({ to: "/minha-caixa" });
+                  setOpen(false);
+                }}
+                className="text-sm font-semibold text-brand hover:text-success flex items-center gap-2"
+              >
+                <Inbox className="h-4 w-4" />
+                Minha Caixa
+              </button>
               <div className="flex items-center gap-1">
                 {unreadCount > 0 && (
                   <button

@@ -11,7 +11,13 @@ export function useNotifications() {
   const [loading, setLoading] = useState(true);
 
   const fetchNotifications = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setNotifications([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     const { data, error } = await sb
       .from("notifications")
       .select("*")
@@ -45,10 +51,11 @@ export function useNotifications() {
   const unreadCount = notifications.filter((n) => !n.read_at).length;
 
   const markAsRead = async (id: string) => {
+    const now = new Date().toISOString();
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n))
+      prev.map((n) => (n.id === id ? { ...n, read_at: n.read_at ?? now } : n))
     );
-    await sb.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", id);
+    await sb.from("notifications").update({ read_at: now }).eq("id", id).is("read_at", null);
   };
 
   const markAllAsRead = async () => {

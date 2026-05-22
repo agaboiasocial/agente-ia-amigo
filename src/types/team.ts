@@ -86,10 +86,18 @@ export function isOrgAdminRole(role: OrgMemberRole | null): boolean {
 export interface Notification {
   id: string;
   user_id: string;
+  account_id?: string | null;
+  conversation_id?: string | null;
+  contact_id?: string | null;
+  team_id?: string | null;
   type: string;
+  category?: "message" | "assignment" | "system" | string;
+  source?: string | null;
+  priority?: string | null;
   title: string;
   description: string | null;
   link: string | null;
+  metadata?: Record<string, unknown> | null;
   read_at: string | null;
   created_at: string;
 }
