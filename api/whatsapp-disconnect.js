@@ -74,6 +74,9 @@ export default async function handler(req, res) {
     const supa = getAdminClient();
 
     if (deleteInstance) {
+      // Remove foreign key references first (conversations point to instance_name)
+      await supa.from("conversations").update({ instance_name: null }).eq("instance_name", instanceName);
+      // Now delete the instance
       const { error: dbErr } = await supa.from("whatsapp_instances").delete().eq("instance_name", instanceName);
       if (dbErr) console.error("DB delete error:", dbErr);
     } else {
