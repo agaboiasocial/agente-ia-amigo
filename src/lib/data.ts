@@ -2,6 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 
+function logReadError(scope: string, error: unknown) {
+  console.warn(`[IAS] Falha ao carregar ${scope}`, error);
+}
+
 // ---------- Conversations ----------
 export interface ConvRow {
   id: string;
@@ -88,7 +92,10 @@ export function useConversations() {
         .order("last_message_at", { ascending: false, nullsFirst: false });
       if (accountId) q = q.eq("account_id", accountId);
       const { data, error } = await q;
-      if (error) throw error;
+      if (error) {
+        logReadError("conversas", error);
+        return [];
+      }
       return ((data ?? []) as unknown as RawConversationRow[]).map(mapConversation);
     },
     enabled: !!accountId,

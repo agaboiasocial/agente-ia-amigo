@@ -24,12 +24,19 @@ export interface InboxMember {
 
 const sb = supabase as any;
 
+function logReadError(scope: string, error: unknown) {
+  console.warn(`[IAS] Falha ao carregar ${scope}`, error);
+}
+
 export function useInboxes() {
   return useQuery({
     queryKey: ["inboxes"],
     queryFn: async (): Promise<Inbox[]> => {
       const { data, error } = await sb.from("inboxes").select("*").order("created_at");
-      if (error) throw error;
+      if (error) {
+        logReadError("caixas de entrada", error);
+        return [];
+      }
       return data ?? [];
     },
   });
@@ -40,7 +47,10 @@ export function useInboxMembers() {
     queryKey: ["inbox_members"],
     queryFn: async (): Promise<InboxMember[]> => {
       const { data, error } = await sb.from("inbox_members").select("*");
-      if (error) throw error;
+      if (error) {
+        logReadError("membros das caixas", error);
+        return [];
+      }
       return data ?? [];
     },
   });

@@ -11,10 +11,8 @@ export function NotificationCenter() {
 
   const handleClick = (n: (typeof notifications)[0]) => {
     if (!n.read_at) markAsRead(n.id);
-    if (n.link) {
-      navigate({ to: n.link });
-      setOpen(false);
-    }
+    navigate({ to: safeNotificationLink(n.link) });
+    setOpen(false);
   };
 
   const typeIcon: Record<string, string> = {
@@ -131,6 +129,25 @@ export function NotificationCenter() {
       )}
     </div>
   );
+}
+
+function safeNotificationLink(link: string | null | undefined) {
+  const path = (link ?? "").split("?")[0]?.split("#")[0] ?? "";
+  const knownRoutes = [
+    "/minha-caixa",
+    "/conversas",
+    "/dashboard",
+    "/contatos",
+    "/pipeline",
+    "/whatsapp",
+    "/ias",
+    "/equipes",
+    "/configuracoes",
+    "/financeiro",
+    "/empresa",
+  ];
+
+  return knownRoutes.includes(path) ? path : "/minha-caixa";
 }
 
 function formatAgo(iso: string): string {
