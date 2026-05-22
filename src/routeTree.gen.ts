@@ -45,7 +45,6 @@ import { Route as SuperAdminAgentBotsRouteImport } from './routes/super-admin.ag
 import { Route as SuperAdminActiveClientsRouteImport } from './routes/super-admin.active-clients'
 import { Route as SuperAdminAccountsRouteImport } from './routes/super-admin.accounts'
 import { Route as CaixasIdRouteImport } from './routes/caixas.$id'
-import { Route as ApiPublicWhatsappWebhookInstanceRouteImport } from './routes/api/public/whatsapp-webhook.$instance'
 
 const WhatsappRoute = WhatsappRouteImport.update({
   id: '/whatsapp',
@@ -228,12 +227,6 @@ const CaixasIdRoute = CaixasIdRouteImport.update({
   path: '/caixas/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicWhatsappWebhookInstanceRoute =
-  ApiPublicWhatsappWebhookInstanceRouteImport.update({
-    id: '/api/public/whatsapp-webhook/$instance',
-    path: '/api/public/whatsapp-webhook/$instance',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -272,7 +265,6 @@ export interface FileRoutesByFullPath {
   '/super-admin/users': typeof SuperAdminUsersRoute
   '/super-admin/webhooks': typeof SuperAdminWebhooksRoute
   '/super-admin/': typeof SuperAdminIndexRoute
-  '/api/public/whatsapp-webhook/$instance': typeof ApiPublicWhatsappWebhookInstanceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -310,7 +302,6 @@ export interface FileRoutesByTo {
   '/super-admin/users': typeof SuperAdminUsersRoute
   '/super-admin/webhooks': typeof SuperAdminWebhooksRoute
   '/super-admin': typeof SuperAdminIndexRoute
-  '/api/public/whatsapp-webhook/$instance': typeof ApiPublicWhatsappWebhookInstanceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -350,7 +341,6 @@ export interface FileRoutesById {
   '/super-admin/users': typeof SuperAdminUsersRoute
   '/super-admin/webhooks': typeof SuperAdminWebhooksRoute
   '/super-admin/': typeof SuperAdminIndexRoute
-  '/api/public/whatsapp-webhook/$instance': typeof ApiPublicWhatsappWebhookInstanceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -391,7 +381,6 @@ export interface FileRouteTypes {
     | '/super-admin/users'
     | '/super-admin/webhooks'
     | '/super-admin/'
-    | '/api/public/whatsapp-webhook/$instance'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -429,7 +418,6 @@ export interface FileRouteTypes {
     | '/super-admin/users'
     | '/super-admin/webhooks'
     | '/super-admin'
-    | '/api/public/whatsapp-webhook/$instance'
   id:
     | '__root__'
     | '/'
@@ -468,7 +456,6 @@ export interface FileRouteTypes {
     | '/super-admin/users'
     | '/super-admin/webhooks'
     | '/super-admin/'
-    | '/api/public/whatsapp-webhook/$instance'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -497,7 +484,6 @@ export interface RootRouteChildren {
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
   WhatsappRoute: typeof WhatsappRoute
   CaixasIdRoute: typeof CaixasIdRoute
-  ApiPublicWhatsappWebhookInstanceRoute: typeof ApiPublicWhatsappWebhookInstanceRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -754,13 +740,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CaixasIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/whatsapp-webhook/$instance': {
-      id: '/api/public/whatsapp-webhook/$instance'
-      path: '/api/public/whatsapp-webhook/$instance'
-      fullPath: '/api/public/whatsapp-webhook/$instance'
-      preLoaderRoute: typeof ApiPublicWhatsappWebhookInstanceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -822,7 +801,6 @@ const rootRouteChildren: RootRouteChildren = {
   SuperAdminRoute: SuperAdminRouteWithChildren,
   WhatsappRoute: WhatsappRoute,
   CaixasIdRoute: CaixasIdRoute,
-  ApiPublicWhatsappWebhookInstanceRoute: ApiPublicWhatsappWebhookInstanceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
