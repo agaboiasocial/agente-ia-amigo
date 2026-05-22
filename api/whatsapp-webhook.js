@@ -282,7 +282,7 @@ async function handleMessageUpsert(instanceName, item) {
   }
 
   // Trigger AI for incoming text messages (not fromMe)
-  if (!fromMe && conversationId && type === "text" && content) {
+  if (!fromMe && conversationId && content) {
     try {
       const { data: conv } = await supa
         .from("conversations")
