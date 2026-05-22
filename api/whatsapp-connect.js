@@ -1,8 +1,19 @@
+import { createClient } from "@supabase/supabase-js";
+
+function getAdminClient() {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("SUPABASE_SERVICE_ROLE_KEY not configured");
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    const { instanceName, phoneNumber } = req.body || {};
+    const { instanceName, phoneNumber, accountId } = req.body || {};
     if (!instanceName) return res.status(400).json({ error: "instanceName required" });
 
     const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL;
@@ -55,7 +66,7 @@ export default async function handler(req, res) {
     if (!qr) return res.status(500).json({ error: "QR Code não retornado pela Evolution API" });
 
     // Set webhook
-    const webhookUrl = `${PUBLIC_APP_URL}/api/public/whatsapp-webhook/${encodeURIComponent(instanceName)}`;
+    const webhookUrl = `${PUBLIC_APP_URL}/api/whatsapp-webhook/${encodeURIComponent(instanceName)}`;
     try {
       await fetch(`${baseUrl}/webhook/set/${encodeURIComponent(instanceName)}`, {
         method: "POST",
@@ -72,6 +83,33 @@ export default async function handler(req, res) {
       });
     } catch (e) {
       console.warn("webhook set error", e);
+    }
+
+    // Save instance to DB so it appears in "Canais Conectados" immediately
+    if (accountId) {
+      try {
+        const supa = getAdminClient();
+        // Check if instance already exists
+        const { data: existing } = await supa
+          .from("whatsapp_instances")
+          .select("id")
+          .eq("instance_name", instanceName)
+          .maybeSingle();
+        if (existing) {
+          await supa
+            .from("whatsapp_instances")
+            .update({ status: "pending", account_id: accountId, updated_at: new Date().toISOString() })
+            .eq("id", existing.id);
+        } else {
+          await supa.from("whatsapp_instances").insert({
+            instance_name: instanceName,
+            account_id: accountId,
+            status: "pending",
+          });
+        }
+      } catch (e) {
+        console.warn("Failed to save instance to DB:", e);
+      }
     }
 
     return res.status(200).json({ qrCode: qr, instanceName, webhookUrl });

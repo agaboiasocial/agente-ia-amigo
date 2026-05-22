@@ -32,11 +32,10 @@ export default async function handler(req, res) {
 
     // Verify user is authenticated
     const accessToken = (req.headers.authorization || "").replace("Bearer ", "");
-    if (accessToken) {
-      const userSupa = getUserClient(accessToken);
-      const { data: { user }, error: authErr } = await userSupa.auth.getUser();
-      if (authErr || !user) return res.status(401).json({ error: "Não autenticado" });
-    }
+    if (!accessToken) return res.status(401).json({ error: "Não autenticado" });
+    const userSupa = getUserClient(accessToken);
+    const { data: { user }, error: authErr } = await userSupa.auth.getUser();
+    if (authErr || !user) return res.status(401).json({ error: "Não autenticado" });
 
     const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL;
     const EVOLUTION_API_TOKEN = process.env.EVOLUTION_API_TOKEN;

@@ -39,25 +39,18 @@ function CanaisPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { if (accountId) load(); }, [accountId]);
 
   const refreshOne = async (inst: Instance) => {
     setRefreshingId(inst.id);
     try {
-      const r = await fetch("/api/whatsapp-status", {
+      const r = await fetch("/api/whatsapp-refresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instanceName: inst.instance_name }),
+        body: JSON.stringify({ instanceName: inst.instance_name, instanceId: inst.id }),
       });
       const res = await r.json();
-      await supabase
-        .from("whatsapp_instances")
-        .update({
-          status: res.state === "open" ? "connected" : res.state ?? "pending",
-          phone_number: res.phoneNumber ?? inst.phone_number,
-          profile_name: res.profileName ?? inst.profile_name,
-        })
-        .eq("id", inst.id);
+      if (!r.ok) throw new Error(res.error || "Erro ao atualizar");
       await load();
     } catch (e: any) {
       toast.error(e?.message ?? "Erro ao atualizar status");

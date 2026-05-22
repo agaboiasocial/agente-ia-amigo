@@ -77,8 +77,8 @@ function Page() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const rows = (usersQuery.data ?? []).filter((r) =>
-    [r.displayName, r.email].some((v) => v.toLowerCase().includes(search.toLowerCase())),
+  const rows = (usersQuery.data ?? []).filter((r: any) =>
+    [r.displayName, r.email].some((v: string) => v.toLowerCase().includes(search.toLowerCase())),
   );
 
   return (
@@ -128,7 +128,7 @@ function Page() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {rows.map((r: any) => (
                 <tr key={r.id} className="border-t hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium">{r.displayName}</td>
                   <td className="px-4 py-3 text-slate-600">{r.email}</td>
@@ -137,7 +137,7 @@ function Page() {
                       {r.roles.length === 0 ? (
                         <span className="text-slate-400 text-xs">—</span>
                       ) : (
-                        r.roles.map((role) => (
+                        r.roles.map((role: string) => (
                           <span
                             key={role}
                             className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${

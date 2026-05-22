@@ -2,11 +2,12 @@ import { createClient } from "@supabase/supabase-js";
 
 function getClient() {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  // Use service role key to bypass RLS (webhook has no user context)
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_PUBLISHABLE_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  // MUST use service role key — webhook has no user context, anon key is blocked by RLS
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for webhook");
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY not configured");
+  }
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });

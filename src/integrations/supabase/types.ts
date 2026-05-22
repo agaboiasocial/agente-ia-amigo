@@ -156,6 +156,7 @@ export type Database = {
       }
       audit_logs: {
         Row: {
+          account_id: string | null
           action: string
           action_type: string | null
           agent_id: string | null
@@ -168,6 +169,7 @@ export type Database = {
           ip_address: string | null
         }
         Insert: {
+          account_id?: string | null
           action: string
           action_type?: string | null
           agent_id?: string | null
@@ -180,6 +182,7 @@ export type Database = {
           ip_address?: string | null
         }
         Update: {
+          account_id?: string | null
           action?: string
           action_type?: string | null
           agent_id?: string | null
@@ -395,6 +398,7 @@ export type Database = {
       }
       contacts: {
         Row: {
+          account_id: string | null
           ai_paused: boolean | null
           assigned_to: string | null
           channel: string | null
@@ -420,6 +424,7 @@ export type Database = {
           won_at: string | null
         }
         Insert: {
+          account_id?: string | null
           ai_paused?: boolean | null
           assigned_to?: string | null
           channel?: string | null
@@ -445,6 +450,7 @@ export type Database = {
           won_at?: string | null
         }
         Update: {
+          account_id?: string | null
           ai_paused?: boolean | null
           assigned_to?: string | null
           channel?: string | null
@@ -524,6 +530,7 @@ export type Database = {
       }
       conversations: {
         Row: {
+          account_id: string | null
           assigned_agent_id: string | null
           assigned_team_id: string | null
           channel: string | null
@@ -543,6 +550,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          account_id?: string | null
           assigned_agent_id?: string | null
           assigned_team_id?: string | null
           channel?: string | null
@@ -562,6 +570,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          account_id?: string | null
           assigned_agent_id?: string | null
           assigned_team_id?: string | null
           channel?: string | null
@@ -856,6 +865,7 @@ export type Database = {
       }
       labels: {
         Row: {
+          account_id: string | null
           color: string | null
           created_at: string | null
           description: string | null
@@ -864,6 +874,7 @@ export type Database = {
           show_in_sidebar: boolean | null
         }
         Insert: {
+          account_id?: string | null
           color?: string | null
           created_at?: string | null
           description?: string | null
@@ -872,6 +883,7 @@ export type Database = {
           show_in_sidebar?: boolean | null
         }
         Update: {
+          account_id?: string | null
           color?: string | null
           created_at?: string | null
           description?: string | null
@@ -1272,6 +1284,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_id: string | null
           avatar_initials: string | null
           created_at: string
           display_name: string
@@ -1281,6 +1294,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_id?: string | null
           avatar_initials?: string | null
           created_at?: string
           display_name: string
@@ -1290,6 +1304,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_id?: string | null
           avatar_initials?: string | null
           created_at?: string
           display_name?: string
@@ -1302,6 +1317,7 @@ export type Database = {
       }
       quick_replies: {
         Row: {
+          account_id: string | null
           created_at: string
           id: string
           message: string
@@ -1309,6 +1325,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_id?: string | null
           created_at?: string
           id?: string
           message: string
@@ -1316,6 +1333,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_id?: string | null
           created_at?: string
           id?: string
           message?: string
@@ -1526,6 +1544,7 @@ export type Database = {
       }
       whatsapp_instances: {
         Row: {
+          account_id: string | null
           created_at: string | null
           id: string
           instance_name: string
@@ -1539,6 +1558,7 @@ export type Database = {
           webhook_url: string | null
         }
         Insert: {
+          account_id?: string | null
           created_at?: string | null
           id?: string
           instance_name: string
@@ -1552,6 +1572,7 @@ export type Database = {
           webhook_url?: string | null
         }
         Update: {
+          account_id?: string | null
           created_at?: string | null
           id?: string
           instance_name?: string

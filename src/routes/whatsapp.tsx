@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
+import { useAuth } from "@/hooks/use-auth";
 import {
   RefreshCw,
   CheckCircle2,
@@ -56,6 +57,7 @@ function saveInstance(i: Instance | null) {
 function Page() {
   const [instance, setInstance] = useState<Instance | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const { accountId } = useAuth();
 
   useEffect(() => {
     setInstance(loadInstance());
@@ -75,6 +77,7 @@ function Page() {
   if (!instance) {
     return (
       <ConnectFlow
+        accountId={accountId}
         onConnected={(i) => {
           saveInstance(i);
           setInstance(i);
@@ -104,7 +107,7 @@ function Page() {
 
 type FlowState = "form" | "loading" | "qr" | "connecting" | "error";
 
-function ConnectFlow({ onConnected }: { onConnected: (i: Instance) => void }) {
+function ConnectFlow({ onConnected, accountId }: { onConnected: (i: Instance) => void; accountId: string | null }) {
   const [state, setState] = useState<FlowState>("form");
   const [instanceName, setInstanceName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -115,7 +118,7 @@ function ConnectFlow({ onConnected }: { onConnected: (i: Instance) => void }) {
   const pollRef = useRef<number | null>(null);
   const timerRef = useRef<number | null>(null);
 
-  const connectFn = async ({ data }: { data: { instanceName: string; phoneNumber?: string } }) => {
+  const connectFn = async ({ data }: { data: { instanceName: string; phoneNumber?: string; accountId?: string | null } }) => {
     const res = await fetch("/api/whatsapp-connect", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -153,7 +156,7 @@ function ConnectFlow({ onConnected }: { onConnected: (i: Instance) => void }) {
         profileName: info.profileName || info.instanceName,
         phone: info.phoneNumber || phoneNumber,
         connectedAt: new Date().toISOString(),
-        webhookUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook/${info.instanceName}`,
+        webhookUrl: `${window.location.origin}/api/whatsapp-webhook/${info.instanceName}`,
         webhookActive: true,
         lastEventAt: new Date().toISOString(),
         autoReceive: true,
@@ -206,7 +209,7 @@ function ConnectFlow({ onConnected }: { onConnected: (i: Instance) => void }) {
     setState("loading");
     try {
       const data = await connectFn({
-        data: { instanceName: instanceName.trim(), phoneNumber: phoneNumber.trim() },
+        data: { instanceName: instanceName.trim(), phoneNumber: phoneNumber.trim(), accountId },
       });
       if (!data?.qrCode) throw new Error("QR Code não retornado");
       setQrCode(data.qrCode);
