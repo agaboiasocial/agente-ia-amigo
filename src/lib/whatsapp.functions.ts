@@ -72,10 +72,8 @@ export const connectWhatsApp = createServerFn({ method: "POST" })
     // Register webhook so messages flow into our DB.
     // Use the stable preview URL by default — it always serves the latest build,
     // even before the project is published. Override with PUBLIC_APP_URL after publish.
-    const projectId = process.env.LOVABLE_PROJECT_ID || "b8a4d7ce-8b50-441a-a1a6-fe328bbeae50";
     const publicBase =
-      process.env.PUBLIC_APP_URL ||
-      `https://project--${projectId}-dev.lovable.app`;
+      process.env.PUBLIC_APP_URL || "https://agente-ia-amigo.vercel.app";
     const webhookUrl = `${publicBase}/api/public/whatsapp-webhook/${encodeURIComponent(data.instanceName)}`;
 
     try {

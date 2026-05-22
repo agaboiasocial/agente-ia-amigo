@@ -8,14 +8,7 @@ export default defineConfig({
   plugins: [
     tsConfigPaths(),
     tailwindcss(),
-    tanstackStart({
-      spa: {
-        enabled: true,
-        prerender: { enabled: false, crawlLinks: false },
-      },
-      prerender: { enabled: false },
-      pages: [],
-    }),
+    tanstackStart(),
     react(),
   ],
   resolve: {
