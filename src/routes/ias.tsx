@@ -21,6 +21,11 @@ interface AISettings {
   is_active: boolean;
   handoff_keyword: string;
   buffer_seconds: number;
+  schedule_enabled: boolean;
+  schedule_days: string[];
+  schedule_start: string;
+  schedule_end: string;
+  off_hours_message: string;
 }
 
 function useAISettings() {
@@ -44,6 +49,11 @@ function IASPage() {
   const [handoffKeyword, setHandoffKeyword] = useState("#humano");
   const [prompt, setPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
   const [autoReply, setAutoReply] = useState(true);
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleDays, setScheduleDays] = useState<string[]>(["seg", "ter", "qua", "qui", "sex"]);
+  const [scheduleStart, setScheduleStart] = useState("08:00");
+  const [scheduleEnd, setScheduleEnd] = useState("18:00");
+  const [offHoursMessage, setOffHoursMessage] = useState("Estamos fora do horário de atendimento. Retornaremos em breve!");
 
   useEffect(() => {
     if (!settings) return;
@@ -54,6 +64,11 @@ function IASPage() {
     setHandoffKeyword(settings.handoff_keyword ?? "#humano");
     setPrompt(settings.system_prompt ?? DEFAULT_SYSTEM_PROMPT);
     setAutoReply((settings.buffer_seconds ?? 3) >= 0);
+    setScheduleEnabled(settings.schedule_enabled ?? false);
+    setScheduleDays(settings.schedule_days ?? ["seg", "ter", "qua", "qui", "sex"]);
+    setScheduleStart(settings.schedule_start ?? "08:00");
+    setScheduleEnd(settings.schedule_end ?? "18:00");
+    setOffHoursMessage(settings.off_hours_message ?? "Estamos fora do horário de atendimento. Retornaremos em breve!");
   }, [settings]);
 
   const save = useMutation({
@@ -66,6 +81,11 @@ function IASPage() {
         is_active: enabled,
         handoff_keyword: handoffKeyword,
         buffer_seconds: autoReply ? 3 : -1,
+        schedule_enabled: scheduleEnabled,
+        schedule_days: scheduleDays,
+        schedule_start: scheduleStart,
+        schedule_end: scheduleEnd,
+        off_hours_message: offHoursMessage,
         updated_at: new Date().toISOString(),
       };
       if (settings?.id) {
@@ -180,6 +200,61 @@ function IASPage() {
               className={`relative h-6 w-11 rounded-full transition-colors ${autoReply ? "bg-success" : "bg-muted"}`}>
               <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${autoReply ? "left-[22px]" : "left-0.5"}`} />
             </button>
+          </div>
+
+          {/* Schedule */}
+          <div className="mt-5 rounded-lg bg-background border p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium">Horário de atendimento</div>
+                <div className="text-xs text-muted-foreground">IA só responde dentro do horário definido</div>
+              </div>
+              <button onClick={() => setScheduleEnabled((s) => !s)}
+                className={`relative h-6 w-11 rounded-full transition-colors ${scheduleEnabled ? "bg-success" : "bg-muted"}`}>
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${scheduleEnabled ? "left-[22px]" : "left-0.5"}`} />
+              </button>
+            </div>
+            {scheduleEnabled && (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  {(["seg", "ter", "qua", "qui", "sex", "sáb", "dom"] as const).map((d) => (
+                    <button
+                      key={d}
+                      onClick={() =>
+                        setScheduleDays((prev) =>
+                          prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]
+                        )
+                      }
+                      className={`h-8 px-3 rounded-lg text-xs font-medium border transition-colors ${
+                        scheduleDays.includes(d)
+                          ? "bg-success text-success-foreground border-success"
+                          : "bg-background hover:bg-muted"
+                      }`}
+                    >
+                      {d.charAt(0).toUpperCase() + d.slice(1)}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Início">
+                    <input type="time" value={scheduleStart} onChange={(e) => setScheduleStart(e.target.value)}
+                      className="w-full h-10 px-3 rounded-lg border bg-background text-sm" />
+                  </Field>
+                  <Field label="Fim">
+                    <input type="time" value={scheduleEnd} onChange={(e) => setScheduleEnd(e.target.value)}
+                      className="w-full h-10 px-3 rounded-lg border bg-background text-sm" />
+                  </Field>
+                </div>
+                <Field label="Mensagem fora do horário">
+                  <textarea
+                    value={offHoursMessage}
+                    onChange={(e) => setOffHoursMessage(e.target.value)}
+                    rows={2}
+                    className="w-full p-3 rounded-lg border bg-background text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-success"
+                  />
+                </Field>
+              </>
+            )}
           </div>
         </div>
 

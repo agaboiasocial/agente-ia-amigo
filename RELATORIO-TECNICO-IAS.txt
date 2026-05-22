@@ -1,0 +1,185 @@
+========================================================================
+  RELATORIO TECNICO — IAS / Agente IA Social
+  Data: 2026-05-21
+========================================================================
+
+1. STACK REAL DO PROJETO
+------------------------------------------------------------------------
+Framework:        React 19 + TanStack Start (SSR) + TanStack Router (file-based)
+Backend:          TanStack Start Server Functions (createServerFn) + Cloudflare Workers
+Banco de dados:   Supabase (PostgreSQL)
+WhatsApp:         Evolution API (Baileys) — QR Code, webhook, envio/recebimento
+UI:               Tailwind CSS 4 + shadcn/ui (Radix) + Lucide Icons + Recharts
+State:            TanStack Query (server state) + useState local
+Auth:             Supabase Auth (email/password) + tabela profiles + user_roles
+Build/Deploy:     Vite 7 + @lovable.dev/vite-tanstack-config + Cloudflare Workers
+Origem:           Projeto gerado via Lovable.dev
+
+
+2. ROTAS EXISTENTES (23 rotas)
+------------------------------------------------------------------------
+
+PUBLICAS:
+  /                             index.tsx                   Login / Cadastro
+
+APP PRINCIPAL (requer auth):
+  /conversas                    conversas.tsx               Chat completo (lista + chat + info + kanban)
+  /minha-caixa                  minha-caixa.tsx             Caixa do agente logado
+  /caixas/$id                   caixas.$id.tsx              Caixa de entrada especifica
+  /caixas-entrada               caixas-entrada.tsx          CRUD de caixas de entrada (inboxes)
+  /contatos                     contatos.tsx                CRUD de contatos
+  /whatsapp                     whatsapp.tsx                Conectar WhatsApp (QR Code via Evolution API)
+  /canais                       canais.tsx                  Listar canais conectados
+  /automacoes                   automacoes.tsx              Automacoes (regras de trigger)
+  /ias                          ias.tsx                     Config do agente IA (tom, modelo, prompt)
+  /funcoes                      funcoes.tsx                 Funcoes personalizadas do agente
+  /equipes                      equipes.tsx                 CRUD de equipes
+  /relatorios                   relatorios.tsx              Dashboard com graficos
+  /auditoria                    auditoria.tsx               Log de acoes
+  /sla                          sla.tsx                     Monitoramento de SLA
+  /etiquetas                    etiquetas.tsx               CRUD de etiquetas (labels)
+  /atributos                    atributos.tsx               Atributos customizados
+  /configuracoes                configuracoes.tsx           Perfil, agentes, aparencia, respostas rapidas, widget
+  /funcoes-permissoes           funcoes-permissoes.tsx      Roles e permissoes
+
+SUPER ADMIN (requer isAdmin):
+  /super-admin                  super-admin.tsx             Gate de autenticacao admin
+  /super-admin/                 super-admin.index.tsx       Dashboard admin
+  /super-admin/accounts         super-admin.accounts.tsx    Gerenciar contas
+  /super-admin/users            super-admin.users.tsx       Gerenciar usuarios
+  /super-admin/agent-bots       super-admin.agent-bots.tsx  Bots
+  /super-admin/platform-apps    super-admin.platform-apps.tsx  Apps da plataforma
+  /super-admin/settings         super-admin.settings.tsx    Configuracoes globais
+  /super-admin/sidekiq          super-admin.sidekiq.tsx     Dashboard Sidekiq
+  /super-admin/instance-health  super-admin.instance-health.tsx  Saude da instancia
+  /super-admin/login            super-admin.login.tsx       Login admin
+
+API:
+  /api/public/whatsapp-webhook/$instance   Webhook Evolution API
+
+
+3. COMPONENTES PRINCIPAIS
+------------------------------------------------------------------------
+AppLayout.tsx              Layout padrao (sidebar + header + content), guard de auth
+AppSidebar.tsx             Menu lateral com 13 itens + caixas de entrada + Super Admin + Suporte
+SuperAdminSidebar.tsx      Sidebar do painel Super Admin
+SupportCenter.tsx          Sheet lateral de suporte (FAQ + tickets)
+MessageComposer.tsx        Editor de mensagens do chat
+ui/ (50+ arquivos)         Componentes shadcn/ui
+
+
+4. AUTENTICACAO
+------------------------------------------------------------------------
+- Supabase Auth com email/password (signIn + signUp)
+- Tabela profiles: display_name, avatar_initials
+- Tabela user_roles: role = "admin" -> isAdmin = true
+- Guard: AppLayout redireciona para / se sem sessao
+- Super Admin: gate em /super-admin.tsx verifica isAdmin
+
+
+5. BANCO DE DADOS (tabelas Supabase identificadas nos types)
+------------------------------------------------------------------------
+accounts, agents, audit_logs, automations, campaigns, canned_responses,
+contact_tasks, contacts, conversations, custom_roles, inboxes,
+inbox_members, labels, messages, profiles, quick_replies, user_roles,
+whatsapp_instances
+
+
+6. CLASSIFICACAO DAS FUNCIONALIDADES: IAS vs CRM (Chatwoot)
+------------------------------------------------------------------------
+
+[VERDE] DEVEM FICAR NO IAS (funcionalidades core de IA):
+  IAS Agente (config IA)       /ias              Core do produto — configuracao da IA
+  Funcoes personalizadas       /funcoes           Extensoes da IA
+  Automacoes                   /automacoes        Regras de IA/workflow
+  Relatorios                   /relatorios        Analytics proprios
+  Campanhas                    (tabela existe)    Disparo em massa via IA
+
+[AZUL] PODEM SER REDIRECIONADAS PARA O CHATWOOT (funcionalidades CRM):
+  Conversas (chat completo)    /conversas         O Chatwoot faz isso nativamente
+  Minha Caixa                  /minha-caixa       Caixa do agente = inbox no Chatwoot
+  Caixas de entrada            /caixas-entrada    Inboxes do Chatwoot
+  Contatos                     /contatos          CRM nativo do Chatwoot
+  Equipes                      /equipes           Teams no Chatwoot
+  Etiquetas                    /etiquetas         Labels no Chatwoot
+  SLA                          /sla               SLA nativo do Chatwoot
+  Auditoria                    /auditoria         Audit log do Chatwoot
+  Atributos                    /atributos         Custom attributes do Chatwoot
+  Conectar WhatsApp            /whatsapp          Channel do Chatwoot
+  Canais                       /canais            Channels do Chatwoot
+
+[AMARELO] COMPARTILHADAS / CONFIGURACOES:
+  Configuracoes                /configuracoes     Separar: Perfil/Aparencia fica no IAS, Agentes/Widget -> Chatwoot
+  Funcoes/Permissoes           /funcoes-permissoes  Roles -> Chatwoot; permissoes IA -> IAS
+  Super Admin                  /super-admin/*     Manter no IAS como painel de gestao global
+  Suporte                      SupportCenter.tsx  Manter no IAS
+
+
+7. PLANO DE IMPLEMENTACAO EM ETAPAS
+------------------------------------------------------------------------
+
+ETAPA 1 — Configuracao do Chatwoot (pre-requisito)
+  - Definir URL do Chatwoot (env var CHATWOOT_BASE_URL)
+  - Configurar token de acesso ao Chatwoot API
+  - Criar helper de URL: getChatwootUrl(path: string)
+
+ETAPA 2 — Reestruturar o Sidebar
+  - Separar itens em 2 grupos visuais: IAS e IAS CRM
+  - Itens CRM abrem em nova aba apontando para o Chatwoot
+  - Itens IAS continuam com navegacao interna normal
+  - Arquivos: AppSidebar.tsx
+
+ETAPA 3 — Criar config de integracao Chatwoot
+  - Novo arquivo src/lib/chatwoot.ts com URLs e helpers
+  - Env vars: CHATWOOT_BASE_URL, CHATWOOT_API_TOKEN
+  - Arquivos: novo chatwoot.ts, .env
+
+ETAPA 4 — Converter rotas CRM em redirecionamentos
+  - Rotas CRM (/conversas, /contatos, /equipes, etc.) passam a redirecionar para o Chatwoot
+  - Manter rotas existentes funcionando como fallback (feature flag)
+  - Arquivos: conversas.tsx, contatos.tsx, equipes.tsx, etiquetas.tsx, sla.tsx,
+    auditoria.tsx, atributos.tsx, minha-caixa.tsx, caixas-entrada.tsx, canais.tsx, whatsapp.tsx
+
+ETAPA 5 — Adaptar Configuracoes
+  - Separar tabs de /configuracoes entre IAS e Chatwoot
+  - Tabs "Agentes" e "Widget" -> link para Chatwoot
+  - Arquivos: configuracoes.tsx
+
+ETAPA 6 — Manter IAS Agente como hub de IA
+  - Garantir que /ias, /funcoes, /automacoes continuem 100% funcionais
+  - Eventualmente conectar via API ao Chatwoot para acoes de IA
+  - Arquivos: sem alteracao imediata
+
+
+8. ARQUIVOS QUE SERAO ALTERADOS NA PROXIMA ETAPA
+------------------------------------------------------------------------
+src/components/AppSidebar.tsx        Reorganizar itens (IAS vs CRM), links externos
+src/lib/chatwoot.ts                  NOVO — helpers de URL do Chatwoot
+.env                                 Adicionar CHATWOOT_BASE_URL
+11 rotas CRM (conversas.tsx, etc.)   Adicionar logica de redirecionamento
+src/routes/configuracoes.tsx         Separar tabs IAS vs Chatwoot
+
+
+9. RISCOS IDENTIFICADOS
+------------------------------------------------------------------------
+[ALTA]  Perder funcionalidade de chat se Chatwoot estiver offline
+        -> Mitigacao: Feature flag para fallback local
+
+[ALTA]  Webhook do WhatsApp (Evolution API) apontar para IAS e nao para Chatwoot
+        -> Mitigacao: Definir quem recebe: IAS faz proxy ou Chatwoot recebe direto
+
+[ALTA]  Auth separada (Supabase no IAS, auth propria no Chatwoot)
+        -> Mitigacao: SSO ou token compartilhado necessario
+
+[MEDIA] Dados duplicados (contatos no Supabase + Chatwoot)
+        -> Mitigacao: Sincronizacao via API ou escolher source of truth
+
+[MEDIA] Server Functions (whatsapp.functions.ts) acopladas ao Supabase
+        -> Mitigacao: Manter ate migrar webhook para Chatwoot
+
+[BAIXA] Super Admin usa dados locais (stats hardcoded)
+        -> Mitigacao: Eventualmente puxar do Chatwoot API
+
+========================================================================
+  FIM DO RELATORIO — Nenhum arquivo do projeto foi alterado.
+========================================================================

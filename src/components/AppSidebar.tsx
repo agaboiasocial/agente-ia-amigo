@@ -28,6 +28,7 @@ import {
   Facebook,
   KanbanSquare,
   Wallet,
+  Building2,
 } from "lucide-react";
 import logoIas from "@/assets/logo-ias.png";
 import { useAuth } from "@/hooks/use-auth";
@@ -51,6 +52,7 @@ const items = [
   { to: "/auditoria", label: "Auditoria", icon: ShieldCheck },
   { to: "/sla", label: "SLA", icon: Timer },
   { to: "/etiquetas", label: "Etiquetas", icon: Tag },
+  { to: "/empresa", label: "Empresa", icon: Building2 },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 

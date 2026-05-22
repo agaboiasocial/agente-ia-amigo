@@ -13,6 +13,7 @@ import { Route as WhatsappRouteImport } from './routes/whatsapp'
 import { Route as SuperAdminRouteImport } from './routes/super-admin'
 import { Route as SlaRouteImport } from './routes/sla'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
+import { Route as PipelineSettingsRouteImport } from './routes/pipeline-settings'
 import { Route as PipelineRouteImport } from './routes/pipeline'
 import { Route as MinhaCaixaRouteImport } from './routes/minha-caixa'
 import { Route as IasRouteImport } from './routes/ias'
@@ -32,6 +33,7 @@ import { Route as AuditoriaRouteImport } from './routes/auditoria'
 import { Route as AtributosRouteImport } from './routes/atributos'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
+import { Route as SuperAdminWebhooksRouteImport } from './routes/super-admin.webhooks'
 import { Route as SuperAdminUsersRouteImport } from './routes/super-admin.users'
 import { Route as SuperAdminSidekiqRouteImport } from './routes/super-admin.sidekiq'
 import { Route as SuperAdminSettingsRouteImport } from './routes/super-admin.settings'
@@ -39,6 +41,7 @@ import { Route as SuperAdminPlatformAppsRouteImport } from './routes/super-admin
 import { Route as SuperAdminLoginRouteImport } from './routes/super-admin.login'
 import { Route as SuperAdminInstanceHealthRouteImport } from './routes/super-admin.instance-health'
 import { Route as SuperAdminAgentBotsRouteImport } from './routes/super-admin.agent-bots'
+import { Route as SuperAdminActiveClientsRouteImport } from './routes/super-admin.active-clients'
 import { Route as SuperAdminAccountsRouteImport } from './routes/super-admin.accounts'
 import { Route as CaixasIdRouteImport } from './routes/caixas.$id'
 import { Route as ApiPublicWhatsappWebhookInstanceRouteImport } from './routes/api/public/whatsapp-webhook.$instance'
@@ -61,6 +64,11 @@ const SlaRoute = SlaRouteImport.update({
 const RelatoriosRoute = RelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PipelineSettingsRoute = PipelineSettingsRouteImport.update({
+  id: '/pipeline-settings',
+  path: '/pipeline-settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PipelineRoute = PipelineRouteImport.update({
@@ -158,6 +166,11 @@ const SuperAdminIndexRoute = SuperAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SuperAdminRoute,
 } as any)
+const SuperAdminWebhooksRoute = SuperAdminWebhooksRouteImport.update({
+  id: '/webhooks',
+  path: '/webhooks',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
 const SuperAdminUsersRoute = SuperAdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -192,6 +205,11 @@ const SuperAdminInstanceHealthRoute =
 const SuperAdminAgentBotsRoute = SuperAdminAgentBotsRouteImport.update({
   id: '/agent-bots',
   path: '/agent-bots',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminActiveClientsRoute = SuperAdminActiveClientsRouteImport.update({
+  id: '/active-clients',
+  path: '/active-clients',
   getParentRoute: () => SuperAdminRoute,
 } as any)
 const SuperAdminAccountsRoute = SuperAdminAccountsRouteImport.update({
@@ -230,12 +248,14 @@ export interface FileRoutesByFullPath {
   '/ias': typeof IasRoute
   '/minha-caixa': typeof MinhaCaixaRoute
   '/pipeline': typeof PipelineRoute
+  '/pipeline-settings': typeof PipelineSettingsRoute
   '/relatorios': typeof RelatoriosRoute
   '/sla': typeof SlaRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
   '/caixas/$id': typeof CaixasIdRoute
   '/super-admin/accounts': typeof SuperAdminAccountsRoute
+  '/super-admin/active-clients': typeof SuperAdminActiveClientsRoute
   '/super-admin/agent-bots': typeof SuperAdminAgentBotsRoute
   '/super-admin/instance-health': typeof SuperAdminInstanceHealthRoute
   '/super-admin/login': typeof SuperAdminLoginRoute
@@ -243,6 +263,7 @@ export interface FileRoutesByFullPath {
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/sidekiq': typeof SuperAdminSidekiqRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
+  '/super-admin/webhooks': typeof SuperAdminWebhooksRoute
   '/super-admin/': typeof SuperAdminIndexRoute
   '/api/public/whatsapp-webhook/$instance': typeof ApiPublicWhatsappWebhookInstanceRoute
 }
@@ -265,11 +286,13 @@ export interface FileRoutesByTo {
   '/ias': typeof IasRoute
   '/minha-caixa': typeof MinhaCaixaRoute
   '/pipeline': typeof PipelineRoute
+  '/pipeline-settings': typeof PipelineSettingsRoute
   '/relatorios': typeof RelatoriosRoute
   '/sla': typeof SlaRoute
   '/whatsapp': typeof WhatsappRoute
   '/caixas/$id': typeof CaixasIdRoute
   '/super-admin/accounts': typeof SuperAdminAccountsRoute
+  '/super-admin/active-clients': typeof SuperAdminActiveClientsRoute
   '/super-admin/agent-bots': typeof SuperAdminAgentBotsRoute
   '/super-admin/instance-health': typeof SuperAdminInstanceHealthRoute
   '/super-admin/login': typeof SuperAdminLoginRoute
@@ -277,6 +300,7 @@ export interface FileRoutesByTo {
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/sidekiq': typeof SuperAdminSidekiqRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
+  '/super-admin/webhooks': typeof SuperAdminWebhooksRoute
   '/super-admin': typeof SuperAdminIndexRoute
   '/api/public/whatsapp-webhook/$instance': typeof ApiPublicWhatsappWebhookInstanceRoute
 }
@@ -300,12 +324,14 @@ export interface FileRoutesById {
   '/ias': typeof IasRoute
   '/minha-caixa': typeof MinhaCaixaRoute
   '/pipeline': typeof PipelineRoute
+  '/pipeline-settings': typeof PipelineSettingsRoute
   '/relatorios': typeof RelatoriosRoute
   '/sla': typeof SlaRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
   '/caixas/$id': typeof CaixasIdRoute
   '/super-admin/accounts': typeof SuperAdminAccountsRoute
+  '/super-admin/active-clients': typeof SuperAdminActiveClientsRoute
   '/super-admin/agent-bots': typeof SuperAdminAgentBotsRoute
   '/super-admin/instance-health': typeof SuperAdminInstanceHealthRoute
   '/super-admin/login': typeof SuperAdminLoginRoute
@@ -313,6 +339,7 @@ export interface FileRoutesById {
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/sidekiq': typeof SuperAdminSidekiqRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
+  '/super-admin/webhooks': typeof SuperAdminWebhooksRoute
   '/super-admin/': typeof SuperAdminIndexRoute
   '/api/public/whatsapp-webhook/$instance': typeof ApiPublicWhatsappWebhookInstanceRoute
 }
@@ -337,12 +364,14 @@ export interface FileRouteTypes {
     | '/ias'
     | '/minha-caixa'
     | '/pipeline'
+    | '/pipeline-settings'
     | '/relatorios'
     | '/sla'
     | '/super-admin'
     | '/whatsapp'
     | '/caixas/$id'
     | '/super-admin/accounts'
+    | '/super-admin/active-clients'
     | '/super-admin/agent-bots'
     | '/super-admin/instance-health'
     | '/super-admin/login'
@@ -350,6 +379,7 @@ export interface FileRouteTypes {
     | '/super-admin/settings'
     | '/super-admin/sidekiq'
     | '/super-admin/users'
+    | '/super-admin/webhooks'
     | '/super-admin/'
     | '/api/public/whatsapp-webhook/$instance'
   fileRoutesByTo: FileRoutesByTo
@@ -372,11 +402,13 @@ export interface FileRouteTypes {
     | '/ias'
     | '/minha-caixa'
     | '/pipeline'
+    | '/pipeline-settings'
     | '/relatorios'
     | '/sla'
     | '/whatsapp'
     | '/caixas/$id'
     | '/super-admin/accounts'
+    | '/super-admin/active-clients'
     | '/super-admin/agent-bots'
     | '/super-admin/instance-health'
     | '/super-admin/login'
@@ -384,6 +416,7 @@ export interface FileRouteTypes {
     | '/super-admin/settings'
     | '/super-admin/sidekiq'
     | '/super-admin/users'
+    | '/super-admin/webhooks'
     | '/super-admin'
     | '/api/public/whatsapp-webhook/$instance'
   id:
@@ -406,12 +439,14 @@ export interface FileRouteTypes {
     | '/ias'
     | '/minha-caixa'
     | '/pipeline'
+    | '/pipeline-settings'
     | '/relatorios'
     | '/sla'
     | '/super-admin'
     | '/whatsapp'
     | '/caixas/$id'
     | '/super-admin/accounts'
+    | '/super-admin/active-clients'
     | '/super-admin/agent-bots'
     | '/super-admin/instance-health'
     | '/super-admin/login'
@@ -419,6 +454,7 @@ export interface FileRouteTypes {
     | '/super-admin/settings'
     | '/super-admin/sidekiq'
     | '/super-admin/users'
+    | '/super-admin/webhooks'
     | '/super-admin/'
     | '/api/public/whatsapp-webhook/$instance'
   fileRoutesById: FileRoutesById
@@ -442,6 +478,7 @@ export interface RootRouteChildren {
   IasRoute: typeof IasRoute
   MinhaCaixaRoute: typeof MinhaCaixaRoute
   PipelineRoute: typeof PipelineRoute
+  PipelineSettingsRoute: typeof PipelineSettingsRoute
   RelatoriosRoute: typeof RelatoriosRoute
   SlaRoute: typeof SlaRoute
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
@@ -478,6 +515,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios'
       fullPath: '/relatorios'
       preLoaderRoute: typeof RelatoriosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pipeline-settings': {
+      id: '/pipeline-settings'
+      path: '/pipeline-settings'
+      fullPath: '/pipeline-settings'
+      preLoaderRoute: typeof PipelineSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pipeline': {
@@ -613,6 +657,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminIndexRouteImport
       parentRoute: typeof SuperAdminRoute
     }
+    '/super-admin/webhooks': {
+      id: '/super-admin/webhooks'
+      path: '/webhooks'
+      fullPath: '/super-admin/webhooks'
+      preLoaderRoute: typeof SuperAdminWebhooksRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
     '/super-admin/users': {
       id: '/super-admin/users'
       path: '/users'
@@ -662,6 +713,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminAgentBotsRouteImport
       parentRoute: typeof SuperAdminRoute
     }
+    '/super-admin/active-clients': {
+      id: '/super-admin/active-clients'
+      path: '/active-clients'
+      fullPath: '/super-admin/active-clients'
+      preLoaderRoute: typeof SuperAdminActiveClientsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
     '/super-admin/accounts': {
       id: '/super-admin/accounts'
       path: '/accounts'
@@ -688,6 +746,7 @@ declare module '@tanstack/react-router' {
 
 interface SuperAdminRouteChildren {
   SuperAdminAccountsRoute: typeof SuperAdminAccountsRoute
+  SuperAdminActiveClientsRoute: typeof SuperAdminActiveClientsRoute
   SuperAdminAgentBotsRoute: typeof SuperAdminAgentBotsRoute
   SuperAdminInstanceHealthRoute: typeof SuperAdminInstanceHealthRoute
   SuperAdminLoginRoute: typeof SuperAdminLoginRoute
@@ -695,11 +754,13 @@ interface SuperAdminRouteChildren {
   SuperAdminSettingsRoute: typeof SuperAdminSettingsRoute
   SuperAdminSidekiqRoute: typeof SuperAdminSidekiqRoute
   SuperAdminUsersRoute: typeof SuperAdminUsersRoute
+  SuperAdminWebhooksRoute: typeof SuperAdminWebhooksRoute
   SuperAdminIndexRoute: typeof SuperAdminIndexRoute
 }
 
 const SuperAdminRouteChildren: SuperAdminRouteChildren = {
   SuperAdminAccountsRoute: SuperAdminAccountsRoute,
+  SuperAdminActiveClientsRoute: SuperAdminActiveClientsRoute,
   SuperAdminAgentBotsRoute: SuperAdminAgentBotsRoute,
   SuperAdminInstanceHealthRoute: SuperAdminInstanceHealthRoute,
   SuperAdminLoginRoute: SuperAdminLoginRoute,
@@ -707,6 +768,7 @@ const SuperAdminRouteChildren: SuperAdminRouteChildren = {
   SuperAdminSettingsRoute: SuperAdminSettingsRoute,
   SuperAdminSidekiqRoute: SuperAdminSidekiqRoute,
   SuperAdminUsersRoute: SuperAdminUsersRoute,
+  SuperAdminWebhooksRoute: SuperAdminWebhooksRoute,
   SuperAdminIndexRoute: SuperAdminIndexRoute,
 }
 
@@ -733,6 +795,7 @@ const rootRouteChildren: RootRouteChildren = {
   IasRoute: IasRoute,
   MinhaCaixaRoute: MinhaCaixaRoute,
   PipelineRoute: PipelineRoute,
+  PipelineSettingsRoute: PipelineSettingsRoute,
   RelatoriosRoute: RelatoriosRoute,
   SlaRoute: SlaRoute,
   SuperAdminRoute: SuperAdminRouteWithChildren,

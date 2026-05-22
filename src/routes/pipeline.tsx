@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { usePipeline } from "@/hooks/use-pipeline";
+import { CreateLeadModal } from "@/components/pipeline/CreateLeadModal";
+import { LeadDrawer } from "@/components/pipeline/LeadDrawer";
 import type { PipelineLead, PipelineStage } from "@/types/pipeline";
-import { Loader2, Search, SlidersHorizontal, UserRound } from "lucide-react";
+import { Loader2, Plus, Search, Settings2, SlidersHorizontal, UserRound } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/pipeline")({ component: PipelinePage });
@@ -11,6 +15,8 @@ const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL
 
 function PipelinePage() {
   const pipeline = usePipeline();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<PipelineLead | null>(null);
 
   const move = async (lead: PipelineLead, stage: PipelineStage) => {
     try {
@@ -25,14 +31,29 @@ function PipelinePage() {
     <AppLayout
       title="Pipeline"
       actions={
-        <div className="relative w-72">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={pipeline.filters.search}
-            onChange={(event) => pipeline.setFilters({ ...pipeline.filters, search: event.target.value })}
-            placeholder="Buscar lead..."
-            className="h-9 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-success/40"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={pipeline.filters.search}
+              onChange={(event) => pipeline.setFilters({ ...pipeline.filters, search: event.target.value })}
+              placeholder="Buscar lead..."
+              className="h-9 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-success/40"
+            />
+          </div>
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="h-9 px-3 rounded-lg bg-success text-success-foreground text-sm font-semibold flex items-center gap-1.5"
+          >
+            <Plus className="h-4 w-4" /> Novo Lead
+          </button>
+          <Link
+            to="/pipeline-settings"
+            className="h-9 w-9 rounded-lg border hover:bg-background grid place-items-center"
+            title="Configurar Pipeline"
+          >
+            <Settings2 className="h-4 w-4" />
+          </Link>
         </div>
       }
       flush
@@ -89,6 +110,7 @@ function PipelinePage() {
                             key={lead.id}
                             lead={lead}
                             breached={pipeline.isSlaBreached(lead)}
+                            onClick={() => setSelectedLead(lead)}
                           />
                         ))
                       )}
@@ -100,16 +122,28 @@ function PipelinePage() {
           </div>
         </div>
       )}
+
+      <CreateLeadModal open={createOpen} onClose={() => setCreateOpen(false)} stages={pipeline.stages} />
+      <LeadDrawer
+        lead={selectedLead}
+        stages={pipeline.stages}
+        onClose={() => setSelectedLead(null)}
+        onMoveToStage={(leadId, stageId) => {
+          pipeline.moveLeadToStage.mutate({ leadId, toStageId: stageId });
+          setSelectedLead(null);
+        }}
+      />
     </AppLayout>
   );
 }
 
-function LeadCard({ lead, breached }: { lead: PipelineLead; breached: boolean }) {
+function LeadCard({ lead, breached, onClick }: { lead: PipelineLead; breached: boolean; onClick: () => void }) {
   return (
     <article
       draggable
+      onClick={onClick}
       onDragStart={(event) => event.dataTransfer.setData("text/plain", lead.id)}
-      className={`cursor-grab rounded-lg border bg-background p-3 shadow-sm active:cursor-grabbing ${
+      className={`cursor-grab rounded-lg border bg-background p-3 shadow-sm active:cursor-grabbing hover:border-success/50 transition-colors ${
         breached ? "border-destructive" : ""
       }`}
     >
