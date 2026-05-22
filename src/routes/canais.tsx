@@ -24,7 +24,7 @@ function CanaisPage() {
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { accountId } = useAuth();
+  const { accountId, session } = useAuth();
 
   const load = async () => {
     setLoading(true);
@@ -75,7 +75,10 @@ function CanaisPage() {
     try {
       const r = await fetch("/api/whatsapp-disconnect", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({ instanceName: inst.instance_name, deleteInstance: remove }),
       });
       const json = await r.json();
