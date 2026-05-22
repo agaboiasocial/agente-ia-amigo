@@ -522,7 +522,41 @@ function ConversasPage() {
                                     Nota interna
                                   </div>
                                 )}
-                                <FormattedMessage text={m.body} />
+                                {m.message_type === "image" && m.media_url ? (
+                                  <div>
+                                    <img
+                                      src={m.media_url}
+                                      alt="imagem"
+                                      className="max-w-full max-h-72 rounded-lg mb-1 cursor-pointer"
+                                      onClick={() => window.open(m.media_url!, "_blank")}
+                                    />
+                                    {m.body && m.body !== "[imagem]" && <FormattedMessage text={m.body} />}
+                                  </div>
+                                ) : m.message_type === "video" && m.media_url ? (
+                                  <div>
+                                    <video
+                                      src={m.media_url}
+                                      controls
+                                      className="max-w-full max-h-72 rounded-lg mb-1"
+                                    />
+                                    {m.body && m.body !== "[vídeo]" && <FormattedMessage text={m.body} />}
+                                  </div>
+                                ) : m.message_type === "audio" && m.media_url ? (
+                                  <audio src={m.media_url} controls className="max-w-full min-w-[200px]" />
+                                ) : m.message_type === "document" && m.media_url ? (
+                                  <a
+                                    href={m.media_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 text-sm underline"
+                                  >
+                                    📎 {m.body || "Documento"}
+                                  </a>
+                                ) : m.message_type === "sticker" ? (
+                                  <span className="text-3xl">🏷️</span>
+                                ) : (
+                                  <FormattedMessage text={m.body} />
+                                )}
                               </div>
                               <div
                                 className={`text-[10px] text-muted-foreground mt-1 ${mine ? "text-right" : ""}`}

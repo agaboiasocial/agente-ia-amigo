@@ -38,7 +38,6 @@ const items = [
   { to: "/whatsapp", label: "Conectar WhatsApp", icon: QrCode },
   { to: "/canais", label: "Canais Conectados", icon: Inbox },
   { to: "/contatos", label: "Contatos/Leads", icon: Users },
-  { to: "/pipeline", label: "Pipeline/Kanban", icon: KanbanSquare },
   { to: "/equipes", label: "Equipes", icon: Users2 },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { to: "/financeiro", label: "Financeiro", icon: Wallet },

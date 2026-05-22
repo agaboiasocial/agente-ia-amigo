@@ -29,9 +29,9 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    const { conversationId, body, isNote, senderName } = req.body || {};
-    if (!conversationId || !body) {
-      return res.status(400).json({ error: "conversationId and body required" });
+    const { conversationId, body, isNote, senderName, mediaUrl, mediaType } = req.body || {};
+    if (!conversationId || (!body && !mediaUrl)) {
+      return res.status(400).json({ error: "conversationId and (body or mediaUrl) required" });
     }
 
     // Verify user is authenticated
@@ -62,17 +62,21 @@ export default async function handler(req, res) {
       .maybeSingle();
 
     const finalSenderName = senderName || profile?.display_name || "Agente";
-    const text = body.trim();
+    const text = (body || "").trim();
+
+    // Determine message type
+    const msgType = mediaUrl ? (mediaType || "image") : "text";
 
     const baseMessage = {
       conversation_id: conversationId,
       contact_id: conversation.contact_id,
       instance_name: conversation.instance_name,
-      content: text,
+      content: text || (mediaUrl ? `[${msgType}]` : ""),
       is_from_contact: false,
       is_private: !!isNote,
       sender_name: isNote ? finalSenderName : "Eu",
-      message_type: "text",
+      message_type: msgType,
+      media_url: mediaUrl || null,
     };
 
     // If it's a note, just insert and return
@@ -104,13 +108,50 @@ export default async function handler(req, res) {
     }
     const apiBase = EVOLUTION_API_URL.replace(/\/+$/, "");
 
-    const evoRes = await fetch(`${apiBase}/message/sendText/${encodeURIComponent(instanceName)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_TOKEN },
-      body: JSON.stringify({ number, text }),
-    });
-
+    let evoRes;
     let apiBody = null;
+
+    if (mediaUrl) {
+      // Send media message
+      const endpointMap = {
+        image: "sendMedia",
+        video: "sendMedia",
+        audio: "sendWhatsAppAudio",
+        document: "sendMedia",
+      };
+      const endpoint = endpointMap[msgType] || "sendMedia";
+
+      const mediaPayload = {
+        number,
+        mediatype: msgType === "audio" ? "audio" : msgType,
+        media: mediaUrl,
+        caption: text || undefined,
+        fileName: msgType === "document" ? (text || "document") : undefined,
+      };
+
+      // For audio, Evolution API v2 uses sendWhatsAppAudio with different payload
+      if (msgType === "audio") {
+        evoRes = await fetch(`${apiBase}/message/sendWhatsAppAudio/${encodeURIComponent(instanceName)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_TOKEN },
+          body: JSON.stringify({ number, audio: mediaUrl }),
+        });
+      } else {
+        evoRes = await fetch(`${apiBase}/message/sendMedia/${encodeURIComponent(instanceName)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_TOKEN },
+          body: JSON.stringify(mediaPayload),
+        });
+      }
+    } else {
+      // Send text message
+      evoRes = await fetch(`${apiBase}/message/sendText/${encodeURIComponent(instanceName)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_TOKEN },
+        body: JSON.stringify({ number, text }),
+      });
+    }
+
     try { apiBody = await evoRes.json(); } catch { apiBody = null; }
     if (!evoRes.ok) {
       const message = apiBody?.response?.message || apiBody?.message || `Evolution API: ${evoRes.status}`;
@@ -125,9 +166,10 @@ export default async function handler(req, res) {
     });
     if (insertError) throw new Error(insertError.message);
 
+    const lastMsg = text || `[${msgType}]`;
     await supa
       .from("conversations")
-      .update({ last_message: text, last_message_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .update({ last_message: lastMsg, last_message_at: new Date().toISOString(), updated_at: new Date().toISOString() })
       .eq("id", conversationId);
 
     return res.status(200).json({ ok: true, sent: true });

@@ -180,6 +180,8 @@ export interface MsgRow {
   is_note: boolean;
   created_at: string;
   sender_name: string | null;
+  message_type: string;
+  media_url: string | null;
 }
 
 interface RawMsgRow {
@@ -191,6 +193,8 @@ interface RawMsgRow {
   is_private: boolean | null;
   sender_name: string | null;
   created_at: string | null;
+  message_type: string | null;
+  media_url: string | null;
 }
 
 function mapMsg(row: RawMsgRow): MsgRow {
@@ -203,6 +207,8 @@ function mapMsg(row: RawMsgRow): MsgRow {
     is_note: !!row.is_private,
     created_at: row.created_at ?? new Date().toISOString(),
     sender_name: row.sender_name,
+    message_type: row.message_type ?? "text",
+    media_url: row.media_url,
   };
 }
 
@@ -213,7 +219,7 @@ export function useMessages(conversationId: string | undefined) {
       if (!conversationId) return [];
       const { data, error } = await supabase
         .from("messages")
-        .select("id, conversation_id, agent_id, content, is_from_contact, is_private, sender_name, created_at")
+        .select("id, conversation_id, agent_id, content, is_from_contact, is_private, sender_name, created_at, message_type, media_url")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
       if (error) throw error;
