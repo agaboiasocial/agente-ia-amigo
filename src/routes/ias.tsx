@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
-import { Bot, Sparkles, Wand2, BookOpen, Zap, CheckCircle2, Save } from "lucide-react";
+import { Bot, Sparkles, Wand2, BookOpen, Zap, CheckCircle2, Save, Clock, Users, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -22,11 +22,13 @@ interface AISettings {
   is_active: boolean;
   handoff_keyword: string;
   buffer_seconds: number;
+  notification_group_jid: string;
   schedule_enabled: boolean;
   schedule_days: string[];
   schedule_start: string;
   schedule_end: string;
   off_hours_message: string;
+  ignore_numbers: string[];
 }
 
 function useAISettings() {
@@ -51,6 +53,9 @@ function IASPage() {
   const [handoffKeyword, setHandoffKeyword] = useState("#humano");
   const [prompt, setPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
   const [autoReply, setAutoReply] = useState(true);
+  const [bufferSeconds, setBufferSeconds] = useState(3);
+  const [notificationGroupJid, setNotificationGroupJid] = useState("");
+  const [ignoreNumbers, setIgnoreNumbers] = useState("");
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduleDays, setScheduleDays] = useState<string[]>(["seg", "ter", "qua", "qui", "sex"]);
   const [scheduleStart, setScheduleStart] = useState("08:00");
@@ -66,6 +71,9 @@ function IASPage() {
     setHandoffKeyword(settings.handoff_keyword ?? "#humano");
     setPrompt(settings.system_prompt ?? DEFAULT_SYSTEM_PROMPT);
     setAutoReply((settings.buffer_seconds ?? 3) >= 0);
+    setBufferSeconds(settings.buffer_seconds ?? 3);
+    setNotificationGroupJid(settings.notification_group_jid ?? "");
+    setIgnoreNumbers((settings.ignore_numbers ?? []).join(", "));
     setScheduleEnabled(settings.schedule_enabled ?? false);
     setScheduleDays(settings.schedule_days ?? ["seg", "ter", "qua", "qui", "sex"]);
     setScheduleStart(settings.schedule_start ?? "08:00");
@@ -82,7 +90,9 @@ function IASPage() {
         temperature,
         is_active: enabled,
         handoff_keyword: handoffKeyword,
-        buffer_seconds: autoReply ? 3 : -1,
+        buffer_seconds: autoReply ? Math.max(0, bufferSeconds) : -1,
+        notification_group_jid: notificationGroupJid || null,
+        ignore_numbers: ignoreNumbers ? ignoreNumbers.split(",").map((n: string) => n.trim()).filter(Boolean) : [],
         schedule_enabled: scheduleEnabled,
         schedule_days: scheduleDays,
         schedule_start: scheduleStart,
@@ -181,6 +191,39 @@ function IASPage() {
                 value={temperature}
                 onChange={(e) => setTemperature(Number(e.target.value))}
                 className="w-full h-10 px-3 rounded-lg border bg-background text-sm"
+              />
+            </Field>
+            <Field label="Buffer (segundos)">
+              <input
+                type="number"
+                min="0"
+                max="30"
+                step="1"
+                value={bufferSeconds}
+                onChange={(e) => setBufferSeconds(Number(e.target.value))}
+                className="w-full h-10 px-3 rounded-lg border bg-background text-sm"
+                title="Tempo de espera para agrupar mensagens rápidas antes de responder"
+              />
+            </Field>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Grupo de notificação (JID WhatsApp)">
+              <input
+                value={notificationGroupJid}
+                onChange={(e) => setNotificationGroupJid(e.target.value)}
+                placeholder="120363xxxxxx@g.us"
+                className="w-full h-10 px-3 rounded-lg border bg-background text-sm"
+                title="ID do grupo WhatsApp para receber alertas de handoff"
+              />
+            </Field>
+            <Field label="Números ignorados">
+              <input
+                value={ignoreNumbers}
+                onChange={(e) => setIgnoreNumbers(e.target.value)}
+                placeholder="5511999999999, 5521888888888"
+                className="w-full h-10 px-3 rounded-lg border bg-background text-sm"
+                title="Números que a IA nunca deve responder (separados por vírgula)"
               />
             </Field>
           </div>

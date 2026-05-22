@@ -240,6 +240,13 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, skipped: true, reason: "AI paused for contact" });
     }
 
+    // 2b. Check if number is in ignore list
+    const ignoreNumbers = settings.ignore_numbers || [];
+    const contactDigits = digits(contact.phone_number);
+    if (ignoreNumbers.length > 0 && ignoreNumbers.some((n) => digits(n) === contactDigits)) {
+      return res.status(200).json({ ok: true, skipped: true, reason: "Number in ignore list" });
+    }
+
     // 3. Check schedule
     if (!isWithinSchedule(settings)) {
       // Send off-hours message if configured
@@ -324,6 +331,18 @@ Esse código é removido automaticamente antes de chegar ao cliente. NUNCA menci
         .from("contacts")
         .update({ ai_paused: true, updated_at: new Date().toISOString() })
         .eq("id", contactId);
+
+      // Send notification to WhatsApp group if configured
+      const groupJid = settings.notification_group_jid;
+      if (groupJid) {
+        try {
+          const contactName = contact.name || contact.phone_number;
+          const notifText = `🔔 *Handoff solicitado*\n\nContato: ${contactName}\nTelefone: ${contact.phone_number}\n\nA IA pausou o atendimento automático. Um agente humano precisa assumir.`;
+          await sendWhatsApp(instanceName, groupJid, notifText);
+        } catch (e) {
+          console.error("[AI] Error sending handoff notification:", e.message);
+        }
+      }
 
       console.log(`[AI] Handoff detected for contact ${contactId}, AI paused`);
     }
