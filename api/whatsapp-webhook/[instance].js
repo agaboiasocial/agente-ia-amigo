@@ -2,7 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 
 function getClient() {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const key =
+  // Use service role key to bypass RLS (webhook has no user context)
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_PUBLISHABLE_KEY ||
     process.env.SUPABASE_ANON_KEY ||
     process.env.VITE_SUPABASE_PUBLISHABLE_KEY;

@@ -1,6 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 
-function getClient(accessToken) {
+function getAdminClient() {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("SUPABASE_SERVICE_ROLE_KEY not configured");
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+function getUserClient(accessToken) {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key =
     process.env.SUPABASE_PUBLISHABLE_KEY ||
@@ -25,12 +34,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "conversationId and body required" });
     }
 
+    // Verify user is authenticated
     const accessToken = (req.headers.authorization || "").replace("Bearer ", "");
-    const supa = getClient(accessToken || null);
+    if (!accessToken) return res.status(401).json({ error: "Não autenticado" });
 
-    // Get current user
-    const { data: { user }, error: authError } = await supa.auth.getUser();
+    const userSupa = getUserClient(accessToken);
+    const { data: { user }, error: authError } = await userSupa.auth.getUser();
     if (authError || !user) return res.status(401).json({ error: "Não autenticado" });
+
+    // Use admin client for DB operations (bypasses RLS)
+    const supa = getAdminClient();
 
     // Get conversation
     const { data: conversation, error: convError } = await supa
