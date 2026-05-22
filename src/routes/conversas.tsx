@@ -7,10 +7,12 @@ import {
   useSendMessage,
   useUpdateConversation,
   useDeleteConversation,
+  useAgents,
   type ConvRow,
   type MsgRow,
 } from "@/lib/data";
 import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 import {
@@ -46,6 +48,9 @@ import {
   BotOff,
   Paperclip,
   X,
+  Users,
+  Users2,
+  Phone,
 } from "lucide-react";
 import { MessageComposer } from "@/components/MessageComposer";
 import { FormattedMessage } from "@/lib/chat-format";
@@ -212,8 +217,36 @@ function exportPdf(c: ConvRow, m: MsgRow[]) {
   doc.save(`conversa-${c.id}.pdf`);
 }
 
+function useTeams() {
+  return useQuery({
+    queryKey: ["teams"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("teams").select("id, name").order("name");
+      if (error) return [];
+      return (data ?? []) as { id: string; name: string }[];
+    },
+  });
+}
+
+function useWhatsAppInstances() {
+  const { accountId } = useAuth();
+  return useQuery({
+    queryKey: ["whatsapp_instances", accountId],
+    queryFn: async () => {
+      let q = (supabase as any)
+        .from("whatsapp_instances")
+        .select("id, instance_name, phone_number, profile_name, status")
+        .eq("status", "connected");
+      if (accountId) q = q.eq("account_id", accountId);
+      const { data, error } = await q;
+      if (error) return [];
+      return (data ?? []) as { id: string; instance_name: string; phone_number: string | null; profile_name: string | null; status: string }[];
+    },
+  });
+}
+
 function ConversasPage() {
-  const { user } = useAuth();
+  const { user, accountId } = useAuth();
   const { prefs } = useChatPrefs(user?.id);
   useEffect(() => {
     ensureFontLoaded(prefs.font);
@@ -221,6 +254,9 @@ function ConversasPage() {
   const { data: convs = [], isLoading } = useConversations();
   const updateConv = useUpdateConversation();
   const deleteConv = useDeleteConversation();
+  const { data: agents = [] } = useAgents();
+  const { data: teams = [] } = useTeams();
+  const { data: instances = [] } = useWhatsAppInstances();
 
   const [view, setView] = useState<"list" | "kanban">("list");
   const [tab, setTab] = useState<(typeof tabs)[number]>("Todas");
@@ -231,6 +267,8 @@ function ConversasPage() {
   const [showInfo, setShowInfo] = useState(true);
   const [dragId, setDragId] = useState<string | null>(null);
   const [attachment, setAttachment] = useState<AttachmentDraft | null>(null);
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [transferTab, setTransferTab] = useState<"agente" | "equipe" | "numero">("agente");
 
   const filtered = useMemo(() => {
     return convs.filter((c) => {
@@ -347,6 +385,44 @@ function ConversasPage() {
       return;
     }
     toast.success(currentPaused ? "IA reativada para este contato" : "IA pausada para este contato");
+  };
+
+  const transferToAgent = async (agentId: string) => {
+    if (!active) return;
+    const agent = agents.find((a) => a.user_id === agentId);
+    updateConv.mutate({ id: active.id, patch: { assigned_to: agentId } });
+    toast.success(`Conversa transferida para ${agent?.display_name || "agente"}`);
+    setShowTransfer(false);
+  };
+
+  const transferToTeam = async (teamId: string) => {
+    if (!active) return;
+    const team = teams.find((t) => t.id === teamId);
+    const { error } = await (supabase as any)
+      .from("conversations")
+      .update({ assigned_team_id: teamId, updated_at: new Date().toISOString() })
+      .eq("id", active.id);
+    if (error) {
+      toast.error("Erro ao transferir: " + error.message);
+      return;
+    }
+    toast.success(`Conversa transferida para equipe ${team?.name || ""}`);
+    setShowTransfer(false);
+  };
+
+  const transferToInstance = async (instanceName: string) => {
+    if (!active) return;
+    const inst = instances.find((i) => i.instance_name === instanceName);
+    const { error } = await (supabase as any)
+      .from("conversations")
+      .update({ instance_name: instanceName, updated_at: new Date().toISOString() })
+      .eq("id", active.id);
+    if (error) {
+      toast.error("Erro ao transferir: " + error.message);
+      return;
+    }
+    toast.success(`Conversa transferida para ${inst?.profile_name || instanceName}`);
+    setShowTransfer(false);
   };
 
   return (
@@ -486,7 +562,10 @@ function ConversasPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button className="h-9 px-3 rounded-lg text-xs font-medium border hover:bg-background flex items-center gap-1.5">
+                      <button
+                        onClick={() => setShowTransfer(true)}
+                        className="h-9 px-3 rounded-lg text-xs font-medium border hover:bg-background flex items-center gap-1.5"
+                      >
                         <ArrowLeftRight className="h-3.5 w-3.5" /> Transferir
                       </button>
                       <button
@@ -785,6 +864,110 @@ function ConversasPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de Transferência */}
+      {showTransfer && active && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowTransfer(false)}>
+          <div className="bg-card rounded-xl shadow-xl w-full max-w-md mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b">
+              <h3 className="font-semibold text-foreground">Transferir conversa</h3>
+              <button onClick={() => setShowTransfer(false)} className="h-8 w-8 rounded-lg hover:bg-muted grid place-items-center">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex border-b">
+              {([
+                { id: "agente" as const, label: "Agente", icon: Users },
+                { id: "equipe" as const, label: "Equipe", icon: Users2 },
+                { id: "numero" as const, label: "Número", icon: Phone },
+              ]).map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTransferTab(t.id)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-medium border-b-2 transition-colors ${
+                    transferTab === t.id
+                      ? "border-brand text-brand"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <t.icon className="h-4 w-4" />
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Content */}
+            <div className="max-h-64 overflow-auto p-2">
+              {transferTab === "agente" && (
+                agents.length === 0 ? (
+                  <div className="text-sm text-muted-foreground text-center py-6">Nenhum agente encontrado</div>
+                ) : (
+                  agents.map((a) => (
+                    <button
+                      key={a.user_id}
+                      onClick={() => transferToAgent(a.user_id)}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors text-left"
+                    >
+                      <div className="h-9 w-9 rounded-full bg-brand/10 text-brand grid place-items-center text-xs font-bold">
+                        {a.avatar_initials || initials(a.display_name)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{a.display_name}</div>
+                        <div className="text-xs text-muted-foreground">{a.online ? "🟢 Online" : "⚪ Offline"}</div>
+                      </div>
+                    </button>
+                  ))
+                )
+              )}
+
+              {transferTab === "equipe" && (
+                teams.length === 0 ? (
+                  <div className="text-sm text-muted-foreground text-center py-6">Nenhuma equipe encontrada</div>
+                ) : (
+                  teams.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => transferToTeam(t.id)}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors text-left"
+                    >
+                      <div className="h-9 w-9 rounded-full bg-success/10 text-success grid place-items-center">
+                        <Users2 className="h-4 w-4" />
+                      </div>
+                      <div className="text-sm font-medium">{t.name}</div>
+                    </button>
+                  ))
+                )
+              )}
+
+              {transferTab === "numero" && (
+                instances.length === 0 ? (
+                  <div className="text-sm text-muted-foreground text-center py-6">Nenhum número conectado</div>
+                ) : (
+                  instances
+                    .filter((i) => i.instance_name !== active.instance_name)
+                    .map((i) => (
+                      <button
+                        key={i.id}
+                        onClick={() => transferToInstance(i.instance_name)}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors text-left"
+                      >
+                        <div className="h-9 w-9 rounded-full bg-warning/10 text-warning grid place-items-center">
+                          <Phone className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{i.profile_name || i.instance_name}</div>
+                          <div className="text-xs text-muted-foreground">{i.phone_number || i.instance_name}</div>
+                        </div>
+                      </button>
+                    ))
+                )
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }
