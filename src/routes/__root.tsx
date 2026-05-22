@@ -82,7 +82,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "IAS — atendimento omnichannel inteligente para sua equipe." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:site", content: "@AgenteIASocial" },
       { name: "twitter:title", content: "Agente IA Social — Plataforma de Atendimento" },
       { name: "twitter:description", content: "IAS — atendimento omnichannel inteligente para sua equipe." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b0e831e5-437d-4d17-b004-d3f18865a2e4/id-preview-6efd353c--b8a4d7ce-8b50-441a-a1a6-fe328bbeae50.lovable.app-1778194616167.png" },
