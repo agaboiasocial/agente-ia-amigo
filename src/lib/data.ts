@@ -16,7 +16,7 @@ export interface ConvRow {
   sla_minutes: number | null;
   opened_at: string;
   resolved_at: string | null;
-  contact?: { id: string; name: string };
+  contact?: { id: string; name: string; ai_paused?: boolean };
   agent?: { display_name: string; avatar_initials: string | null } | null;
   inbox_id?: string | null;
   instance_name?: string | null;
@@ -38,7 +38,7 @@ interface RawConversationRow {
   instance_name: string | null;
   sla_status: string | null;
   custom_attributes: Record<string, unknown> | null;
-  contact?: { id: string; name: string } | null;
+  contact?: { id: string; name: string; ai_paused?: boolean } | null;
 }
 
 function readStringAttribute(
@@ -84,7 +84,7 @@ export function useConversations() {
     queryFn: async (): Promise<ConvRow[]> => {
       let q = supabase
         .from("conversations")
-        .select("*, contact:contacts(id, name)")
+        .select("*, contact:contacts(id, name, ai_paused)")
         .order("last_message_at", { ascending: false, nullsFirst: false });
       if (accountId) q = q.eq("account_id", accountId);
       const { data, error } = await q;

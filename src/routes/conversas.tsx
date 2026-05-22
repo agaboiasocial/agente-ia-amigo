@@ -42,6 +42,8 @@ import {
   Loader2,
   Inbox,
   Trash2,
+  Bot,
+  BotOff,
 } from "lucide-react";
 import { MessageComposer } from "@/components/MessageComposer";
 import { FormattedMessage } from "@/lib/chat-format";
@@ -250,6 +252,21 @@ function ConversasPage() {
     }
   };
 
+  const toggleAI = async () => {
+    if (!active?.contact_id) return;
+    const sb = (await import("@/integrations/supabase/client")).supabase as any;
+    const currentPaused = active.contact?.ai_paused ?? false;
+    const { error } = await sb
+      .from("contacts")
+      .update({ ai_paused: !currentPaused, updated_at: new Date().toISOString() })
+      .eq("id", active.contact_id);
+    if (error) {
+      toast.error("Erro ao alterar IA: " + error.message);
+      return;
+    }
+    toast.success(currentPaused ? "IA reativada para este contato" : "IA pausada para este contato");
+  };
+
   return (
     <AppLayout flush>
       <div className="h-full flex flex-col">
@@ -452,7 +469,15 @@ function ConversasPage() {
                             <MoreVertical className="h-4 w-4" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuContent align="end" className="w-52">
+                          <DropdownMenuItem onClick={toggleAI}>
+                            {active?.contact?.ai_paused ? (
+                              <><Bot className="h-4 w-4 mr-2" /> Reativar IA</>
+                            ) : (
+                              <><BotOff className="h-4 w-4 mr-2" /> Pausar IA</>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={handleDelete}
                             className="text-destructive focus:text-destructive"

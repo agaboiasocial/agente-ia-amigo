@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { Bot, Sparkles, Wand2, BookOpen, Zap, CheckCircle2, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/ias")({ component: IASPage });
@@ -41,6 +42,7 @@ function useAISettings() {
 
 function IASPage() {
   const queryClient = useQueryClient();
+  const { accountId } = useAuth();
   const { data: settings } = useAISettings();
   const [enabled, setEnabled] = useState(true);
   const [personaName, setPersonaName] = useState("IAS Assistente");
@@ -73,7 +75,7 @@ function IASPage() {
 
   const save = useMutation({
     mutationFn: async () => {
-      const payload = {
+      const payload: Record<string, any> = {
         persona_name: personaName,
         system_prompt: prompt,
         model,
@@ -88,6 +90,7 @@ function IASPage() {
         off_hours_message: offHoursMessage,
         updated_at: new Date().toISOString(),
       };
+      if (accountId) payload.account_id = accountId;
       if (settings?.id) {
         const { error } = await sb.from("ai_settings").update(payload).eq("id", settings.id);
         if (error) throw error;

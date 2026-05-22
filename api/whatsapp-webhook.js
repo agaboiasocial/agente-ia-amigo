@@ -32,7 +32,7 @@ function extractText(msg) {
   return { content: "[mensagem]", type: "text", mediaUrl: null };
 }
 
-async function handleMessageUpsert(instanceName, item) {
+async function handleMessageUpsert(instanceName, item, origin) {
   const key = item?.key || {};
   const remoteJid = key.remoteJid || "";
   if (!remoteJid || remoteJid.endsWith("@g.us")) return;
@@ -44,7 +44,7 @@ async function handleMessageUpsert(instanceName, item) {
   const { content, type, mediaUrl } = extractText(item?.message);
 
   const supa = getClient();
-  const { error } = await supa.rpc("process_whatsapp_message", {
+  const { data: conversationId, error } = await supa.rpc("process_whatsapp_message", {
     p_instance: instanceName,
     p_phone: phone,
     p_push_name: pushName,
@@ -55,7 +55,38 @@ async function handleMessageUpsert(instanceName, item) {
     p_from_me: fromMe,
     p_raw: item,
   });
-  if (error) console.error("rpc process_whatsapp_message", error);
+  if (error) {
+    console.error("rpc process_whatsapp_message", error);
+    return;
+  }
+
+  // Trigger AI processing for incoming contact messages (not fromMe)
+  if (!fromMe && conversationId && type === "text" && content) {
+    try {
+      // Get account_id and contact_id for AI processing
+      const { data: conv } = await supa
+        .from("conversations")
+        .select("id, contact_id, account_id")
+        .eq("id", conversationId)
+        .maybeSingle();
+
+      if (conv?.contact_id) {
+        const aiUrl = (origin || "").replace(/\/+$/, "") + "/api/ai-process";
+        fetch(aiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversationId: conv.id,
+            contactId: conv.contact_id,
+            instanceName,
+            accountId: conv.account_id,
+          }),
+        }).catch((err) => console.error("[AI] trigger error:", err.message));
+      }
+    } catch (e) {
+      console.error("[AI] lookup error:", e.message);
+    }
+  }
 }
 
 async function handleConnectionUpdate(instanceName, data) {
@@ -97,13 +128,18 @@ export default async function handler(req, res) {
     const event = payload?.event || payload?.type || "";
     const data = payload?.data ?? payload;
 
+    // Build origin URL for internal API calls (AI processing)
+    const proto = req.headers["x-forwarded-proto"] || "https";
+    const host = req.headers["x-forwarded-host"] || req.headers.host || "localhost";
+    const origin = `${proto}://${host}`;
+
     if (event === "messages.upsert" || event === "MESSAGES_UPSERT") {
       const items = Array.isArray(data) ? data : [data];
-      for (const item of items) await handleMessageUpsert(instanceName, item);
+      for (const item of items) await handleMessageUpsert(instanceName, item, origin);
     } else if (event === "connection.update" || event === "CONNECTION_UPDATE") {
       await handleConnectionUpdate(instanceName, data);
     } else if (data?.key?.remoteJid) {
-      await handleMessageUpsert(instanceName, data);
+      await handleMessageUpsert(instanceName, data, origin);
     }
 
     return res.status(200).json({ ok: true });
