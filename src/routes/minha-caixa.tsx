@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { useConversations } from "@/lib/data";
@@ -75,6 +75,7 @@ function notificationToInboxItem(notification: Notification): InboxItem {
 }
 
 function MinhaCaixaPage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { data: convs = [] } = useConversations();
   const {
@@ -136,6 +137,7 @@ function MinhaCaixaPage() {
 
   const openItem = (item: InboxItem) => {
     if (item.notificationId && !item.readAt) markAsRead(item.notificationId);
+    navigate({ to: safeInboxLink(item.link) });
   };
 
   return (
@@ -207,11 +209,10 @@ function MinhaCaixaPage() {
                 const Icon = iconByCategory[item.category] ?? Bell;
                 const unread = !item.readAt;
                 return (
-                  <Link
+                  <div
                     key={item.id}
-                    to={item.link}
                     onClick={() => openItem(item)}
-                    className={`block bg-card border rounded-lg p-4 hover:shadow-md transition-shadow ${
+                    className={`block w-full cursor-pointer bg-card border rounded-lg p-4 hover:shadow-md transition-shadow ${
                       unread ? "border-l-4 border-l-success bg-success/5" : ""
                     }`}
                   >
@@ -249,7 +250,6 @@ function MinhaCaixaPage() {
                       {item.notificationId && (
                         <button
                           onClick={(e) => {
-                            e.preventDefault();
                             e.stopPropagation();
                             deleteNotification(item.notificationId!);
                           }}
@@ -260,7 +260,7 @@ function MinhaCaixaPage() {
                         </button>
                       )}
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
@@ -269,6 +269,24 @@ function MinhaCaixaPage() {
       </div>
     </AppLayout>
   );
+}
+
+function safeInboxLink(link: string) {
+  const path = link.split("?")[0]?.split("#")[0] ?? "";
+  const knownRoutes = [
+    "/conversas",
+    "/dashboard",
+    "/contatos",
+    "/pipeline",
+    "/whatsapp",
+    "/ias",
+    "/equipes",
+    "/configuracoes",
+    "/financeiro",
+    "/empresa",
+  ];
+
+  return knownRoutes.includes(path) ? path : "/conversas";
 }
 
 function labelForCategory(category: InboxFilter) {
