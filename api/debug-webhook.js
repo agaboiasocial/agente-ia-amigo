@@ -83,5 +83,41 @@ export default async function handler(req, res) {
     results.instanceException = e.message;
   }
 
+  // 5. Check recent conversations
+  try {
+    const supa = createClient(url, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    const { data, error } = await supa
+      .from("conversations")
+      .select("id, contact_id, instance_name, account_id, status, last_message, last_message_at")
+      .order("last_message_at", { ascending: false, nullsFirst: false })
+      .limit(5);
+
+    results.recentConversations = data;
+    results.conversationsError = error ? error.message : null;
+  } catch (e) {
+    results.conversationsException = e.message;
+  }
+
+  // 6. Check recent messages
+  try {
+    const supa = createClient(url, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    const { data, error } = await supa
+      .from("messages")
+      .select("id, content, conversation_id, instance_name, is_from_contact, created_at, sender_name")
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    results.recentMessages = data;
+    results.messagesError = error ? error.message : null;
+  } catch (e) {
+    results.messagesException = e.message;
+  }
+
   return res.status(200).json(results);
 }
