@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    const { conversationId, body, isNote, senderName, mediaUrl, mediaType } = req.body || {};
+    const { conversationId, body, isNote, senderName, mediaUrl, mediaType, fileName, mimeType } = req.body || {};
     if (!conversationId || (!body && !mediaUrl)) {
       return res.status(400).json({ error: "conversationId and (body or mediaUrl) required" });
     }
@@ -66,6 +66,9 @@ export default async function handler(req, res) {
 
     // Determine message type
     const msgType = mediaUrl ? (mediaType || "image") : "text";
+    const outboundMedia = typeof mediaUrl === "string" && mediaUrl.startsWith("data:")
+      ? mediaUrl.split(",")[1] || mediaUrl
+      : mediaUrl;
 
     const baseMessage = {
       conversation_id: conversationId,
@@ -124,9 +127,10 @@ export default async function handler(req, res) {
       const mediaPayload = {
         number,
         mediatype: msgType === "audio" ? "audio" : msgType,
-        media: mediaUrl,
+        media: outboundMedia,
+        mimetype: mimeType || undefined,
         caption: text || undefined,
-        fileName: msgType === "document" ? (text || "document") : undefined,
+        fileName: fileName || (msgType === "document" ? (text || "document") : undefined),
       };
 
       // For audio, Evolution API v2 uses sendWhatsAppAudio with different payload
@@ -134,7 +138,7 @@ export default async function handler(req, res) {
         evoRes = await fetch(`${apiBase}/message/sendWhatsAppAudio/${encodeURIComponent(instanceName)}`, {
           method: "POST",
           headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_TOKEN },
-          body: JSON.stringify({ number, audio: mediaUrl }),
+          body: JSON.stringify({ number, audio: outboundMedia }),
         });
       } else {
         evoRes = await fetch(`${apiBase}/message/sendMedia/${encodeURIComponent(instanceName)}`, {

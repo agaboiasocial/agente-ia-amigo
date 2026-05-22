@@ -21,15 +21,33 @@ function jidToPhone(jid) {
   return digits(jid.split("@")[0]);
 }
 
-function extractText(msg) {
+function mediaUrlFrom(media, msg, item) {
+  const mimetype = media?.mimetype || media?.mimeType || "application/octet-stream";
+  const raw =
+    media?.base64 ||
+    media?.media ||
+    media?.data ||
+    msg?.base64 ||
+    item?.base64 ||
+    item?.data?.base64 ||
+    media?.url ||
+    null;
+
+  if (!raw) return null;
+  if (typeof raw !== "string") return null;
+  if (raw.startsWith("data:") || raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+  return `data:${mimetype};base64,${raw}`;
+}
+
+function extractText(msg, item) {
   if (!msg) return { content: "", type: "text", mediaUrl: null };
   if (msg.conversation) return { content: msg.conversation, type: "text", mediaUrl: null };
   if (msg.extendedTextMessage?.text) return { content: msg.extendedTextMessage.text, type: "text", mediaUrl: null };
-  if (msg.imageMessage) return { content: msg.imageMessage.caption || "[imagem]", type: "image", mediaUrl: msg.imageMessage.url || null };
-  if (msg.videoMessage) return { content: msg.videoMessage.caption || "[vídeo]", type: "video", mediaUrl: msg.videoMessage.url || null };
-  if (msg.audioMessage) return { content: "[áudio]", type: "audio", mediaUrl: msg.audioMessage.url || null };
-  if (msg.documentMessage) return { content: msg.documentMessage.fileName || "[documento]", type: "document", mediaUrl: msg.documentMessage.url || null };
-  if (msg.stickerMessage) return { content: "[sticker]", type: "sticker", mediaUrl: null };
+  if (msg.imageMessage) return { content: msg.imageMessage.caption || "[imagem]", type: "image", mediaUrl: mediaUrlFrom(msg.imageMessage, msg, item) };
+  if (msg.videoMessage) return { content: msg.videoMessage.caption || "[vídeo]", type: "video", mediaUrl: mediaUrlFrom(msg.videoMessage, msg, item) };
+  if (msg.audioMessage) return { content: "[áudio]", type: "audio", mediaUrl: mediaUrlFrom(msg.audioMessage, msg, item) };
+  if (msg.documentMessage) return { content: msg.documentMessage.fileName || "[documento]", type: "document", mediaUrl: mediaUrlFrom(msg.documentMessage, msg, item) };
+  if (msg.stickerMessage) return { content: "[sticker]", type: "sticker", mediaUrl: mediaUrlFrom(msg.stickerMessage, msg, item) };
   return { content: "[mensagem]", type: "text", mediaUrl: null };
 }
 
@@ -42,7 +60,7 @@ async function handleMessageUpsert(instanceName, item) {
   const fromMe = !!key.fromMe;
   const messageId = key.id || "";
   const pushName = item?.pushName || phone;
-  const { content, type, mediaUrl } = extractText(item?.message);
+  const { content, type, mediaUrl } = extractText(item?.message, item);
 
   const supa = getClient();
   const { error } = await supa.rpc("process_whatsapp_message", {

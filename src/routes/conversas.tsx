@@ -44,10 +44,13 @@ import {
   Trash2,
   Bot,
   BotOff,
+  Paperclip,
+  X,
 } from "lucide-react";
 import { MessageComposer } from "@/components/MessageComposer";
 import { FormattedMessage } from "@/lib/chat-format";
 import { useChatPrefs, ensureFontLoaded } from "@/hooks/use-chat-prefs";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/conversas")({ component: ConversasPage });
 
@@ -60,6 +63,28 @@ const kanbanStages: { id: KanbanStage; label: string; color: string }[] = [
 ];
 
 const tabs = ["Abertas", "Pendentes", "Resolvidas", "Todas"] as const;
+
+type AttachmentDraft = {
+  file: File;
+  type: "image" | "video" | "audio" | "document";
+  previewUrl: string;
+};
+
+function mediaTypeFromFile(file: File): AttachmentDraft["type"] {
+  if (file.type.startsWith("image/")) return "image";
+  if (file.type.startsWith("video/")) return "video";
+  if (file.type.startsWith("audio/")) return "audio";
+  return "document";
+}
+
+function safeFileName(name: string) {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 120);
+}
 
 const channelIcon = (c: string) =>
   c === "WhatsApp" ? MessageCircle : c === "Instagram" ? Instagram : Globe;
@@ -193,6 +218,7 @@ function ConversasPage() {
   const [mode, setMode] = useState<"reply" | "note">("reply");
   const [showInfo, setShowInfo] = useState(true);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [attachment, setAttachment] = useState<AttachmentDraft | null>(null);
 
   const filtered = useMemo(() => {
     return convs.filter((c) => {
@@ -209,19 +235,63 @@ function ConversasPage() {
   const { data: messages = [] } = useMessages(active?.id);
   const sendMsg = useSendMessage();
 
+  useEffect(() => {
+    return () => {
+      if (attachment?.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
+    };
+  }, [attachment?.previewUrl]);
+
+  const uploadAttachment = async (conversationId: string, item: AttachmentDraft) => {
+    const ext = item.file.name.split(".").pop();
+    const path = `${conversationId}/${crypto.randomUUID()}-${safeFileName(item.file.name || `arquivo.${ext || "bin"}`)}`;
+    const { error } = await supabase.storage
+      .from("chat-media")
+      .upload(path, item.file, {
+        contentType: item.file.type || "application/octet-stream",
+        upsert: false,
+      });
+    if (error) {
+      throw new Error(
+        `Falha ao enviar o anexo para o Supabase Storage. Verifique se o bucket chat-media foi criado. ${error.message}`,
+      );
+    }
+    const { data } = supabase.storage.from("chat-media").getPublicUrl(path);
+    return data.publicUrl;
+  };
+
+  const selectAttachment = (file: File | null) => {
+    if (!file) return;
+    if (attachment?.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
+    setAttachment({
+      file,
+      type: mediaTypeFromFile(file),
+      previewUrl: URL.createObjectURL(file),
+    });
+  };
+
   const send = async () => {
-    if (!draft.trim() || !active) return;
+    if ((!draft.trim() && !attachment) || !active) return;
     const body = draft;
+    const item = attachment;
     setDraft("");
+    setAttachment(null);
     try {
+      const mediaUrl = item ? await uploadAttachment(active.id, item) : null;
       await sendMsg.mutateAsync({
         conversation_id: active.id,
         body,
         is_note: mode === "note",
         author: "agente",
         sender_id: user?.id ?? null,
+        media_url: mediaUrl,
+        media_type: item?.type ?? null,
+        file_name: item?.file.name ?? null,
+        mime_type: item?.file.type ?? null,
       });
+      if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
     } catch (e: unknown) {
+      setDraft(body);
+      if (item) setAttachment(item);
       toast.error(e instanceof Error ? e.message : "Erro ao enviar");
     }
   };
@@ -591,6 +661,28 @@ function ConversasPage() {
                       </button>
                     </div>
                     <div className={`p-3 ${mode === "note" ? "bg-warning/10" : ""}`}>
+                      {attachment && (
+                        <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2 text-sm">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <Paperclip className="h-4 w-4 text-success" />
+                            <span className="truncate">{attachment.file.name}</span>
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              {(attachment.file.size / 1024 / 1024).toFixed(2)} MB
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              URL.revokeObjectURL(attachment.previewUrl);
+                              setAttachment(null);
+                            }}
+                            className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                            title="Remover anexo"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
                       <div className="flex items-end gap-2">
                         <div className="flex-1 min-w-0">
                           <MessageComposer
@@ -607,9 +699,21 @@ function ConversasPage() {
                             noteMode={mode === "note"}
                           />
                         </div>
+                        <label className="grid h-11 w-11 cursor-pointer place-items-center rounded-xl border bg-background text-muted-foreground hover:text-success">
+                          <Paperclip className="h-4 w-4" />
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
+                            onChange={(event) => {
+                              selectAttachment(event.target.files?.[0] ?? null);
+                              event.currentTarget.value = "";
+                            }}
+                          />
+                        </label>
                         <button
                           onClick={send}
-                          disabled={sendMsg.isPending}
+                          disabled={sendMsg.isPending || (!draft.trim() && !attachment)}
                           className="h-11 px-5 rounded-xl bg-success text-success-foreground hover:opacity-95 flex items-center gap-2 font-semibold text-sm disabled:opacity-60"
                         >
                           <Send className="h-4 w-4" /> Enviar

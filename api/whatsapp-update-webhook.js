@@ -24,7 +24,7 @@ export default async function handler(req, res) {
           enabled: true,
           url: webhookUrl,
           webhookByEvents: false,
-          webhookBase64: false,
+          webhookBase64: true,
           events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
         },
       }),

@@ -234,7 +234,18 @@ export function useSendMessage() {
   const qc = useQueryClient();
   const { session } = useAuth();
   return useMutation({
-    mutationFn: async (payload: { conversation_id: string; body: string; is_note: boolean; author: "cliente" | "agente"; sender_id?: string | null; sender_name?: string | null }) => {
+    mutationFn: async (payload: {
+      conversation_id: string;
+      body: string;
+      is_note: boolean;
+      author: "cliente" | "agente";
+      sender_id?: string | null;
+      sender_name?: string | null;
+      media_url?: string | null;
+      media_type?: string | null;
+      file_name?: string | null;
+      mime_type?: string | null;
+    }) => {
       if (payload.author !== "agente") throw new Error("Envio pelo cliente não é permitido no sistema");
       const res = await fetch("/api/whatsapp-send", {
         method: "POST",
@@ -247,6 +258,10 @@ export function useSendMessage() {
           body: payload.body,
           isNote: payload.is_note,
           senderName: payload.sender_name ?? null,
+          mediaUrl: payload.media_url ?? null,
+          mediaType: payload.media_type ?? null,
+          fileName: payload.file_name ?? null,
+          mimeType: payload.mime_type ?? null,
         }),
       });
       const json = await res.json();
