@@ -207,8 +207,9 @@ function ConnectFlow({ onConnected, accountId }: { onConnected: (i: Instance) =>
       const data = await connectFn({
         data: { instanceName: instanceName.trim(), phoneNumber: phoneNumber.trim(), accountId },
       });
-      if (!data?.qrCode) throw new Error("QR Code não retornado");
-      setQrCode(data.qrCode);
+      const qr = data?.qrCode || data?.qr || null;
+      if (!qr) throw new Error("QR Code não retornado. Verifique se a Evolution API está acessível.");
+      setQrCode(qr);
       setState("qr");
       startWatching(instanceName.trim());
     } catch (e: any) {

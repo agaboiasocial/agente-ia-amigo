@@ -2,8 +2,8 @@ import { adminClient, digits } from "./http.ts";
 
 export function evolutionConfig() {
   const url = Deno.env.get("EVOLUTION_API_URL");
-  const token = Deno.env.get("EVOLUTION_API_TOKEN");
-  if (!url || !token) throw new Error("Evolution API não configurada");
+  const token = Deno.env.get("EVOLUTION_API_TOKEN") || Deno.env.get("EVOLUTION_API_KEY");
+  if (!url || !token) throw new Error("Evolution API não configurada (EVOLUTION_API_URL + EVOLUTION_API_TOKEN)");
   return {
     baseUrl: url.replace(/\/+$/, ""),
     token,
