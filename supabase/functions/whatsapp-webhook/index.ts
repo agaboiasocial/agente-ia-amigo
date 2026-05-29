@@ -303,7 +303,13 @@ async function handleMessage(instanceName: string, item: any) {
   const phone = jidToPhone(remoteJid);
   if (!phone) return;
   const fromMe = !!key.fromMe;
+
+  // Skip fromMe messages entirely — they are echoes of messages we sent
+  // (AI responses, agent messages). The message is already saved when we send it.
+  if (fromMe) return;
+
   const { content, type, mediaUrl } = extractText(item?.message, item);
+  if (!content && type === "text") return;
   const supa = adminClient();
 
   const { data: conversationId, error } = await supa.rpc("process_whatsapp_message", {
@@ -314,10 +320,10 @@ async function handleMessage(instanceName: string, item: any) {
     p_content: content,
     p_message_type: type,
     p_media_url: mediaUrl,
-    p_from_me: fromMe,
+    p_from_me: false,
     p_raw: item,
   });
-  if (error || fromMe || !conversationId || !content) return;
+  if (error || !conversationId || !content) return;
 
   const { data: conv } = await supa
     .from("conversations")
