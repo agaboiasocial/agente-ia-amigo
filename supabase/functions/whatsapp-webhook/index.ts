@@ -336,6 +336,9 @@ async function maybeProcessAI(
   });
 }
 
+// In-memory dedup set to prevent reprocessing within same runtime
+const processedIds = new Set<string>();
+
 // ─── Handle incoming message ────────────────────────────────────────────────
 async function handleMessage(instanceName: string, item: any) {
   const key = item?.key || {};
@@ -349,13 +352,22 @@ async function handleMessage(instanceName: string, item: any) {
   // Skip fromMe messages — they are echoes of messages we sent
   if (fromMe) return;
 
+  // Skip status broadcasts
+  if (remoteJid === "status@broadcast") return;
+
+  const msgId = key.id || "";
+
+  // In-memory dedup (same runtime)
+  if (msgId && processedIds.has(msgId)) return;
+  if (msgId) processedIds.add(msgId);
+
   const { content: rawContent, type, mimetype } = extractText(item?.message, item);
   if (!rawContent && type === "text") return;
   const supa = adminClient();
 
-  // Dedup: skip if message_id already exists
-  if (key.id) {
-    const { data: existing } = await supa.from("messages").select("id").eq("message_id", key.id).maybeSingle();
+  // DB dedup: skip if message_id already exists
+  if (msgId) {
+    const { data: existing } = await supa.from("messages").select("id").eq("message_id", msgId).maybeSingle();
     if (existing) return;
   }
 
@@ -444,17 +456,22 @@ Deno.serve(async (req) => {
     if (!instanceName || instanceName === "whatsapp-webhook") return json({ error: "instance required" }, 400);
 
     const payload = await req.json().catch(() => ({}));
-    const event = payload?.event || payload?.type || "";
+    const event = (payload?.event || payload?.type || "").toUpperCase().replace(/\./g, "_");
     const data = payload?.data ?? payload;
 
-    if (event === "messages.upsert" || event === "MESSAGES_UPSERT") {
+    // ONLY process MESSAGES_UPSERT and CONNECTION_UPDATE
+    // All other events are ignored to prevent loops and duplicates
+    if (event === "MESSAGES_UPSERT") {
       const items = Array.isArray(data) ? data : [data];
-      for (const item of items) await handleMessage(instanceName, item);
-    } else if (event === "connection.update" || event === "CONNECTION_UPDATE") {
+      for (const item of items) {
+        // Extra safety: check fromMe at top level too
+        const fromMe = item?.key?.fromMe ?? item?.fromMe ?? false;
+        if (fromMe) continue;
+        await handleMessage(instanceName, item);
+      }
+    } else if (event === "CONNECTION_UPDATE") {
       await handleConnection(instanceName, data);
     }
-    // Ignore all other events (SEND_MESSAGE, MESSAGES_UPDATE, QRCODE_UPDATED, etc.)
-    // They were causing duplicate messages in the chat
 
     return json({ ok: true });
   } catch (error) {
