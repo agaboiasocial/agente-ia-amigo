@@ -1,4 +1,5 @@
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_ANON_KEY) as string | undefined;
 
 export function edgeFunctionUrl(name: string, path = "") {
   if (!SUPABASE_URL) throw new Error("VITE_SUPABASE_URL não configurada");
@@ -22,12 +23,14 @@ export async function callEdgeFunction<T = unknown>(
     if (value !== null && value !== undefined) url.searchParams.set(key, String(value));
   });
 
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (SUPABASE_ANON_KEY) headers["apikey"] = SUPABASE_ANON_KEY;
+  if (options.token) headers["Authorization"] = `Bearer ${options.token}`;
+  else if (SUPABASE_ANON_KEY) headers["Authorization"] = `Bearer ${SUPABASE_ANON_KEY}`;
+
   const response = await fetch(url.toString(), {
     method: options.method ?? "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
-    },
+    headers,
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
   });
 
