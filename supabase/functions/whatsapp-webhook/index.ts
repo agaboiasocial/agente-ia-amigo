@@ -283,8 +283,14 @@ async function maybeProcessAI(
   let systemPrompt = settings.system_prompt ||
     `Você é ${personaName}, assistente de atendimento. Responda de forma clara, objetiva e cordial.`;
   systemPrompt += `\n\nREGRA DO SISTEMA: quando precisar transferir para humano, inclua ${handoffKeyword}.`;
+  if (hasVision) {
+    systemPrompt += `\n\nVocê pode ver imagens. Descreva o que vê e responda de acordo com o contexto da conversa.`;
+  }
 
-  let aiResponse = await callOpenAI(systemPrompt, history, settings.model || "gpt-4o-mini", settings.temperature ?? 0.7);
+  // Use gpt-4o for vision (image messages), otherwise use configured model
+  const hasVision = messageType === "image" && imageBase64;
+  const model = hasVision ? "gpt-4o" : (settings.model || "gpt-4o-mini");
+  let aiResponse = await callOpenAI(systemPrompt, history, model, settings.temperature ?? 0.7);
   if (!aiResponse?.trim()) return;
 
   // Handoff detection
