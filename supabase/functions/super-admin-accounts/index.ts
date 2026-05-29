@@ -65,55 +65,50 @@ Deno.serve(async (req) => {
     const body = await readJson(req);
 
     if (req.method === "POST") {
-      const { data, error } = await admin.from("accounts").insert(accountPayload(body)).select("*").single();
-      if (error) throw error;
+      const payload = accountPayload(body);
+      const { data, error } = await admin.from("accounts").insert(payload).select("*").single();
+      if (error) throw new Error(`Erro ao criar conta: ${error.message}`);
       const accountId = data.id;
       const accountName = data.name;
 
-      // Auto-provision default resources for the new org
-      const ignore = async (fn: () => Promise<unknown>) => { try { await fn(); } catch { /* skip */ } };
+      // Auto-provision default resources (all optional, don't block creation)
+      const provision = async (label: string, fn: () => Promise<{ error: unknown }>) => {
+        try {
+          const result = await fn();
+          if (result?.error) console.error(`Provision ${label}:`, result.error);
+        } catch (e) {
+          console.error(`Provision ${label}:`, e);
+        }
+      };
 
-      // Default inbox (WhatsApp)
-      await ignore(() => admin.from("inboxes").insert({
+      await provision("inbox", () => admin.from("inboxes").insert({
         account_id: accountId,
         name: `WhatsApp - ${accountName}`,
         channel: "WhatsApp",
         active: true,
-        channel_config: {},
       }));
 
-      // Default AI settings
-      await ignore(() => admin.from("ai_settings").insert({
+      await provision("ai_settings", () => admin.from("ai_settings").insert({
         account_id: accountId,
         persona_name: "IAS Assistente",
-        system_prompt: "Você é o IAS, atendente virtual. Seja cordial, objetivo e use português brasileiro. Sempre que não souber, ofereça transferir para um agente humano.",
+        system_prompt: "Você é o IAS, atendente virtual. Seja cordial, objetivo e use português brasileiro.",
         model: "gpt-4o-mini",
         temperature: 0.7,
         is_active: false,
         handoff_keyword: "#humano",
         buffer_seconds: 3,
-        schedule_enabled: false,
-        schedule_days: ["seg", "ter", "qua", "qui", "sex"],
-        schedule_start: "08:00",
-        schedule_end: "18:00",
-        off_hours_message: "Estamos fora do horário de atendimento. Retornaremos em breve!",
       }));
 
-      // Default pipeline stages
-      const stages = [
-        { name: "Novo Lead", slug: "novo", color: "#3B82F6", probability: 10, position: 0 },
-        { name: "Qualificação", slug: "qualificacao", color: "#F59E0B", probability: 30, position: 1 },
-        { name: "Proposta", slug: "proposta", color: "#8B5CF6", probability: 60, position: 2 },
-        { name: "Negociação", slug: "negociacao", color: "#F97316", probability: 80, position: 3 },
-        { name: "Ganho", slug: "ganho", color: "#2FAE7C", probability: 100, position: 4, is_won: true },
-        { name: "Perdido", slug: "perdido", color: "#EF4444", probability: 0, position: 5, is_lost: true },
-      ];
-      await ignore(() => admin.from("pipeline_stages").insert(
-        stages.map((s) => ({ ...s, account_id: accountId, is_active: true }))
-      ));
+      await provision("pipeline_stages", () => admin.from("pipeline_stages").insert([
+        { account_id: accountId, name: "Novo Lead", color: "#3B82F6", probability: 10, position: 0, is_active: true },
+        { account_id: accountId, name: "Qualificação", color: "#F59E0B", probability: 30, position: 1, is_active: true },
+        { account_id: accountId, name: "Proposta", color: "#8B5CF6", probability: 60, position: 2, is_active: true },
+        { account_id: accountId, name: "Negociação", color: "#F97316", probability: 80, position: 3, is_active: true },
+        { account_id: accountId, name: "Ganho", color: "#2FAE7C", probability: 100, position: 4, is_active: true, is_won: true },
+        { account_id: accountId, name: "Perdido", color: "#EF4444", probability: 0, position: 5, is_active: true, is_lost: true },
+      ]));
 
-      // Default team
-      await ignore(() => admin.from("teams").insert({
+      await provision("team", () => admin.from("teams").insert({
         account_id: accountId,
         name: "Atendimento",
         description: "Equipe padrão de atendimento",
