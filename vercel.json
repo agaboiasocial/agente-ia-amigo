@@ -1,17 +1,7 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist/client",
-  "functions": {
-    "api/whatsapp-webhook.js": {
-      "maxDuration": 30
-    },
-    "api/ai-process.js": {
-      "maxDuration": 30
-    }
-  },
   "rewrites": [
-    { "source": "/api/whatsapp-webhook/:instance", "destination": "/api/whatsapp-webhook?instance=:instance" },
-    { "source": "/api/:path*", "destination": "/api/:path*" },
     { "source": "/(.*)", "destination": "/_shell.html" }
   ]
 }
