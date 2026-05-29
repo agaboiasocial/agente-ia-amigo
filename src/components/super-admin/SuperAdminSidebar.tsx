@@ -4,8 +4,6 @@ import {
   LayoutDashboard,
   Grid3x3,
   User,
-  Bot,
-  LayoutGrid,
   Settings,
   Activity,
   HeartPulse,
@@ -24,8 +22,6 @@ const top = [
   { to: "/super-admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/super-admin/accounts", label: "Accounts", icon: Grid3x3 },
   { to: "/super-admin/users", label: "Users", icon: User },
-  { to: "/super-admin/agent-bots", label: "Agent Bots", icon: Bot },
-  { to: "/super-admin/platform-apps", label: "Platform Apps", icon: LayoutGrid },
   { to: "/super-admin/active-clients", label: "Clientes Ativos", icon: Building2 },
   { to: "/super-admin/webhooks", label: "Webhooks", icon: Webhook },
 ];
