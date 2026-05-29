@@ -1,31 +1,73 @@
 import { adminClient, corsHeaders, digits, errorResponse, json } from "../_shared/http.ts";
-import { sendWhatsApp } from "../_shared/whatsapp.ts";
+import { sendWhatsApp, evolutionConfig } from "../_shared/whatsapp.ts";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 
 function jidToPhone(jid: string) {
   return digits((jid || "").split("@")[0]);
 }
 
-function mediaUrlFrom(media: any, msg: any, item: any) {
-  const mimetype = media?.mimetype || media?.mimeType || "application/octet-stream";
+// ─── Get base64 from webhook payload or Evolution API fallback ──────────────
+function getBase64FromPayload(media: any, msg: any, item: any): string | null {
   const raw =
     media?.base64 || media?.media || media?.data ||
-    msg?.base64 || item?.base64 || item?.data?.base64 ||
-    media?.url || null;
+    msg?.base64 || item?.base64 || item?.data?.base64 || null;
   if (!raw || typeof raw !== "string") return null;
-  if (raw.startsWith("data:") || raw.startsWith("http://") || raw.startsWith("https://")) return raw;
-  return `data:${mimetype};base64,${raw}`;
+  // Strip data URI prefix if present
+  if (raw.includes(",")) return raw.split(",")[1];
+  if (raw.startsWith("http")) return null; // URL, not base64
+  return raw;
+}
+
+async function fetchBase64FromEvolution(instanceName: string, messageId: string): Promise<string | null> {
+  try {
+    const { baseUrl, token } = evolutionConfig();
+    const res = await fetch(`${baseUrl}/chat/getBase64FromMediaMessage/${encodeURIComponent(instanceName)}`, {
+      method: "POST",
+      headers: { apikey: token, "Content-Type": "application/json" },
+      body: JSON.stringify({ message: { key: { id: messageId } } }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const b64 = data?.base64 || data?.data || null;
+    if (!b64 || typeof b64 !== "string") return null;
+    return b64.includes(",") ? b64.split(",")[1] : b64;
+  } catch (e) {
+    console.error("[fetchBase64] error:", e);
+    return null;
+  }
+}
+
+// ─── Upload media to Supabase Storage ───────────────────────────────────────
+async function uploadMedia(supa: any, base64: string, mimetype: string, conversationId: string, messageId: string): Promise<string | null> {
+  try {
+    const ext = mimetype.includes("image") ? "jpg" : mimetype.includes("audio") ? "ogg" : mimetype.includes("video") ? "mp4" : mimetype.includes("pdf") ? "pdf" : "bin";
+    const path = `media/${conversationId}/${messageId}.${ext}`;
+    const binaryStr = atob(base64);
+    const bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+    const { error } = await supa.storage.from("chat-media").upload(path, bytes, {
+      contentType: mimetype, upsert: true,
+    });
+    if (error) { console.error("[upload] error:", error); return null; }
+    return `${SUPABASE_URL}/storage/v1/object/public/chat-media/${path}`;
+  } catch (e) {
+    console.error("[upload] exception:", e);
+    return null;
+  }
 }
 
 function extractText(msg: any, item: any) {
-  if (!msg) return { content: "", type: "text", mediaUrl: null };
-  if (msg.conversation) return { content: msg.conversation, type: "text", mediaUrl: null };
-  if (msg.extendedTextMessage?.text) return { content: msg.extendedTextMessage.text, type: "text", mediaUrl: null };
-  if (msg.imageMessage) return { content: msg.imageMessage.caption || "[imagem]", type: "image", mediaUrl: mediaUrlFrom(msg.imageMessage, msg, item) };
-  if (msg.videoMessage) return { content: msg.videoMessage.caption || "[vídeo]", type: "video", mediaUrl: mediaUrlFrom(msg.videoMessage, msg, item) };
-  if (msg.audioMessage) return { content: "[áudio]", type: "audio", mediaUrl: mediaUrlFrom(msg.audioMessage, msg, item) };
-  if (msg.documentMessage) return { content: msg.documentMessage.fileName || "[documento]", type: "document", mediaUrl: mediaUrlFrom(msg.documentMessage, msg, item) };
-  if (msg.stickerMessage) return { content: "[sticker]", type: "sticker", mediaUrl: mediaUrlFrom(msg.stickerMessage, msg, item) };
-  return { content: "[mensagem]", type: "text", mediaUrl: null };
+  if (!msg) return { content: "", type: "text", mediaUrl: null, mimetype: "" };
+  if (msg.conversation) return { content: msg.conversation, type: "text", mediaUrl: null, mimetype: "" };
+  if (msg.extendedTextMessage?.text) return { content: msg.extendedTextMessage.text, type: "text", mediaUrl: null, mimetype: "" };
+  if (msg.imageMessage) return { content: msg.imageMessage.caption || "[imagem]", type: "image", mediaUrl: null, mimetype: msg.imageMessage.mimetype || "image/jpeg" };
+  if (msg.videoMessage) return { content: msg.videoMessage.caption || "[vídeo]", type: "video", mediaUrl: null, mimetype: msg.videoMessage.mimetype || "video/mp4" };
+  if (msg.audioMessage) return { content: "[áudio]", type: "audio", mediaUrl: null, mimetype: msg.audioMessage.mimetype || "audio/ogg" };
+  if (msg.documentMessage) return { content: msg.documentMessage.fileName || "[documento]", type: "document", mediaUrl: null, mimetype: msg.documentMessage.mimetype || "application/octet-stream" };
+  if (msg.stickerMessage) return { content: "[sticker]", type: "sticker", mediaUrl: null, mimetype: "image/webp" };
+  return { content: "[mensagem]", type: "text", mediaUrl: null, mimetype: "" };
 }
 
 // ─── Audio Transcription (Whisper) ──────────────────────────────────────────
@@ -167,7 +209,8 @@ async function sendSplitMessages(instanceName: string, phone: string, text: stri
 async function maybeProcessAI(
   supa: any, conversationId: string, contactId: string,
   instanceName: string, accountId: string | null,
-  messageType: string, mediaUrl: string | null
+  messageType: string, mediaUrl: string | null,
+  imageBase64: string | null = null
 ) {
   if (!accountId || !contactId) return;
   const { data: settings } = await supa
@@ -219,30 +262,18 @@ async function maybeProcessAI(
   const bufferSeconds = settings.buffer_seconds ?? 3;
   if (bufferSeconds > 0) await new Promise((resolve) => setTimeout(resolve, bufferSeconds * 1000));
 
-  // Transcribe audio / describe image before building history
-  if (messageType === "audio" && mediaUrl) {
-    const transcription = await transcribeAudio(mediaUrl);
-    if (transcription && transcription !== "[áudio não transcrito]") {
-      await supa.from("messages")
-        .update({ content: transcription })
-        .eq("conversation_id", conversationId)
-        .eq("is_from_contact", true)
-        .order("created_at", { ascending: false })
-        .limit(1);
-    }
-  } else if (messageType === "image" && mediaUrl) {
-    const description = await describeImage(mediaUrl, "");
-    if (description && description !== "[imagem]") {
-      await supa.from("messages")
-        .update({ content: description })
-        .eq("conversation_id", conversationId)
-        .eq("is_from_contact", true)
-        .order("created_at", { ascending: false })
-        .limit(1);
+  const history = await buildHistory(supa, conversationId);
+
+  // Add image to last message for vision AI
+  if (messageType === "image" && imageBase64 && history.length > 0) {
+    const lastMsg = history[history.length - 1];
+    if (lastMsg.role === "user") {
+      lastMsg.content = [
+        { type: "text", text: lastMsg.content || "O que você vê nesta imagem?" },
+        { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}`, detail: "low" } },
+      ] as any;
     }
   }
-
-  const history = await buildHistory(supa, conversationId);
   if (history.length === 0) return;
 
   const personaName = settings.persona_name || "Assistente";
@@ -304,13 +335,39 @@ async function handleMessage(instanceName: string, item: any) {
   if (!phone) return;
   const fromMe = !!key.fromMe;
 
-  // Skip fromMe messages entirely — they are echoes of messages we sent
-  // (AI responses, agent messages). The message is already saved when we send it.
+  // Skip fromMe messages — they are echoes of messages we sent
   if (fromMe) return;
 
-  const { content, type, mediaUrl } = extractText(item?.message, item);
-  if (!content && type === "text") return;
+  const { content: rawContent, type, mimetype } = extractText(item?.message, item);
+  if (!rawContent && type === "text") return;
   const supa = adminClient();
+
+  // Get media base64 (from payload or Evolution API fallback)
+  let base64: string | null = null;
+  let storageUrl: string | null = null;
+  let content = rawContent;
+  let imageBase64ForVision: string | null = null;
+
+  if (type !== "text") {
+    const mediaObj = item?.message?.imageMessage || item?.message?.audioMessage || item?.message?.videoMessage || item?.message?.documentMessage || item?.message?.stickerMessage;
+    base64 = getBase64FromPayload(mediaObj, item?.message, item);
+    if (!base64 && key.id) {
+      base64 = await fetchBase64FromEvolution(instanceName, key.id);
+    }
+  }
+
+  // Transcribe audio with Whisper
+  if (type === "audio" && base64) {
+    const transcription = await transcribeAudio(`data:${mimetype};base64,${base64}`);
+    if (transcription && transcription !== "[áudio não transcrito]" && transcription !== "[áudio vazio]") {
+      content = transcription;
+    }
+  }
+
+  // Save image base64 for vision AI
+  if (type === "image" && base64) {
+    imageBase64ForVision = base64;
+  }
 
   const { data: conversationId, error } = await supa.rpc("process_whatsapp_message", {
     p_instance: instanceName,
@@ -319,18 +376,33 @@ async function handleMessage(instanceName: string, item: any) {
     p_message_id: key.id || "",
     p_content: content,
     p_message_type: type,
-    p_media_url: mediaUrl,
+    p_media_url: null, // Will update after upload
     p_from_me: false,
     p_raw: item,
   });
-  if (error || !conversationId || !content) return;
+  if (error || !conversationId) return;
+
+  // Upload media to Supabase Storage
+  if (base64 && type !== "text") {
+    storageUrl = await uploadMedia(supa, base64, mimetype, conversationId, key.id || crypto.randomUUID());
+    if (storageUrl) {
+      // Update the message with the storage URL
+      await supa.from("messages")
+        .update({ media_url: storageUrl })
+        .eq("conversation_id", conversationId)
+        .eq("message_id", key.id)
+        .is("media_url", null);
+    }
+  }
+
+  if (!content) return;
 
   const { data: conv } = await supa
     .from("conversations")
     .select("id, contact_id, account_id")
     .eq("id", conversationId)
     .maybeSingle();
-  await maybeProcessAI(supa, conv?.id, conv?.contact_id, instanceName, conv?.account_id, type, mediaUrl);
+  await maybeProcessAI(supa, conv?.id, conv?.contact_id, instanceName, conv?.account_id, type, storageUrl, imageBase64ForVision);
 }
 
 // ─── Handle connection update ───────────────────────────────────────────────
