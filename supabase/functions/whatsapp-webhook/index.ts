@@ -266,13 +266,16 @@ async function maybeProcessAI(
 
   const history = await buildHistory(supa, conversationId);
 
-  // Add image to last message for vision AI
+  // Add image to last message for vision AI (limit base64 size to avoid timeout)
   if (messageType === "image" && imageBase64 && history.length > 0) {
+    // Truncate base64 if too large (>500KB) to avoid Edge Function timeout
+    const maxB64Len = 500_000;
+    const b64 = imageBase64.length > maxB64Len ? imageBase64.substring(0, maxB64Len) : imageBase64;
     const lastMsg = history[history.length - 1];
     if (lastMsg.role === "user") {
       lastMsg.content = [
-        { type: "text", text: lastMsg.content || "O que você vê nesta imagem?" },
-        { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}`, detail: "low" } },
+        { type: "text", text: lastMsg.content || "Descreva o que você vê nesta imagem." },
+        { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}`, detail: "low" } },
       ] as any;
     }
   }
@@ -349,6 +352,12 @@ async function handleMessage(instanceName: string, item: any) {
   const { content: rawContent, type, mimetype } = extractText(item?.message, item);
   if (!rawContent && type === "text") return;
   const supa = adminClient();
+
+  // Dedup: skip if message_id already exists
+  if (key.id) {
+    const { data: existing } = await supa.from("messages").select("id").eq("message_id", key.id).maybeSingle();
+    if (existing) return;
+  }
 
   // Get media base64 (from payload or Evolution API fallback)
   let base64: string | null = null;
@@ -443,9 +452,9 @@ Deno.serve(async (req) => {
       for (const item of items) await handleMessage(instanceName, item);
     } else if (event === "connection.update" || event === "CONNECTION_UPDATE") {
       await handleConnection(instanceName, data);
-    } else if (data?.key?.remoteJid) {
-      await handleMessage(instanceName, data);
     }
+    // Ignore all other events (SEND_MESSAGE, MESSAGES_UPDATE, QRCODE_UPDATED, etc.)
+    // They were causing duplicate messages in the chat
 
     return json({ ok: true });
   } catch (error) {
