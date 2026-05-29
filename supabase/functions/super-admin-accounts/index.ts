@@ -67,6 +67,61 @@ Deno.serve(async (req) => {
     if (req.method === "POST") {
       const { data, error } = await admin.from("accounts").insert(accountPayload(body)).select("*").single();
       if (error) throw error;
+      const accountId = data.id;
+      const accountName = data.name;
+
+      // Auto-provision default resources for the new org
+      const ignore = async (fn: () => Promise<unknown>) => { try { await fn(); } catch { /* skip */ } };
+
+      // Default inbox (WhatsApp)
+      await ignore(() => admin.from("inboxes").insert({
+        account_id: accountId,
+        name: `WhatsApp - ${accountName}`,
+        channel: "WhatsApp",
+        active: true,
+        channel_config: {},
+      }));
+
+      // Default AI settings
+      await ignore(() => admin.from("ai_settings").insert({
+        account_id: accountId,
+        persona_name: "IAS Assistente",
+        system_prompt: "Você é o IAS, atendente virtual. Seja cordial, objetivo e use português brasileiro. Sempre que não souber, ofereça transferir para um agente humano.",
+        model: "gpt-4o-mini",
+        temperature: 0.7,
+        is_active: false,
+        handoff_keyword: "#humano",
+        buffer_seconds: 3,
+        schedule_enabled: false,
+        schedule_days: ["seg", "ter", "qua", "qui", "sex"],
+        schedule_start: "08:00",
+        schedule_end: "18:00",
+        off_hours_message: "Estamos fora do horário de atendimento. Retornaremos em breve!",
+      }));
+
+      // Default pipeline stages
+      const stages = [
+        { name: "Novo Lead", slug: "novo", color: "#3B82F6", probability: 10, position: 0 },
+        { name: "Qualificação", slug: "qualificacao", color: "#F59E0B", probability: 30, position: 1 },
+        { name: "Proposta", slug: "proposta", color: "#8B5CF6", probability: 60, position: 2 },
+        { name: "Negociação", slug: "negociacao", color: "#F97316", probability: 80, position: 3 },
+        { name: "Ganho", slug: "ganho", color: "#2FAE7C", probability: 100, position: 4, is_won: true },
+        { name: "Perdido", slug: "perdido", color: "#EF4444", probability: 0, position: 5, is_lost: true },
+      ];
+      await ignore(() => admin.from("pipeline_stages").insert(
+        stages.map((s) => ({ ...s, account_id: accountId, is_active: true }))
+      ));
+
+      // Default team
+      await ignore(() => admin.from("teams").insert({
+        account_id: accountId,
+        name: "Atendimento",
+        description: "Equipe padrão de atendimento",
+        active: true,
+        auto_assign: true,
+        allow_self_assign: true,
+      }));
+
       return json({ ok: true, account: { ...data, organization_id: data.id } }, 201);
     }
 
