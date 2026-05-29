@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-
 import { MessageCircle, Plus, RefreshCw, CheckCircle2, AlertCircle, Loader2, PowerOff } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,8 +18,15 @@ type Instance = {
   created_at: string | null;
   inbox_id: string | null;
   inbox_name: string | null;
-  webhook_configured: boolean;
 };
+
+async function evoProxy(accountId: string | null, payload: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke("evolution-proxy", {
+    body: { ...payload, accountId },
+  });
+  if (error) throw error;
+  return data as Record<string, unknown>;
+}
 
 function CanaisPage() {
   const [instances, setInstances] = useState<Instance[]>([]);
@@ -29,47 +35,38 @@ function CanaisPage() {
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { accountId, session, loading: authLoading } = useAuth();
+  const { accountId, loading: authLoading } = useAuth();
 
   const load = useCallback(async () => {
-    if (!accountId) {
-      setInstances([]);
-      setLoadError("Conta atual não identificada. Recarregue a página e tente novamente.");
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setLoadError(null);
     try {
-      const { data, error } = await supabase
-        .from("whatsapp_instances")
-        .select("*")
-        .eq("account_id", accountId)
-        .order("created_at", { ascending: false });
+      // Query whatsapp_instances — try with account_id, fallback to all
+      let query = (supabase as any).from("whatsapp_instances").select("*").order("created_at", { ascending: false });
+      if (accountId) query = query.eq("account_id", accountId);
+      const { data, error } = await query;
       if (error) throw error;
 
-      const { data: inboxes, error: inboxError } = await (supabase as any)
-        .from("inboxes")
-        .select("id, name, instance_name")
-        .eq("account_id", accountId);
-      if (inboxError) throw inboxError;
+      // Query inboxes for matching
+      let inboxQuery = (supabase as any).from("inboxes").select("id, name, instance_name");
+      if (accountId) inboxQuery = inboxQuery.eq("account_id", accountId);
+      const { data: inboxes } = await inboxQuery;
 
       const inboxByInstance = new Map<string, any>(
-        ((inboxes ?? []) as any[]).map((inbox) => [inbox.instance_name, inbox])
+        ((inboxes ?? []) as any[]).map((inbox: any) => [inbox.instance_name, inbox])
       );
-      setInstances(((data as any[]) ?? []).map((inst) => {
+      setInstances(((data as any[]) ?? []).map((inst: any) => {
         const inbox = inboxByInstance.get(inst.instance_name);
         return {
           ...inst,
           inbox_id: inbox?.id ?? null,
           inbox_name: inbox?.name ?? null,
-          webhook_configured: true,
         };
       }));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro ao carregar canais conectados";
       setLoadError(message);
-      toast.error(message);
+      console.error("[canais] load error:", error);
     } finally {
       setLoading(false);
     }
@@ -80,19 +77,12 @@ function CanaisPage() {
     void load();
   }, [authLoading, load]);
 
-  const evoProxy = async (payload: Record<string, unknown>) => {
-    const { data, error } = await supabase.functions.invoke("evolution-proxy", {
-      body: { ...payload, accountId },
-    });
-    if (error) throw error;
-    return data;
-  };
-
   const refreshOne = async (inst: Instance) => {
     setRefreshingId(inst.id);
     try {
-      await evoProxy({ action: "refresh", instanceName: inst.instance_name });
+      await evoProxy(accountId, { action: "refresh", instanceName: inst.instance_name });
       await load();
+      toast.success("Status atualizado");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao atualizar status");
     } finally {
@@ -107,7 +97,11 @@ function CanaisPage() {
     if (!confirm(msg)) return;
     setDisconnectingId(inst.id);
     try {
-      await evoProxy({ action: "disconnect", instanceName: inst.instance_name, body: { deleteInstance: remove } });
+      await evoProxy(accountId, { action: "disconnect", instanceName: inst.instance_name, body: { deleteInstance: remove } });
+      if (remove) {
+        // Also remove from DB
+        await (supabase as any).from("whatsapp_instances").delete().eq("id", inst.id);
+      }
       toast.success(remove ? "Instância removida" : "Número desconectado");
       await load();
     } catch (e) {
@@ -119,27 +113,25 @@ function CanaisPage() {
 
   const statusBadge = (s: string | null) => {
     if (s === "connected" || s === "open")
-      return <span className="inline-flex items-center gap-1 text-[#2FAE7C] text-sm"><CheckCircle2 className="h-4 w-4" /> Conectado</span>;
-    if (s === "connecting")
-      return <span className="inline-flex items-center gap-1 text-[#F2C94C] text-sm"><Loader2 className="h-4 w-4 animate-spin" /> Conectando</span>;
+      return <span className="inline-flex items-center gap-1 text-success text-sm font-medium"><CheckCircle2 className="h-4 w-4" /> Conectado</span>;
+    if (s === "connecting" || s === "pending")
+      return <span className="inline-flex items-center gap-1 text-warning-foreground text-sm"><Loader2 className="h-4 w-4 animate-spin" /> Conectando</span>;
     return <span className="inline-flex items-center gap-1 text-muted-foreground text-sm"><AlertCircle className="h-4 w-4" /> Desconectado</span>;
   };
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-5xl mx-auto">
+      <div className="p-4 md:p-6 max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-[#0B3A5D]">Canais Conectados</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-brand">Canais Conectados</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Todos os números de WhatsApp e canais integrados ao sistema.
             </p>
           </div>
-          <Link
-            to="/whatsapp"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0B3A5D] text-white text-sm font-medium hover:opacity-90"
-          >
-            <Plus className="h-4 w-4" /> Conectar WhatsApp
+          <Link to="/whatsapp"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand text-brand-foreground text-sm font-medium hover:opacity-90">
+            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Conectar WhatsApp</span>
           </Link>
         </div>
 
@@ -150,11 +142,10 @@ function CanaisPage() {
         ) : loadError ? (
           <div className="border border-destructive/30 rounded-xl p-8 text-center bg-destructive/5">
             <AlertCircle className="h-10 w-10 mx-auto text-destructive mb-3" />
-            <p className="text-sm text-destructive font-medium mb-4">{loadError}</p>
-            <button
-              onClick={load}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium hover:bg-background"
-            >
+            <p className="text-sm text-destructive font-medium mb-2">Erro ao carregar canais conectados</p>
+            <p className="text-xs text-muted-foreground mb-4">{loadError}</p>
+            <button onClick={load}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium hover:bg-background">
               <RefreshCw className="h-4 w-4" /> Tentar novamente
             </button>
           </div>
@@ -162,69 +153,46 @@ function CanaisPage() {
           <div className="border border-dashed rounded-xl p-12 text-center">
             <MessageCircle className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
             <p className="text-muted-foreground mb-4">Nenhum canal conectado ainda.</p>
-            <Link
-              to="/whatsapp"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#2FAE7C] text-white text-sm font-medium"
-            >
+            <Link to="/whatsapp"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-success text-success-foreground text-sm font-medium">
               <Plus className="h-4 w-4" /> Conectar primeiro número
             </Link>
           </div>
         ) : (
           <div className="grid gap-3">
             {instances.map((inst) => (
-              <div
-                key={inst.id}
-                className="flex items-center gap-4 p-4 border rounded-xl bg-card hover:shadow-sm transition"
-              >
-                <div className="h-12 w-12 rounded-full bg-[#2FAE7C]/10 flex items-center justify-center overflow-hidden">
+              <div key={inst.id}
+                className="flex flex-wrap sm:flex-nowrap items-center gap-3 md:gap-4 p-4 border rounded-xl bg-card hover:shadow-sm transition">
+                <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center overflow-hidden shrink-0">
                   {inst.profile_pic ? (
                     <img src={inst.profile_pic} alt="" className="h-full w-full object-cover" />
                   ) : (
-                    <MessageCircle className="h-6 w-6 text-[#2FAE7C]" />
+                    <MessageCircle className="h-6 w-6 text-success" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-[#0B3A5D] truncate">
+                  <div className="font-medium text-brand truncate">
                     {inst.profile_name || inst.instance_name}
                   </div>
                   <div className="text-sm text-muted-foreground truncate">
                     {inst.phone_number ? `+${inst.phone_number}` : "Número não disponível"} · {inst.instance_name}
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-                    <StatusPill ok={inst.status === "connected" || inst.status === "open"} label="WhatsApp" />
-                    <StatusPill ok={inst.webhook_configured} label="Webhook" />
-                    <StatusPill ok={!!inst.inbox_id} label={inst.inbox_name ? `Caixa: ${inst.inbox_name}` : "Caixa"} />
-                  </div>
+                  {inst.inbox_name && (
+                    <div className="text-xs text-muted-foreground mt-1">Caixa: {inst.inbox_name}</div>
+                  )}
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 shrink-0">
                   {statusBadge(inst.status)}
-                  <button
-                    onClick={() => refreshOne(inst)}
-                    disabled={refreshingId === inst.id}
-                    className="p-2 rounded-lg hover:bg-muted text-muted-foreground"
-                    title="Atualizar status"
-                  >
+                  <button onClick={() => refreshOne(inst)} disabled={refreshingId === inst.id}
+                    className="h-9 w-9 rounded-lg hover:bg-muted grid place-items-center text-muted-foreground" title="Atualizar status">
                     <RefreshCw className={`h-4 w-4 ${refreshingId === inst.id ? "animate-spin" : ""}`} />
                   </button>
-                  <button
-                    onClick={() => disconnect(inst, false)}
-                    disabled={disconnectingId === inst.id}
-                    className="p-2 rounded-lg hover:bg-muted text-muted-foreground disabled:opacity-50"
-                    title="Desconectar número"
-                  >
+                  <button onClick={() => disconnect(inst, false)} disabled={disconnectingId === inst.id}
+                    className="h-9 w-9 rounded-lg hover:bg-muted grid place-items-center text-muted-foreground disabled:opacity-50" title="Desconectar">
                     {disconnectingId === inst.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <PowerOff className="h-4 w-4" />}
                   </button>
-                  <button
-                    onClick={() => navigate({ to: "/conversas" })}
-                    className="px-3 py-1.5 text-sm rounded-lg bg-[#0B3A5D] text-white hover:opacity-90"
-                  >
-                    Ver conversas
-                  </button>
-                  <button
-                    onClick={() => disconnect(inst, true)}
-                    disabled={disconnectingId === inst.id}
-                    className="px-3 py-1.5 text-sm rounded-lg border border-destructive text-destructive hover:bg-destructive/5 disabled:opacity-50"
-                  >
+                  <button onClick={() => disconnect(inst, true)} disabled={disconnectingId === inst.id}
+                    className="h-9 px-3 rounded-lg border border-destructive text-destructive text-xs font-medium hover:bg-destructive/5 disabled:opacity-50 hidden sm:flex items-center">
                     Remover
                   </button>
                 </div>
@@ -234,16 +202,5 @@ function CanaisPage() {
         )}
       </div>
     </AppLayout>
-  );
-}
-
-function StatusPill({ ok, label }: { ok: boolean; label: string }) {
-  return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium ${
-      ok ? "bg-success/15 text-success" : "bg-warning/20 text-foreground"
-    }`}>
-      {ok ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
-      {label}
-    </span>
   );
 }
