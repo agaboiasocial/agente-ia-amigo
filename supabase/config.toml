@@ -1,1 +1,5 @@
 project_id = "jbryznmmalyknxzpevql"
+
+# Webhook recebe chamadas externas da Evolution API (sem JWT)
+[functions.whatsapp-webhook]
+verify_jwt = false
