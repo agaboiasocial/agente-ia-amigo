@@ -41,14 +41,16 @@ async function fetchBase64FromEvolution(instanceName: string, messageId: string)
 // ─── Upload media to Supabase Storage ───────────────────────────────────────
 async function uploadMedia(supa: any, base64: string, mimetype: string, conversationId: string, messageId: string): Promise<string | null> {
   try {
-    const ext = mimetype.includes("image") ? "jpg" : mimetype.includes("audio") ? "ogg" : mimetype.includes("video") ? "mp4" : mimetype.includes("pdf") ? "pdf" : "bin";
+    // Clean mimetype — remove codecs suffix that Storage rejects
+    const cleanMime = mimetype.split(";")[0].trim();
+    const ext = cleanMime.includes("image") ? "jpg" : cleanMime.includes("audio") ? "ogg" : cleanMime.includes("video") ? "mp4" : cleanMime.includes("pdf") ? "pdf" : "bin";
     const path = `media/${conversationId}/${messageId}.${ext}`;
     const binaryStr = atob(base64);
     const bytes = new Uint8Array(binaryStr.length);
     for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
 
     const { error } = await supa.storage.from("chat-media").upload(path, bytes, {
-      contentType: mimetype, upsert: true,
+      contentType: cleanMime, upsert: true,
     });
     if (error) { console.error("[upload] error:", error); return null; }
     return `${SUPABASE_URL}/storage/v1/object/public/chat-media/${path}`;
