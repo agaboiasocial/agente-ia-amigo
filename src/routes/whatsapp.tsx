@@ -109,6 +109,7 @@ function Page() {
 type FlowState = "form" | "loading" | "qr" | "connecting" | "error";
 
 function ConnectFlow({ onConnected, accountId }: { onConnected: (i: Instance) => void; accountId: string | null }) {
+  const { session } = useAuth();
   const [state, setState] = useState<FlowState>("form");
   const [instanceName, setInstanceName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -122,6 +123,7 @@ function ConnectFlow({ onConnected, accountId }: { onConnected: (i: Instance) =>
   const connectFn = async ({ data }: { data: { instanceName: string; phoneNumber?: string; accountId?: string | null } }) => {
     return callEdgeFunction<{ qrCode: string; instanceName: string; webhookUrl: string }>("whatsapp-connect", {
       method: "POST",
+      token: session?.access_token,
       body: data,
     });
   };
@@ -129,6 +131,7 @@ function ConnectFlow({ onConnected, accountId }: { onConnected: (i: Instance) =>
   const statusFn = async ({ data }: { data: { instanceName: string } }) => {
     return callEdgeFunction<{ connected: boolean; profileName: string | null; phoneNumber: string | null }>("whatsapp-status", {
       method: "POST",
+      token: session?.access_token,
       body: data,
     });
   };

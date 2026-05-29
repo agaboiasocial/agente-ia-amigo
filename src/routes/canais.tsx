@@ -85,6 +85,7 @@ function CanaisPage() {
     try {
       await callEdgeFunction("whatsapp-refresh", {
         method: "POST",
+        token: session?.access_token,
         body: { instanceName: inst.instance_name, instanceId: inst.id },
       });
       await load();
