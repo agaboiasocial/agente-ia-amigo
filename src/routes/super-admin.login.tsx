@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { callEdgeFunction } from "@/lib/edge-functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/super-admin/login")({
@@ -50,14 +51,10 @@ function Page() {
         setError(signErr?.message ?? "Falha no login");
         return;
       }
-      const checkRes = await fetch("/api/super-admin/check", {
+      const access = await callEdgeFunction<{ isAdmin: boolean }>("super-admin-check", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${data.session?.access_token}`,
-        },
+        token: data.session?.access_token,
       });
-      const access = await checkRes.json();
       if (!access.isAdmin) {
         await supabase.auth.signOut();
         setError("Acesso restrito a super administradores.");

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { callEdgeFunction } from "@/lib/edge-functions";
 import { MessageCircle, Plus, RefreshCw, CheckCircle2, AlertCircle, Loader2, PowerOff } from "lucide-react";
 import { toast } from "sonner";
 
@@ -82,16 +83,13 @@ function CanaisPage() {
   const refreshOne = async (inst: Instance) => {
     setRefreshingId(inst.id);
     try {
-      const r = await fetch("/api/whatsapp-refresh", {
+      await callEdgeFunction("whatsapp-refresh", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instanceName: inst.instance_name, instanceId: inst.id }),
+        body: { instanceName: inst.instance_name, instanceId: inst.id },
       });
-      const res = await r.json();
-      if (!r.ok) throw new Error(res.error || "Erro ao atualizar");
       await load();
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao atualizar status");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao atualizar status");
     } finally {
       setRefreshingId(null);
     }
@@ -104,20 +102,15 @@ function CanaisPage() {
     if (!confirm(msg)) return;
     setDisconnectingId(inst.id);
     try {
-      const r = await fetch("/api/whatsapp-disconnect", {
+      await callEdgeFunction("whatsapp-disconnect", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-        },
-        body: JSON.stringify({ instanceName: inst.instance_name, deleteInstance: remove }),
+        token: session?.access_token,
+        body: { instanceName: inst.instance_name, deleteInstance: remove },
       });
-      const json = await r.json();
-      if (!r.ok) throw new Error(json.error || "Erro ao desconectar");
       toast.success(remove ? "Instância removida" : "Número desconectado");
       await load();
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao desconectar");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao desconectar");
     } finally {
       setDisconnectingId(null);
     }

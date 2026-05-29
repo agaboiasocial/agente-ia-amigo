@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SuperAdminLayout } from "@/components/super-admin/SuperAdminSidebar";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { callEdgeFunction } from "@/lib/edge-functions";
 import {
   Plus, Search, Loader2, Trash2, Shield, UserCog, Building2, KeyRound,
   MoreHorizontal, LogIn,
@@ -56,10 +57,7 @@ function Page() {
   const usersQuery = useQuery({
     queryKey: ["super-admin-users-full"],
     queryFn: async () => {
-      const r = await fetch("/api/super-admin/users", { method: "GET", headers });
-      const json = await r.json();
-      if (!r.ok) throw new Error(json.error || "Erro ao listar");
-      return json as UserRow[];
+      return callEdgeFunction<UserRow[]>("super-admin-users", { method: "GET", token: session?.access_token });
     },
   });
 
@@ -76,21 +74,18 @@ function Page() {
   const createMut = useMutation({
     mutationFn: async () => {
       if (!formEmail || !formPassword || !formName) throw new Error("Preencha todos os campos obrigatórios");
-      const r = await fetch("/api/super-admin/users", {
+      return callEdgeFunction("super-admin-users", {
         method: "POST",
-        headers,
-        body: JSON.stringify({
+        token: session?.access_token,
+        body: {
           email: formEmail,
           password: formPassword,
           displayName: formName,
           role: formRole,
           accountId: formAccountId || null,
           isOrgAdmin: formIsOrgAdmin,
-        }),
+        },
       });
-      const json = await r.json();
-      if (!r.ok) throw new Error(json.error || "Erro ao criar");
-      return json;
     },
     onSuccess: () => {
       toast.success("Usuário criado com sucesso");
@@ -105,12 +100,11 @@ function Page() {
   // Delete user
   const deleteMut = useMutation({
     mutationFn: async (userId: string) => {
-      const r = await fetch("/api/super-admin/users", {
-        method: "DELETE", headers,
-        body: JSON.stringify({ userId }),
+      await callEdgeFunction("super-admin-users", {
+        method: "DELETE",
+        token: session?.access_token,
+        body: { userId },
       });
-      const json = await r.json();
-      if (!r.ok) throw new Error(json.error || "Erro ao remover");
     },
     onSuccess: () => {
       toast.success("Usuário removido");
@@ -123,12 +117,11 @@ function Page() {
   const passwordMut = useMutation({
     mutationFn: async () => {
       if (!passwordTarget || !newPassword) throw new Error("Senha obrigatória");
-      const r = await fetch("/api/super-admin/users", {
-        method: "PATCH", headers,
-        body: JSON.stringify({ action: "change_password", userId: passwordTarget.id, password: newPassword }),
+      await callEdgeFunction("super-admin-users", {
+        method: "PATCH",
+        token: session?.access_token,
+        body: { action: "change_password", userId: passwordTarget.id, password: newPassword },
       });
-      const json = await r.json();
-      if (!r.ok) throw new Error(json.error || "Erro ao alterar senha");
     },
     onSuccess: () => {
       toast.success(`Senha de ${passwordTarget?.name} alterada`);
@@ -140,12 +133,11 @@ function Page() {
   // Assign to account
   const assignMut = useMutation({
     mutationFn: async ({ userId, accountId }: { userId: string; accountId: string | null }) => {
-      const r = await fetch("/api/super-admin/users", {
-        method: "PATCH", headers,
-        body: JSON.stringify({ action: "assign_account", userId, accountId }),
+      await callEdgeFunction("super-admin-users", {
+        method: "PATCH",
+        token: session?.access_token,
+        body: { action: "assign_account", userId, accountId },
       });
-      const json = await r.json();
-      if (!r.ok) throw new Error(json.error || "Erro");
     },
     onSuccess: () => {
       toast.success("Organização atualizada");
@@ -157,12 +149,11 @@ function Page() {
   // Promote to org admin
   const orgAdminMut = useMutation({
     mutationFn: async ({ userId, accountId }: { userId: string; accountId: string }) => {
-      const r = await fetch("/api/super-admin/users", {
-        method: "PATCH", headers,
-        body: JSON.stringify({ action: "promote_org_admin", userId, accountId }),
+      await callEdgeFunction("super-admin-users", {
+        method: "PATCH",
+        token: session?.access_token,
+        body: { action: "promote_org_admin", userId, accountId },
       });
-      const json = await r.json();
-      if (!r.ok) throw new Error(json.error || "Erro");
     },
     onSuccess: () => {
       toast.success("Promovido a Admin da Organização");
@@ -174,12 +165,11 @@ function Page() {
   // Toggle platform admin
   const platformAdminMut = useMutation({
     mutationFn: async ({ userId, makeAdmin }: { userId: string; makeAdmin: boolean }) => {
-      const r = await fetch("/api/super-admin/users", {
-        method: "PATCH", headers,
-        body: JSON.stringify({ action: "toggle_platform_admin", userId, makeAdmin }),
+      await callEdgeFunction("super-admin-users", {
+        method: "PATCH",
+        token: session?.access_token,
+        body: { action: "toggle_platform_admin", userId, makeAdmin },
       });
-      const json = await r.json();
-      if (!r.ok) throw new Error(json.error || "Erro");
     },
     onSuccess: () => {
       toast.success("Papel de plataforma atualizado");

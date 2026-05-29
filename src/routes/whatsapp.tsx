@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/hooks/use-auth";
+import { callEdgeFunction, edgeFunctionUrl } from "@/lib/edge-functions";
 import {
   RefreshCw,
   CheckCircle2,
@@ -119,25 +120,17 @@ function ConnectFlow({ onConnected, accountId }: { onConnected: (i: Instance) =>
   const timerRef = useRef<number | null>(null);
 
   const connectFn = async ({ data }: { data: { instanceName: string; phoneNumber?: string; accountId?: string | null } }) => {
-    const res = await fetch("/api/whatsapp-connect", {
+    return callEdgeFunction<{ qrCode: string; instanceName: string; webhookUrl: string }>("whatsapp-connect", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: data,
     });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error || "Erro ao conectar");
-    return json;
   };
 
   const statusFn = async ({ data }: { data: { instanceName: string } }) => {
-    const res = await fetch("/api/whatsapp-status", {
+    return callEdgeFunction<{ connected: boolean; profileName: string | null; phoneNumber: string | null }>("whatsapp-status", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: data,
     });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error || "Erro ao verificar status");
-    return json;
   };
 
   const cleanup = () => {
@@ -156,7 +149,7 @@ function ConnectFlow({ onConnected, accountId }: { onConnected: (i: Instance) =>
         profileName: info.profileName || info.instanceName,
         phone: info.phoneNumber || phoneNumber,
         connectedAt: new Date().toISOString(),
-        webhookUrl: `${window.location.origin}/api/whatsapp-webhook/${info.instanceName}`,
+        webhookUrl: edgeFunctionUrl("whatsapp-webhook", info.instanceName),
         webhookActive: true,
         lastEventAt: new Date().toISOString(),
         autoReceive: true,

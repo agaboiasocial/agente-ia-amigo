@@ -8,6 +8,8 @@ interface AuthCtx {
   loading: boolean;
   profile: { display_name: string; avatar_initials: string | null } | null;
   accountId: string | null;
+  organizationId: string | null;
+  organizationRole: "owner" | "org_admin" | "member" | null;
   isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, displayName: string) => Promise<{ error: string | null }>;
@@ -21,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<AuthCtx["profile"]>(null);
   const [accountId, setAccountId] = useState<string | null>(null);
+  const [organizationRole, setOrganizationRole] = useState<AuthCtx["organizationRole"]>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -33,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setProfile(null);
         setAccountId(null);
+        setOrganizationRole(null);
         setIsAdmin(false);
       }
     });
@@ -46,12 +50,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function loadProfile(uid: string) {
-    const [{ data: prof }, { data: roles }] = await Promise.all([
+    const [{ data: prof }, { data: roles }, { data: memberships }] = await Promise.all([
       supabase.from("profiles").select("display_name, avatar_initials, account_id").eq("user_id", uid).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", uid),
+      (supabase as any)
+        .from("account_members")
+        .select("account_id, role")
+        .eq("user_id", uid)
+        .eq("is_active", true)
+        .limit(1),
     ]);
+    const membership = ((memberships ?? []) as any[])[0] ?? null;
+    const currentAccountId = (prof as any)?.account_id ?? membership?.account_id ?? null;
     setProfile(prof ? { display_name: prof.display_name, avatar_initials: (prof as any).avatar_initials } : null);
-    setAccountId((prof as any)?.account_id ?? null);
+    setAccountId(currentAccountId);
+    setOrganizationRole((membership?.role ?? null) as AuthCtx["organizationRole"]);
     setIsAdmin(!!roles?.some((r) => r.role === "admin"));
   }
 
@@ -75,7 +88,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <Ctx.Provider value={{ user, session, loading, profile, accountId, isAdmin, signIn, signUp, signOut }}>
+    <Ctx.Provider
+      value={{
+        user,
+        session,
+        loading,
+        profile,
+        accountId,
+        organizationId: accountId,
+        organizationRole,
+        isAdmin,
+        signIn,
+        signUp,
+        signOut,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );

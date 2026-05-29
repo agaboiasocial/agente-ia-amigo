@@ -72,9 +72,12 @@ export const connectWhatsApp = createServerFn({ method: "POST" })
     // Register webhook so messages flow into our DB.
     // Use the stable preview URL by default — it always serves the latest build,
     // even before the project is published. Override with PUBLIC_APP_URL after publish.
-    const publicBase =
-      process.env.PUBLIC_APP_URL || "https://agente-ia-amigo.vercel.app";
-    const webhookUrl = `${publicBase}/api/public/whatsapp-webhook/${encodeURIComponent(data.instanceName)}`;
+    const functionsBase =
+      process.env.PUBLIC_SUPABASE_FUNCTIONS_URL ||
+      (process.env.VITE_SUPABASE_URL
+        ? `${process.env.VITE_SUPABASE_URL.replace(/\/+$/, "")}/functions/v1`
+        : "https://agente-ia-amigo.supabase.co/functions/v1");
+    const webhookUrl = `${functionsBase}/whatsapp-webhook/${encodeURIComponent(data.instanceName)}`;
 
     try {
       const wRes = await fetch(`${baseUrl()}/webhook/set/${encodeURIComponent(data.instanceName)}`, {

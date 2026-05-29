@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SuperAdminLayout } from "@/components/super-admin/SuperAdminSidebar";
 import { Loader2, Webhook, CheckCircle2, XCircle, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { edgeFunctionUrl } from "@/lib/edge-functions";
 
 const sb = supabase as any;
 
@@ -21,7 +22,6 @@ function useWebhookAccounts() {
 
 function Page() {
   const { data: accounts = [], isLoading } = useWebhookAccounts();
-  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   const copy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -49,7 +49,7 @@ function Page() {
         ) : (
           <div className="grid gap-3 md:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {accounts.map((acc) => {
-              const webhookUrl = `${baseUrl}/api/public/whatsapp-webhook/${acc.id}`;
+              const webhookUrl = edgeFunctionUrl("whatsapp-webhook", acc.id);
               const hasWebhook = true; // All accounts have the endpoint available
               return (
                 <div key={acc.id} className="bg-white rounded-lg border p-5 space-y-3">

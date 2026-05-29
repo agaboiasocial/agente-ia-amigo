@@ -56,6 +56,7 @@ import { MessageComposer } from "@/components/MessageComposer";
 import { FormattedMessage } from "@/lib/chat-format";
 import { useChatPrefs, ensureFontLoaded } from "@/hooks/use-chat-prefs";
 import { supabase } from "@/integrations/supabase/client";
+import { edgeFunctionUrl } from "@/lib/edge-functions";
 
 export const Route = createFileRoute("/conversas")({ component: ConversasPage });
 
@@ -100,7 +101,7 @@ function mediaSrc(message: MsgRow) {
   ) {
     return message.media_url;
   }
-  return `/api/message-media?id=${encodeURIComponent(message.id)}`;
+  return edgeFunctionUrl("message-media", `?id=${encodeURIComponent(message.id)}`);
 }
 
 const channelIcon = (c: string) =>
@@ -218,13 +219,20 @@ function exportPdf(c: ConvRow, m: MsgRow[]) {
 }
 
 function useTeams() {
+  const { accountId } = useAuth();
   return useQuery({
-    queryKey: ["teams"],
+    queryKey: ["teams", accountId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("teams").select("id, name").order("name");
+      if (!accountId) return [];
+      const { data, error } = await (supabase as any)
+        .from("teams")
+        .select("id, name")
+        .eq("account_id", accountId)
+        .order("name");
       if (error) return [];
       return (data ?? []) as { id: string; name: string }[];
     },
+    enabled: !!accountId,
   });
 }
 

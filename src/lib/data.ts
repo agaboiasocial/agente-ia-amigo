@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { callEdgeFunction } from "@/lib/edge-functions";
 
 function logReadError(scope: string, _error: unknown) {
   console.warn(`[IAS] Falha ao carregar ${scope}`);
@@ -161,17 +162,11 @@ export function useDeleteConversation() {
   const { session } = useAuth();
   return useMutation({
     mutationFn: async (conversationId: string) => {
-      const res = await fetch("/api/conversation-delete", {
+      return callEdgeFunction("conversation-delete", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-        },
-        body: JSON.stringify({ conversationId }),
+        token: session?.access_token,
+        body: { conversationId },
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Erro ao excluir conversa");
-      return json;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
   });
@@ -254,13 +249,10 @@ export function useSendMessage() {
       mime_type?: string | null;
     }) => {
       if (payload.author !== "agente") throw new Error("Envio pelo cliente não é permitido no sistema");
-      const res = await fetch("/api/whatsapp-send", {
+      return callEdgeFunction("whatsapp-send", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-        },
-        body: JSON.stringify({
+        token: session?.access_token,
+        body: {
           conversationId: payload.conversation_id,
           body: payload.body,
           isNote: payload.is_note,
@@ -269,11 +261,8 @@ export function useSendMessage() {
           mediaType: payload.media_type ?? null,
           fileName: payload.file_name ?? null,
           mimeType: payload.mime_type ?? null,
-        }),
+        },
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Erro ao enviar mensagem");
-      return json;
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["messages", vars.conversation_id] });

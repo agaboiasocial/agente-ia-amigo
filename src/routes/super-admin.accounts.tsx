@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SuperAdminLayout } from "@/components/super-admin/SuperAdminSidebar";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
+import { callEdgeFunction } from "@/lib/edge-functions";
 import {
   Building2, Plus, Pencil, Trash2, Loader2, Search, Users, MessageSquare,
 } from "lucide-react";
@@ -43,28 +45,14 @@ function generateSlug(name: string) {
 }
 
 function useAccounts() {
+  const { session } = useAuth();
   return useQuery({
     queryKey: ["admin_accounts"],
     queryFn: async (): Promise<Account[]> => {
-      const safe = async (p: Promise<any>) => { try { return await p; } catch { return { data: [] }; } };
-      const [acctRes, profilesRes, contactsRes] = await Promise.all([
-        safe(sb.from("accounts").select("*").order("name")),
-        safe(sb.from("profiles").select("account_id")),
-        safe(sb.from("contacts").select("account_id")),
-      ]);
-      const accounts: any[] = acctRes.data ?? [];
-      const profiles: any[] = profilesRes.data ?? [];
-      const contacts: any[] = contactsRes.data ?? [];
-
-      const memberCounts: Record<string, number> = {};
-      profiles.forEach((p: any) => {
-        if (p.account_id) memberCounts[p.account_id] = (memberCounts[p.account_id] || 0) + 1;
+      const accounts = await callEdgeFunction<any[]>("super-admin-accounts", {
+        method: "GET",
+        token: session?.access_token,
       });
-      const contactCounts: Record<string, number> = {};
-      contacts.forEach((c: any) => {
-        if (c.account_id) contactCounts[c.account_id] = (contactCounts[c.account_id] || 0) + 1;
-      });
-
       return accounts.map((a: any) => ({
         id: a.id,
         name: a.name,
@@ -74,15 +62,17 @@ function useAccounts() {
         plan_value: Number(a.plan_value ?? 297),
         is_active: a.is_active ?? true,
         created_at: a.created_at,
-        members_count: memberCounts[a.id] ?? 0,
-        contacts_count: contactCounts[a.id] ?? 0,
+        members_count: a.members_count ?? 0,
+        contacts_count: a.contacts_count ?? 0,
       }));
     },
+    enabled: !!session?.access_token,
   });
 }
 
 function Page() {
   const qc = useQueryClient();
+  const { session } = useAuth();
   const { data: accounts = [], isLoading } = useAccounts();
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -114,13 +104,11 @@ function Page() {
     mutationFn: async () => {
       if (!name.trim() || !slug.trim()) throw new Error("Nome e slug são obrigatórios");
       const payload = { name: name.trim(), slug: slug.trim(), locale, plan_type: planType, plan_value: planValue, is_active: isActive };
-      if (editing) {
-        const { error } = await sb.from("accounts").update(payload).eq("id", editing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await sb.from("accounts").insert(payload);
-        if (error) throw error;
-      }
+      await callEdgeFunction("super-admin-accounts", {
+        method: editing ? "PATCH" : "POST",
+        token: session?.access_token,
+        body: editing ? { id: editing.id, ...payload } : payload,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin_accounts"] });
@@ -135,8 +123,11 @@ function Page() {
 
   const deleteMut = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await sb.from("accounts").delete().eq("id", id);
-      if (error) throw error;
+      await callEdgeFunction("super-admin-accounts", {
+        method: "DELETE",
+        token: session?.access_token,
+        body: { id },
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin_accounts"] });
