@@ -86,8 +86,48 @@ Deno.serve(async (req) => {
     if (req.method === "DELETE") {
       const id = String(body.id || "");
       if (!id) return json({ error: "id obrigatório" }, 400);
-      const { error } = await admin.rpc("delete_account_cascade", { _account_id: id });
-      if (error) throw error;
+
+      // Try RPC first, fallback to manual cascade
+      const { error: rpcErr } = await admin.rpc("delete_account_cascade", { _account_id: id });
+      if (rpcErr) {
+        // Fallback: manual cascade delete
+        const safe = async (fn: () => Promise<unknown>) => {
+          try { await fn(); } catch { /* ignore */ }
+        };
+
+        // Get child IDs
+        const { data: convs } = await admin.from("conversations").select("id").eq("account_id", id);
+        const cIds = (convs || []).map((c: { id: string }) => c.id);
+        const { data: teams } = await admin.from("teams").select("id").eq("account_id", id);
+        const tIds = (teams || []).map((t: { id: string }) => t.id);
+        const { data: inboxes } = await admin.from("inboxes").select("id").eq("account_id", id);
+        const iIds = (inboxes || []).map((i: { id: string }) => i.id);
+        const { data: leads } = await admin.from("pipeline_leads").select("id").eq("account_id", id);
+        const lIds = (leads || []).map((l: { id: string }) => l.id);
+
+        // Deep children first
+        if (cIds.length) await safe(() => admin.from("messages").delete().in("conversation_id", cIds));
+        if (lIds.length) await safe(() => admin.from("pipeline_lead_activities").delete().in("lead_id", lIds));
+        if (tIds.length) await safe(() => admin.from("team_members").delete().in("team_id", tIds));
+        if (iIds.length) await safe(() => admin.from("inbox_members").delete().in("inbox_id", iIds));
+
+        // Account-level tables
+        const tables = [
+          "conversations", "pipeline_leads", "pipeline_stages", "contacts",
+          "teams", "inboxes", "ai_settings", "automations", "support_tickets",
+          "account_members", "notifications", "quick_replies", "labels",
+          "payment_schedules",
+        ];
+        for (const t of tables) await safe(() => admin.from(t).delete().eq("account_id", id));
+
+        // Unlink (don't delete)
+        await safe(() => admin.from("profiles").update({ account_id: null }).eq("account_id", id));
+        await safe(() => admin.from("whatsapp_instances").update({ account_id: null }).eq("account_id", id));
+
+        // Final delete
+        const { error } = await admin.from("accounts").delete().eq("id", id);
+        if (error) throw new Error(`Falha ao excluir conta: ${error.message}`);
+      }
       return json({ ok: true });
     }
 
