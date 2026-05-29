@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
     if (req.method === "DELETE") {
       const id = String(body.id || "");
       if (!id) return json({ error: "id obrigatório" }, 400);
-      const { error } = await admin.from("accounts").delete().eq("id", id);
+      const { error } = await admin.rpc("delete_account_cascade", { _account_id: id });
       if (error) throw error;
       return json({ ok: true });
     }

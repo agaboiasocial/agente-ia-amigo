@@ -19,21 +19,11 @@ interface Account {
   name: string;
   slug: string;
   locale: string;
-  plan_type: string;
-  plan_value: number;
   is_active: boolean;
   created_at: string;
   members_count: number;
   contacts_count: number;
 }
-
-const PLAN_OPTIONS = [
-  { value: "crm", label: "CRM", price: 297 },
-  { value: "ia", label: "IA de Atendimento", price: 297 },
-  { value: "ia_crm", label: "IA + CRM", price: 497 },
-];
-
-const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 function generateSlug(name: string) {
   return name
@@ -58,8 +48,6 @@ function useAccounts() {
         name: a.name,
         slug: a.slug,
         locale: a.locale ?? "pt",
-        plan_type: a.plan_type ?? "crm",
-        plan_value: Number(a.plan_value ?? 297),
         is_active: a.is_active ?? true,
         created_at: a.created_at,
         members_count: a.members_count ?? 0,
@@ -82,28 +70,24 @@ function Page() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [locale, setLocale] = useState("pt");
-  const [planType, setPlanType] = useState("crm");
-  const [planValue, setPlanValue] = useState(297);
   const [isActive, setIsActive] = useState(true);
 
   const openCreate = () => {
     setEditing(null);
-    setName(""); setSlug(""); setLocale("pt");
-    setPlanType("crm"); setPlanValue(297); setIsActive(true);
+    setName(""); setSlug(""); setLocale("pt"); setIsActive(true);
     setModalOpen(true);
   };
 
   const openEdit = (a: Account) => {
     setEditing(a);
-    setName(a.name); setSlug(a.slug); setLocale(a.locale);
-    setPlanType(a.plan_type); setPlanValue(a.plan_value); setIsActive(a.is_active);
+    setName(a.name); setSlug(a.slug); setLocale(a.locale); setIsActive(a.is_active);
     setModalOpen(true);
   };
 
   const saveMut = useMutation({
     mutationFn: async () => {
       if (!name.trim() || !slug.trim()) throw new Error("Nome e slug são obrigatórios");
-      const payload = { name: name.trim(), slug: slug.trim(), locale, plan_type: planType, plan_value: planValue, is_active: isActive };
+      const payload = { name: name.trim(), slug: slug.trim(), locale, is_active: isActive };
       await callEdgeFunction("super-admin-accounts", {
         method: editing ? "PATCH" : "POST",
         token: session?.access_token,
@@ -140,8 +124,6 @@ function Page() {
     a.name.toLowerCase().includes(search.toLowerCase()) ||
     a.slug.toLowerCase().includes(search.toLowerCase())
   );
-
-  const planLabel = (t: string) => PLAN_OPTIONS.find((p) => p.value === t)?.label ?? t;
 
   return (
     <SuperAdminLayout
@@ -181,13 +163,11 @@ function Page() {
           </div>
         ) : (
           <div className="bg-white rounded-lg border overflow-hidden overflow-x-auto">
-            <table className="w-full text-sm min-w-[700px]">
+            <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
                   <th className="text-left px-4 py-3">Organização</th>
                   <th className="text-left px-4 py-3">Slug</th>
-                  <th className="text-left px-4 py-3">Plano</th>
-                  <th className="text-left px-4 py-3">Valor</th>
                   <th className="text-center px-4 py-3">Membros</th>
                   <th className="text-center px-4 py-3">Contatos</th>
                   <th className="text-left px-4 py-3">Status</th>
@@ -200,12 +180,6 @@ function Page() {
                   <tr key={a.id} className="border-t hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-slate-900">{a.name}</td>
                     <td className="px-4 py-3 text-slate-500 font-mono text-xs">{a.slug}</td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-[#0B3A5D]/10 text-[#0B3A5D]">
-                        {planLabel(a.plan_type)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-semibold">{money.format(a.plan_value)}</td>
                     <td className="px-4 py-3 text-center">
                       <span className="inline-flex items-center gap-1 text-slate-600">
                         <Users className="h-3.5 w-3.5" /> {a.members_count}
@@ -237,7 +211,7 @@ function Page() {
                         </button>
                         <button
                           onClick={() => {
-                            if (confirm(`Excluir "${a.name}"? Os membros não serão removidos.`))
+                            if (confirm(`Excluir "${a.name}"? Todos os dados da organização serão removidos.`))
                               deleteMut.mutate(a.id);
                           }}
                           disabled={deleteMut.isPending}
@@ -258,8 +232,8 @@ function Page() {
 
       {/* Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-lg rounded-xl bg-white border shadow-2xl p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-xl bg-white border shadow-2xl p-5 md:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-base font-semibold text-[#0B3A5D]">
               {editing ? `Editar — ${editing.name}` : "Nova Organização"}
             </h2>
@@ -289,45 +263,17 @@ function Page() {
                 <p className="text-[10px] text-slate-400 mt-0.5">Identificador único, sem espaços</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium block mb-1">Idioma</label>
-                  <select
-                    className="w-full h-10 px-3 rounded-lg border bg-white text-sm"
-                    value={locale}
-                    onChange={(e) => setLocale(e.target.value)}
-                  >
-                    <option value="pt">Português</option>
-                    <option value="en">English</option>
-                    <option value="es">Español</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium block mb-1">Plano</label>
-                  <select
-                    className="w-full h-10 px-3 rounded-lg border bg-white text-sm"
-                    value={planType}
-                    onChange={(e) => {
-                      setPlanType(e.target.value);
-                      const plan = PLAN_OPTIONS.find((p) => p.value === e.target.value);
-                      if (plan) setPlanValue(plan.price);
-                    }}
-                  >
-                    {PLAN_OPTIONS.map((p) => (
-                      <option key={p.value} value={p.value}>{p.label} — {money.format(p.price)}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
               <div>
-                <label className="text-xs font-medium block mb-1">Valor Mensal (R$)</label>
-                <input
-                  type="number"
+                <label className="text-xs font-medium block mb-1">Idioma</label>
+                <select
                   className="w-full h-10 px-3 rounded-lg border bg-white text-sm"
-                  value={planValue}
-                  onChange={(e) => setPlanValue(Number(e.target.value))}
-                />
+                  value={locale}
+                  onChange={(e) => setLocale(e.target.value)}
+                >
+                  <option value="pt">Português</option>
+                  <option value="en">English</option>
+                  <option value="es">Español</option>
+                </select>
               </div>
 
               <div className="flex items-center justify-between border rounded-lg px-3 py-2">
