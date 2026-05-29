@@ -87,47 +87,59 @@ Deno.serve(async (req) => {
       const id = String(body.id || "");
       if (!id) return json({ error: "id obrigatório" }, 400);
 
-      // Try RPC first, fallback to manual cascade
-      const { error: rpcErr } = await admin.rpc("delete_account_cascade", { _account_id: id });
-      if (rpcErr) {
-        // Fallback: manual cascade delete
-        const safe = async (fn: () => Promise<unknown>) => {
-          try { await fn(); } catch { /* ignore */ }
-        };
+      const safe = async (fn: () => Promise<unknown>) => {
+        try { await fn(); } catch { /* ignore missing tables */ }
+      };
 
-        // Get child IDs
-        const { data: convs } = await admin.from("conversations").select("id").eq("account_id", id);
-        const cIds = (convs || []).map((c: { id: string }) => c.id);
-        const { data: teams } = await admin.from("teams").select("id").eq("account_id", id);
-        const tIds = (teams || []).map((t: { id: string }) => t.id);
-        const { data: inboxes } = await admin.from("inboxes").select("id").eq("account_id", id);
-        const iIds = (inboxes || []).map((i: { id: string }) => i.id);
-        const { data: leads } = await admin.from("pipeline_leads").select("id").eq("account_id", id);
-        const lIds = (leads || []).map((l: { id: string }) => l.id);
+      // 1. Get all child IDs we need
+      const { data: contactRows } = await admin.from("contacts").select("id").eq("account_id", id);
+      const contactIds = (contactRows || []).map((c: { id: string }) => c.id);
 
-        // Deep children first
-        if (cIds.length) await safe(() => admin.from("messages").delete().in("conversation_id", cIds));
-        if (lIds.length) await safe(() => admin.from("pipeline_lead_activities").delete().in("lead_id", lIds));
-        if (tIds.length) await safe(() => admin.from("team_members").delete().in("team_id", tIds));
-        if (iIds.length) await safe(() => admin.from("inbox_members").delete().in("inbox_id", iIds));
+      const { data: convRows } = await admin.from("conversations").select("id").eq("account_id", id);
+      const convIds = (convRows || []).map((c: { id: string }) => c.id);
 
-        // Account-level tables
-        const tables = [
-          "conversations", "pipeline_leads", "pipeline_stages", "contacts",
-          "teams", "inboxes", "ai_settings", "automations", "support_tickets",
-          "account_members", "notifications", "quick_replies", "labels",
-          "payment_schedules",
-        ];
-        for (const t of tables) await safe(() => admin.from(t).delete().eq("account_id", id));
+      const { data: teamRows } = await admin.from("teams").select("id").eq("account_id", id);
+      const teamIds = (teamRows || []).map((t: { id: string }) => t.id);
 
-        // Unlink (don't delete)
-        await safe(() => admin.from("profiles").update({ account_id: null }).eq("account_id", id));
-        await safe(() => admin.from("whatsapp_instances").update({ account_id: null }).eq("account_id", id));
+      const { data: inboxRows } = await admin.from("inboxes").select("id").eq("account_id", id);
+      const inboxIds = (inboxRows || []).map((i: { id: string }) => i.id);
 
-        // Final delete
-        const { error } = await admin.from("accounts").delete().eq("id", id);
-        if (error) throw new Error(`Falha ao excluir conta: ${error.message}`);
-      }
+      const { data: leadRows } = await admin.from("pipeline_leads").select("id").eq("account_id", id);
+      const leadIds = (leadRows || []).map((l: { id: string }) => l.id);
+
+      // 2. Deepest children first (grandchildren)
+      if (convIds.length) await safe(() => admin.from("messages").delete().in("conversation_id", convIds));
+      if (leadIds.length) await safe(() => admin.from("pipeline_lead_activities").delete().in("lead_id", leadIds));
+      if (teamIds.length) await safe(() => admin.from("team_members").delete().in("team_id", teamIds));
+      if (inboxIds.length) await safe(() => admin.from("inbox_members").delete().in("inbox_id", inboxIds));
+      if (contactIds.length) await safe(() => admin.from("payment_schedules").delete().in("contact_id", contactIds));
+
+      // 3. Children of contacts (conversations + pipeline_leads reference contact_id)
+      if (convIds.length) await safe(() => admin.from("conversations").delete().in("id", convIds));
+      if (leadIds.length) await safe(() => admin.from("pipeline_leads").delete().in("id", leadIds));
+
+      // 4. Now contacts are free to delete
+      if (contactIds.length) await safe(() => admin.from("contacts").delete().in("id", contactIds));
+
+      // 5. Other account-level tables
+      await safe(() => admin.from("pipeline_stages").delete().eq("account_id", id));
+      await safe(() => admin.from("teams").delete().eq("account_id", id));
+      await safe(() => admin.from("inboxes").delete().eq("account_id", id));
+      await safe(() => admin.from("ai_settings").delete().eq("account_id", id));
+      await safe(() => admin.from("automations").delete().eq("account_id", id));
+      await safe(() => admin.from("support_tickets").delete().eq("account_id", id));
+      await safe(() => admin.from("account_members").delete().eq("account_id", id));
+      await safe(() => admin.from("notifications").delete().eq("account_id", id));
+      await safe(() => admin.from("quick_replies").delete().eq("account_id", id));
+      await safe(() => admin.from("labels").delete().eq("account_id", id));
+
+      // 6. Unlink (don't delete)
+      await safe(() => admin.from("profiles").update({ account_id: null }).eq("account_id", id));
+      await safe(() => admin.from("whatsapp_instances").update({ account_id: null }).eq("account_id", id));
+
+      // 7. Final delete
+      const { error } = await admin.from("accounts").delete().eq("id", id);
+      if (error) throw new Error(`Falha ao excluir conta: ${error.message}`);
       return json({ ok: true });
     }
 
