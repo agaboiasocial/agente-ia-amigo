@@ -15,6 +15,7 @@ const DEFAULT_SYSTEM_PROMPT =
 
 interface AISettings {
   id: string;
+  account_id: string | null;
   persona_name: string;
   system_prompt: string;
   model: string;
@@ -31,21 +32,29 @@ interface AISettings {
   ignore_numbers: string[];
 }
 
-function useAISettings() {
+function useAISettings(accountId: string | null) {
   return useQuery({
-    queryKey: ["ai_settings"],
+    queryKey: ["ai_settings", accountId],
     queryFn: async (): Promise<AISettings | null> => {
-      const { data, error } = await sb.from("ai_settings").select("*").limit(1).maybeSingle();
+      if (!accountId) throw new Error("Conta atual não identificada");
+      const { data, error } = await sb
+        .from("ai_settings")
+        .select("*")
+        .eq("account_id", accountId)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
+    enabled: !!accountId,
   });
 }
 
 function IASPage() {
   const queryClient = useQueryClient();
   const { accountId } = useAuth();
-  const { data: settings } = useAISettings();
+  const { data: settings } = useAISettings(accountId);
   const [enabled, setEnabled] = useState(true);
   const [personaName, setPersonaName] = useState("IAS Assistente");
   const [model, setModel] = useState("gpt-4o-mini");
@@ -83,7 +92,11 @@ function IASPage() {
 
   const save = useMutation({
     mutationFn: async () => {
+      if (!accountId) {
+        throw new Error("Conta atual não identificada. Vincule o usuário a uma conta antes de salvar o IAS.");
+      }
       const payload: Record<string, any> = {
+        account_id: accountId,
         persona_name: personaName,
         system_prompt: prompt,
         model,
@@ -100,9 +113,12 @@ function IASPage() {
         off_hours_message: offHoursMessage,
         updated_at: new Date().toISOString(),
       };
-      if (accountId) payload.account_id = accountId;
       if (settings?.id) {
-        const { error } = await sb.from("ai_settings").update(payload).eq("id", settings.id);
+        const { error } = await sb
+          .from("ai_settings")
+          .update(payload)
+          .eq("id", settings.id)
+          .eq("account_id", accountId);
         if (error) throw error;
         return;
       }
@@ -110,7 +126,7 @@ function IASPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ai_settings"] });
+      queryClient.invalidateQueries({ queryKey: ["ai_settings", accountId] });
       toast.success("Configuração do IAS salva");
     },
     onError: (error: Error) => toast.error(error.message),

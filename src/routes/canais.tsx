@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -16,30 +16,68 @@ type Instance = {
   profile_pic: string | null;
   status: string | null;
   created_at: string | null;
+  inbox_id: string | null;
+  inbox_name: string | null;
+  webhook_configured: boolean;
 };
 
 function CanaisPage() {
   const [instances, setInstances] = useState<Instance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { accountId, session } = useAuth();
+  const { accountId, session, loading: authLoading } = useAuth();
 
-  const load = async () => {
+  const load = useCallback(async () => {
+    if (!accountId) {
+      setInstances([]);
+      setLoadError("Conta atual não identificada. Recarregue a página e tente novamente.");
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    let q = supabase
-      .from("whatsapp_instances")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (accountId) q = q.eq("account_id", accountId);
-    const { data, error } = await q;
-    if (error) toast.error(error.message);
-    else setInstances((data as Instance[]) ?? []);
-    setLoading(false);
-  };
+    setLoadError(null);
+    try {
+      const { data, error } = await supabase
+        .from("whatsapp_instances")
+        .select("*")
+        .eq("account_id", accountId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
 
-  useEffect(() => { if (accountId) load(); }, [accountId]);
+      const { data: inboxes, error: inboxError } = await (supabase as any)
+        .from("inboxes")
+        .select("id, name, instance_name")
+        .eq("account_id", accountId);
+      if (inboxError) throw inboxError;
+
+      const inboxByInstance = new Map<string, any>(
+        ((inboxes ?? []) as any[]).map((inbox) => [inbox.instance_name, inbox])
+      );
+      setInstances(((data as any[]) ?? []).map((inst) => {
+        const inbox = inboxByInstance.get(inst.instance_name);
+        return {
+          ...inst,
+          inbox_id: inbox?.id ?? null,
+          inbox_name: inbox?.name ?? null,
+          webhook_configured: true,
+        };
+      }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro ao carregar canais conectados";
+      setLoadError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [accountId]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    void load();
+  }, [authLoading, load]);
 
   const refreshOne = async (inst: Instance) => {
     setRefreshingId(inst.id);
@@ -115,6 +153,17 @@ function CanaisPage() {
           <div className="flex items-center justify-center py-12 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando…
           </div>
+        ) : loadError ? (
+          <div className="border border-destructive/30 rounded-xl p-8 text-center bg-destructive/5">
+            <AlertCircle className="h-10 w-10 mx-auto text-destructive mb-3" />
+            <p className="text-sm text-destructive font-medium mb-4">{loadError}</p>
+            <button
+              onClick={load}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium hover:bg-background"
+            >
+              <RefreshCw className="h-4 w-4" /> Tentar novamente
+            </button>
+          </div>
         ) : instances.length === 0 ? (
           <div className="border border-dashed rounded-xl p-12 text-center">
             <MessageCircle className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
@@ -146,6 +195,11 @@ function CanaisPage() {
                   </div>
                   <div className="text-sm text-muted-foreground truncate">
                     {inst.phone_number ? `+${inst.phone_number}` : "Número não disponível"} · {inst.instance_name}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+                    <StatusPill ok={inst.status === "connected" || inst.status === "open"} label="WhatsApp" />
+                    <StatusPill ok={inst.webhook_configured} label="Webhook" />
+                    <StatusPill ok={!!inst.inbox_id} label={inst.inbox_name ? `Caixa: ${inst.inbox_name}` : "Caixa"} />
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -186,5 +240,16 @@ function CanaisPage() {
         )}
       </div>
     </AppLayout>
+  );
+}
+
+function StatusPill({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium ${
+      ok ? "bg-success/15 text-success" : "bg-warning/20 text-foreground"
+    }`}>
+      {ok ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+      {label}
+    </span>
   );
 }

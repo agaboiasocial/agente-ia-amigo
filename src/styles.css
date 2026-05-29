@@ -113,10 +113,12 @@
 @layer base {
   * { border-color: var(--color-border); }
   html, body { font-family: var(--font-sans); }
+  html { overflow-x: hidden; }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
 }
 

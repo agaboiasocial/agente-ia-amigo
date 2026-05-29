@@ -213,12 +213,18 @@ export default async function handler(req, res) {
 
     const supa = getAdminClient();
 
-    // 1. Load AI settings for this account
-    let query = supa.from("ai_settings").select("*");
-    if (accountId) {
-      query = query.eq("account_id", accountId);
+    if (!accountId) {
+      return res.status(200).json({ ok: true, skipped: true, reason: "Account not identified" });
     }
-    const { data: settings } = await query.limit(1).maybeSingle();
+
+    // 1. Load AI settings for this account only.
+    const { data: settings } = await supa
+      .from("ai_settings")
+      .select("*")
+      .eq("account_id", accountId)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     // If no settings or AI is disabled, skip
     if (!settings || !settings.is_active) {
@@ -344,7 +350,6 @@ Esse código é removido automaticamente antes de chegar ao cliente. NUNCA menci
         }
       }
 
-      console.log(`[AI] Handoff detected for contact ${contactId}, AI paused`);
     }
 
     // 9. Send response via WhatsApp (split long messages)

@@ -47,7 +47,7 @@ function Page() {
             <p className="text-slate-500">Nenhuma conta encontrada.</p>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 md:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {accounts.map((acc) => {
               const webhookUrl = `${baseUrl}/api/public/whatsapp-webhook/${acc.id}`;
               const hasWebhook = true; // All accounts have the endpoint available

@@ -9,6 +9,46 @@ function getAdminClient() {
   });
 }
 
+async function ensureWhatsAppInbox(supa, { accountId, instanceName, phoneNumber, profileName }) {
+  if (!accountId || !instanceName) return null;
+
+  const { data: existing, error: findError } = await supa
+    .from("inboxes")
+    .select("id")
+    .eq("account_id", accountId)
+    .eq("instance_name", instanceName)
+    .maybeSingle();
+  if (findError) throw findError;
+  if (existing?.id) return existing;
+
+  const name = profileName || phoneNumber || instanceName;
+  const channelConfig = {
+    provider: "evolution",
+    instance_name: instanceName,
+    phone_number: phoneNumber || null,
+  };
+
+  const { data, error } = await supa
+    .from("inboxes")
+    .insert({
+      account_id: accountId,
+      name: `WhatsApp - ${name}`,
+      channel: "WhatsApp",
+      instance_name: instanceName,
+      config: channelConfig,
+      channel_config: channelConfig,
+      active: true,
+      status: "active",
+      widget_color: "#25D366",
+      welcome_message: "Olá! Como podemos ajudar?",
+      greeting_message: "Olá! Como podemos ajudar?",
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
@@ -107,8 +147,9 @@ export default async function handler(req, res) {
             status: "pending",
           });
         }
+        await ensureWhatsAppInbox(supa, { accountId, instanceName, phoneNumber, profileName: null });
       } catch (e) {
-        console.warn("Failed to save instance to DB:", e);
+        console.warn("Failed to save instance/inbox to DB:", e);
       }
     }
 

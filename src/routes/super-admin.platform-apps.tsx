@@ -33,7 +33,7 @@ function Page() {
       }
     >
       <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm min-w-[500px]">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
               <th className="text-left px-4 py-2.5">Id</th>
@@ -58,7 +58,7 @@ function Page() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>

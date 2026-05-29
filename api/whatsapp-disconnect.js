@@ -52,9 +52,8 @@ export default async function handler(req, res) {
     try {
       const lr = await fetch(`${baseUrl}/instance/logout/${name}`, { method: "DELETE", headers });
       logoutOk = lr.ok;
-      console.log("logout response:", lr.status);
-    } catch (e) {
-      console.warn("logout failed", e);
+    } catch {
+      console.warn("logout failed");
     }
 
     // Remove instance from Evolution
@@ -63,9 +62,8 @@ export default async function handler(req, res) {
       try {
         const dr = await fetch(`${baseUrl}/instance/delete/${name}`, { method: "DELETE", headers });
         deleteOk = dr.ok;
-        console.log("delete response:", dr.status);
-      } catch (e) {
-        console.warn("delete failed", e);
+      } catch {
+        console.warn("delete failed");
       }
     }
 

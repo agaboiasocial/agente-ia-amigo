@@ -66,9 +66,9 @@ function CaixasPage() {
           </div>
           <button
             onClick={() => setOpen(true)}
-            className="h-10 px-4 rounded-lg bg-success text-success-foreground text-sm font-medium hover:opacity-95 flex items-center gap-2"
+            className="h-10 px-3 md:px-4 rounded-lg bg-success text-success-foreground text-sm font-medium hover:opacity-95 flex items-center gap-2"
           >
-            <Plus className="h-4 w-4" /> Nova Caixa de Entrada
+            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Nova Caixa de Entrada</span>
           </button>
         </div>
 
@@ -100,7 +100,7 @@ function CaixasPage() {
                 (c) => (c as { inbox_id?: string }).inbox_id === ib.id && c.status !== "resolvida",
               ).length;
               return (
-                <div key={ib.id} className="bg-card border rounded-xl p-5 flex items-center gap-4">
+                <div key={ib.id} className="bg-card border rounded-xl p-4 md:p-5 flex flex-wrap sm:flex-nowrap items-center gap-3 md:gap-4">
                   <div
                     className="h-12 w-12 rounded-xl grid place-items-center shrink-0"
                     style={{ backgroundColor: `${meta.color}20`, color: meta.color }}
@@ -126,7 +126,12 @@ function CaixasPage() {
                     <input
                       type="checkbox"
                       checked={ib.active}
-                      onChange={(e) => updateInbox.mutate({ id: ib.id, patch: { active: e.target.checked } })}
+                      onChange={(e) =>
+                        updateInbox.mutate(
+                          { id: ib.id, patch: { active: e.target.checked } },
+                          { onError: (error) => toast.error(error instanceof Error ? error.message : "Erro ao atualizar caixa") },
+                        )
+                      }
                       className="h-4 w-4 accent-success"
                     />
                     <span className={ib.active ? "text-success font-medium" : "text-muted-foreground"}>
@@ -146,6 +151,7 @@ function CaixasPage() {
                       if (confirm(`Excluir caixa "${ib.name}"?`)) {
                         deleteInbox.mutate(ib.id, {
                           onSuccess: () => toast.success("Caixa excluída"),
+                          onError: (error) => toast.error(error instanceof Error ? error.message : "Erro ao excluir caixa"),
                         });
                       }
                     }}

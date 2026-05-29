@@ -143,18 +143,18 @@ function MinhaCaixaPage() {
   return (
     <AppLayout flush>
       <div className="h-full flex flex-col">
-        <div className="h-16 shrink-0 bg-card border-b px-5 flex items-center justify-between gap-4">
+        <div className="shrink-0 bg-card border-b px-3 md:px-5 py-3 md:py-0 md:h-16 flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <Inbox className="h-5 w-5 text-brand shrink-0" />
             <div className="min-w-0">
               <h1 className="text-base font-semibold text-brand">Minha Caixa</h1>
-              <p className="text-xs text-muted-foreground truncate">
+              <p className="text-xs text-muted-foreground truncate hidden sm:block">
                 Central de mensagens, atribuições e avisos do IAS
               </p>
             </div>
             {unreadCount > 0 && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-success/15 text-success font-semibold">
-                {unreadCount} não lidas
+              <span className="text-xs px-2 py-0.5 rounded-full bg-success/15 text-success font-semibold shrink-0">
+                {unreadCount}
               </span>
             )}
           </div>
@@ -163,13 +163,13 @@ function MinhaCaixaPage() {
             {unreadCount > 0 && (
               <button
                 onClick={() => markAllAsRead()}
-                className="h-9 px-3 rounded-lg border text-xs font-medium hover:bg-background flex items-center gap-2"
+                className="h-9 px-3 rounded-lg border text-xs font-medium hover:bg-background flex items-center gap-2 shrink-0"
               >
                 <CheckCheck className="h-4 w-4" />
-                Ler todas
+                <span className="hidden sm:inline">Ler todas</span>
               </button>
             )}
-            <div className="relative w-72 max-w-[38vw]">
+            <div className="relative flex-1 md:w-72 md:flex-initial max-w-[60vw] md:max-w-[38vw]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 value={query}
@@ -198,7 +198,7 @@ function MinhaCaixaPage() {
           ))}
         </div>
 
-        <div className="flex-1 overflow-auto p-5 bg-background">
+        <div className="flex-1 overflow-auto p-3 md:p-5 bg-background">
           {filtered.length === 0 ? (
             <div className="text-center text-muted-foreground py-20 text-sm">
               Nenhuma notificação nesta categoria

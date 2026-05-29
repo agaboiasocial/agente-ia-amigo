@@ -5,7 +5,7 @@ import { usePipeline } from "@/hooks/use-pipeline";
 import { CreateLeadModal } from "@/components/pipeline/CreateLeadModal";
 import { LeadDrawer } from "@/components/pipeline/LeadDrawer";
 import type { PipelineLead, PipelineStage } from "@/types/pipeline";
-import { Loader2, Plus, Search, Settings2, SlidersHorizontal, UserRound } from "lucide-react";
+import { Check, Loader2, Pencil, Plus, Search, Settings2, SlidersHorizontal, UserRound, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
@@ -17,6 +17,8 @@ function PipelinePage() {
   const pipeline = usePipeline();
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<PipelineLead | null>(null);
+  const [editingStageId, setEditingStageId] = useState<string | null>(null);
+  const [stageNameDraft, setStageNameDraft] = useState("");
 
   const move = async (lead: PipelineLead, stage: PipelineStage) => {
     try {
@@ -27,12 +29,37 @@ function PipelinePage() {
     }
   };
 
+  const startEditStage = (stage: PipelineStage) => {
+    setEditingStageId(stage.id);
+    setStageNameDraft(stage.name);
+  };
+
+  const cancelEditStage = () => {
+    setEditingStageId(null);
+    setStageNameDraft("");
+  };
+
+  const saveStageName = async (stage: PipelineStage) => {
+    const nextName = stageNameDraft.trim();
+    if (!nextName) {
+      toast.error("Informe o nome da etapa");
+      return;
+    }
+    try {
+      await pipeline.renameStage.mutateAsync({ stageId: stage.id, name: nextName });
+      toast.success("Nome da etapa atualizado");
+      cancelEditStage();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao renomear etapa");
+    }
+  };
+
   return (
     <AppLayout
       title="Pipeline"
       actions={
         <div className="flex items-center gap-2">
-          <div className="relative w-64">
+          <div className="relative w-40 md:w-64">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               value={pipeline.filters.search}
@@ -45,7 +72,7 @@ function PipelinePage() {
             onClick={() => setCreateOpen(true)}
             className="h-9 px-3 rounded-lg bg-success text-success-foreground text-sm font-semibold flex items-center gap-1.5"
           >
-            <Plus className="h-4 w-4" /> Novo Lead
+            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Novo Lead</span>
           </button>
           <Link
             to="/pipeline-settings"
@@ -69,8 +96,8 @@ function PipelinePage() {
             <span>{pipeline.leads.length} leads filtrados</span>
             <span>{pipeline.stages.length} etapas ativas</span>
           </div>
-          <div className="flex-1 overflow-x-auto bg-background p-4">
-            <div className="flex h-full min-w-max gap-4">
+          <div className="flex-1 overflow-x-auto bg-background p-3 md:p-4">
+            <div className="flex h-full min-w-max gap-3 md:gap-4">
               {pipeline.stages.map((stage) => {
                 const leads = pipeline.leads.filter((lead) => lead.stage_id === stage.id);
                 const totals = pipeline.getColumnTotals(stage.id);
@@ -83,17 +110,59 @@ function PipelinePage() {
                       const lead = pipeline.allLeads.find((item) => item.id === leadId);
                       if (lead) void move(lead, stage);
                     }}
-                    className="flex h-full w-[310px] shrink-0 flex-col rounded-lg border bg-card"
+                    className="flex h-full w-[270px] md:w-[310px] shrink-0 flex-col rounded-lg border bg-card"
                   >
                     <header className="border-b p-3">
                       <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
                           <span className="h-3 w-3 rounded-full" style={{ background: stage.color }} />
-                          <h2 className="text-sm font-semibold text-foreground">{stage.name}</h2>
+                          {editingStageId === stage.id ? (
+                            <input
+                              value={stageNameDraft}
+                              onChange={(event) => setStageNameDraft(event.target.value)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") void saveStageName(stage);
+                                if (event.key === "Escape") cancelEditStage();
+                              }}
+                              autoFocus
+                              className="h-8 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-success/40"
+                            />
+                          ) : (
+                            <h2 className="truncate text-sm font-semibold text-foreground">{stage.name}</h2>
+                          )}
                         </div>
-                        <span className="rounded-full bg-background px-2 py-0.5 text-xs font-medium">
-                          {totals.count}
-                        </span>
+                        {editingStageId === stage.id ? (
+                          <div className="flex shrink-0 items-center gap-1">
+                            <button
+                              onClick={() => void saveStageName(stage)}
+                              disabled={pipeline.renameStage.isPending}
+                              className="grid h-8 w-8 place-items-center rounded-md border text-success hover:bg-success/10 disabled:opacity-60"
+                              title="Salvar nome"
+                            >
+                              {pipeline.renameStage.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                            </button>
+                            <button
+                              onClick={cancelEditStage}
+                              className="grid h-8 w-8 place-items-center rounded-md border text-muted-foreground hover:bg-background"
+                              title="Cancelar"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex shrink-0 items-center gap-1">
+                            <span className="rounded-full bg-background px-2 py-0.5 text-xs font-medium">
+                              {totals.count}
+                            </span>
+                            <button
+                              onClick={() => startEditStage(stage)}
+                              className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-background hover:text-foreground"
+                              title="Editar nome"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                       <div className="mt-2 text-xs text-muted-foreground">
                         {money.format(totals.total_value)} · ponderado {money.format(totals.weighted_value)}

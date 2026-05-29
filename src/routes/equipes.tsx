@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAgents } from "@/lib/data";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Plus,
   Pencil,
@@ -39,6 +40,7 @@ function roleMeta(v: string) {
 
 interface TeamRow {
   id: string;
+  account_id: string | null;
   name: string;
   description: string | null;
   active: boolean;
@@ -54,40 +56,49 @@ interface MemberRow {
 }
 
 // ---------- Hooks ----------
-function useTeams() {
+function useTeams(accountId: string | null) {
   return useQuery({
-    queryKey: ["teams"],
+    queryKey: ["teams", accountId],
     queryFn: async () => {
+      if (!accountId) throw new Error("Conta atual não identificada");
       const { data, error } = await (supabase as any)
         .from("teams")
-        .select("id, name, description, active, auto_assign, allow_self_assign")
+        .select("id, account_id, name, description, active, auto_assign, allow_self_assign")
+        .eq("account_id", accountId)
         .order("name");
       if (error) throw error;
       return (data ?? []) as TeamRow[];
     },
+    enabled: !!accountId,
   });
 }
 
-function useTeamMembers() {
+function useTeamMembers(accountId: string | null) {
   return useQuery({
-    queryKey: ["team_members"],
+    queryKey: ["team_members", accountId],
     queryFn: async () => {
+      if (!accountId) throw new Error("Conta atual não identificada");
       const { data, error } = await (supabase as any)
         .from("team_members")
-        .select("id, team_id, user_id, role");
+        .select("id, team_id, user_id, role, team:teams!inner(account_id)")
+        .eq("team.account_id", accountId);
       if (error) throw error;
       return (data ?? []) as MemberRow[];
     },
+    enabled: !!accountId,
   });
 }
 
-function useTeamConvCounts() {
+function useTeamConvCounts(accountId: string | null) {
   return useQuery({
-    queryKey: ["team_conv_counts"],
+    queryKey: ["team_conv_counts", accountId],
     queryFn: async (): Promise<Record<string, number>> => {
-      const { data, error } = await (supabase as any)
+      if (!accountId) throw new Error("Conta atual não identificada");
+      const query = (supabase as any)
         .from("conversations")
-        .select("team_id");
+        .select("team_id")
+        .eq("account_id", accountId);
+      const { data, error } = await query;
       if (error) throw error;
       const out: Record<string, number> = {};
       for (const r of (data ?? []) as { team_id: string | null }[]) {
@@ -95,15 +106,17 @@ function useTeamConvCounts() {
       }
       return out;
     },
+    enabled: !!accountId,
   });
 }
 
 // ---------- Page ----------
 function EquipesPage() {
-  const { data: teams = [], isLoading } = useTeams();
-  const { data: members = [] } = useTeamMembers();
+  const { accountId } = useAuth();
+  const { data: teams = [], isLoading } = useTeams(accountId);
+  const { data: members = [] } = useTeamMembers(accountId);
   const { data: agents = [] } = useAgents();
-  const { data: counts = {} } = useTeamConvCounts();
+  const { data: counts = {} } = useTeamConvCounts(accountId);
   const qc = useQueryClient();
 
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -112,13 +125,14 @@ function EquipesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("teams").delete().eq("id", id);
+      if (!accountId) throw new Error("Conta atual não identificada");
+      const { error } = await (supabase as any).from("teams").delete().eq("id", id).eq("account_id", accountId);
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["teams"] });
-      qc.invalidateQueries({ queryKey: ["team_members"] });
-      qc.invalidateQueries({ queryKey: ["team_conv_counts"] });
+      qc.invalidateQueries({ queryKey: ["teams", accountId] });
+      qc.invalidateQueries({ queryKey: ["team_members", accountId] });
+      qc.invalidateQueries({ queryKey: ["team_conv_counts", accountId] });
       toast.success("Equipe excluída");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -147,10 +161,10 @@ function EquipesPage() {
       <div className="space-y-5">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold" style={{ color: "#0B3A5D" }}>
+            <h2 className="text-lg md:text-xl font-semibold" style={{ color: "#0B3A5D" }}>
               Equipes
             </h2>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1 hidden sm:block">
               Organize seus agentes em equipes para distribuir conversas.
             </p>
           </div>
@@ -159,10 +173,10 @@ function EquipesPage() {
               setEditing(null);
               setWizardOpen(true);
             }}
-            className="h-10 px-4 rounded-lg text-sm font-semibold text-white flex items-center gap-2 hover:opacity-95"
+            className="h-10 px-3 md:px-4 rounded-lg text-sm font-semibold text-white flex items-center gap-2 hover:opacity-95"
             style={{ background: "#2FAE7C" }}
           >
-            <Plus className="h-4 w-4" /> Nova Equipe
+            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Nova Equipe</span>
           </button>
         </div>
 
@@ -173,7 +187,7 @@ function EquipesPage() {
         ) : teams.length === 0 ? (
           <EmptyState onCreate={() => setWizardOpen(true)} />
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 md:gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
             {teams.map((t) => {
               const tm = members.filter((m) => m.team_id === t.id);
               return (
@@ -254,6 +268,7 @@ function EquipesPage() {
         <TeamWizard
           initial={editing}
           existingMembers={editing ? members.filter((m) => m.team_id === editing.id) : []}
+          accountId={accountId}
           onClose={() => {
             setWizardOpen(false);
             setEditing(null);
@@ -333,10 +348,12 @@ type SelectedMember = { user_id: string; role: RoleValue };
 function TeamWizard({
   initial,
   existingMembers,
+  accountId,
   onClose,
 }: {
   initial: TeamRow | null;
   existingMembers: MemberRow[];
+  accountId: string | null;
   onClose: () => void;
 }) {
   const qc = useQueryClient();
@@ -374,8 +391,10 @@ function TeamWizard({
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      if (!accountId) throw new Error("Conta atual não identificada");
       let teamId = initial?.id;
       const payload = {
+        account_id: accountId,
         name: name.trim(),
         description: description.trim() || null,
         auto_assign: autoAssign,
@@ -383,7 +402,11 @@ function TeamWizard({
         active,
       };
       if (teamId) {
-        const { error } = await (supabase as any).from("teams").update(payload).eq("id", teamId);
+        const { error } = await (supabase as any)
+          .from("teams")
+          .update(payload)
+          .eq("id", teamId)
+          .eq("account_id", accountId);
         if (error) throw error;
         // reset members
         const { error: delErr } = await (supabase as any)
@@ -411,8 +434,9 @@ function TeamWizard({
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["teams"] });
-      qc.invalidateQueries({ queryKey: ["team_members"] });
+      qc.invalidateQueries({ queryKey: ["teams", accountId] });
+      qc.invalidateQueries({ queryKey: ["team_members", accountId] });
+      qc.invalidateQueries({ queryKey: ["team_conv_counts", accountId] });
       toast.success(initial ? "Equipe atualizada" : "Equipe criada");
       onClose();
     },
@@ -758,10 +782,11 @@ function TeamDetails({
   onBack: () => void;
   onEdit: (t: TeamRow) => void;
 }) {
-  const { data: teams = [] } = useTeams();
-  const { data: members = [] } = useTeamMembers();
+  const { accountId } = useAuth();
+  const { data: teams = [] } = useTeams(accountId);
+  const { data: members = [] } = useTeamMembers(accountId);
   const { data: agents = [] } = useAgents();
-  const { data: counts = {} } = useTeamConvCounts();
+  const { data: counts = {} } = useTeamConvCounts(accountId);
 
   const team = teams.find((t) => t.id === teamId);
   const tm = members.filter((m) => m.team_id === teamId);
@@ -819,12 +844,13 @@ function TeamDetails({
               Nenhum membro nesta equipe
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[400px]">
               <thead className="bg-background text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <th className="text-left px-5 py-3">Membro</th>
-                  <th className="text-left px-5 py-3">Cargo</th>
-                  <th className="text-left px-5 py-3">Status</th>
+                  <th className="text-left px-3 md:px-5 py-3">Membro</th>
+                  <th className="text-left px-3 md:px-5 py-3">Cargo</th>
+                  <th className="text-left px-3 md:px-5 py-3">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -833,18 +859,18 @@ function TeamDetails({
                   const r = roleMeta(m.role);
                   return (
                     <tr key={m.id} className="border-t">
-                      <td className="px-5 py-3">
+                      <td className="px-3 md:px-5 py-3">
                         <div className="flex items-center gap-3">
                           <div
-                            className="h-8 w-8 rounded-full grid place-items-center text-[10px] font-bold text-white"
+                            className="h-8 w-8 rounded-full grid place-items-center text-[10px] font-bold text-white shrink-0"
                             style={{ background: "#0B3A5D" }}
                           >
                             {a?.avatar_initials ?? a?.display_name.slice(0, 2).toUpperCase()}
                           </div>
-                          <div className="font-medium">{a?.display_name ?? "—"}</div>
+                          <div className="font-medium truncate">{a?.display_name ?? "—"}</div>
                         </div>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-3 md:px-5 py-3">
                         <span
                           className="text-[10px] px-2 py-0.5 rounded-full font-semibold text-white"
                           style={{ background: r.color }}
@@ -852,7 +878,7 @@ function TeamDetails({
                           {r.label}
                         </span>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-3 md:px-5 py-3">
                         <span className="inline-flex items-center gap-2 text-xs">
                           <span
                             className="h-2 w-2 rounded-full"
@@ -866,6 +892,7 @@ function TeamDetails({
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>

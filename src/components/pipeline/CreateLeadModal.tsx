@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { PipelineStage } from "@/types/pipeline";
+import { normalizeContactPhone } from "@/lib/data";
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { X, Loader2 } from "lucide-react";
 
@@ -15,6 +17,7 @@ interface Props {
 
 export function CreateLeadModal({ open, onClose, stages }: Props) {
   const qc = useQueryClient();
+  const { accountId } = useAuth();
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -30,23 +33,39 @@ export function CreateLeadModal({ open, onClose, stages }: Props) {
   const create = useMutation({
     mutationFn: async () => {
       if (!form.name.trim()) throw new Error("Informe o nome");
+      if (!accountId) throw new Error("Conta atual não identificada. Recarregue a página e tente novamente.");
+
+      const phone = normalizeContactPhone(form.phone);
+      if (phone) {
+        const { data: existing, error: duplicateError } = await sb
+          .from("contacts")
+          .select("id")
+          .eq("account_id", accountId)
+          .eq("phone_number", phone)
+          .limit(1)
+          .maybeSingle();
+        if (duplicateError) throw duplicateError;
+        if (existing) throw new Error("Já existe um contato com este telefone nesta conta.");
+      }
+
       const { error } = await sb.from("contacts").insert({
         name: form.name.trim(),
-        phone: form.phone.trim() || null,
+        phone_number: phone,
         email: form.email.trim() || null,
         estimated_value: Number(form.estimated_value) || 0,
         source: form.source,
         notes: form.notes.trim() || null,
         stage_id: form.stage_id || null,
         stage_entered_at: new Date().toISOString(),
-        channel: "WhatsApp",
-        labels: [],
+        channel: "manual",
+        tags: [],
+        account_id: accountId,
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["pipeline_leads"] });
-      qc.invalidateQueries({ queryKey: ["contacts"] });
+      qc.invalidateQueries({ queryKey: ["pipeline_leads", accountId] });
+      qc.invalidateQueries({ queryKey: ["contacts", accountId] });
       toast.success("Lead criado com sucesso");
       setForm({ name: "", phone: "", email: "", estimated_value: "", source: "manual", notes: "", stage_id: stages[0]?.id ?? "" });
       onClose();

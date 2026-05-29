@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { PipelineStage, PipelineLead } from "@/types/pipeline";
+import { useAuth } from "@/hooks/use-auth";
 
 const sb = supabase as any;
 
@@ -89,28 +90,32 @@ function getPeriodStart(period: DashboardPeriod): string | null {
 
 export function useDashboardData(period: DashboardPeriod = "month") {
   const qc = useQueryClient();
+  const { accountId } = useAuth();
 
   // Fetch pipeline stages
   const { data: stages = [] } = useQuery({
-    queryKey: ["dashboard_stages"],
+    queryKey: ["dashboard_stages", accountId],
     queryFn: async (): Promise<PipelineStage[]> => {
       const { data, error } = await sb
         .from("pipeline_stages")
         .select("*")
+        .eq("account_id", accountId)
         .eq("is_active", true)
         .order("position");
       if (error) throw error;
       return data ?? [];
     },
+    enabled: !!accountId,
   });
 
   // Fetch all contacts (leads)
   const { data: allLeads = [], isLoading: leadsLoading } = useQuery({
-    queryKey: ["dashboard_leads"],
+    queryKey: ["dashboard_leads", accountId],
     queryFn: async (): Promise<PipelineLead[]> => {
       const { data, error } = await sb
         .from("contacts")
         .select("*")
+        .eq("account_id", accountId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []).map((row: Record<string, unknown>) => ({
@@ -118,8 +123,8 @@ export function useDashboardData(period: DashboardPeriod = "month") {
         name: String(row.name ?? "Sem nome"),
         phone: (row.phone ?? row.phone_number ?? null) as string | null,
         email: (row.email ?? null) as string | null,
-        channel: String(row.channel ?? "WhatsApp"),
-        labels: ((row.labels ?? row.tags ?? []) as string[]) ?? [],
+        channel: String(row.channel ?? "manual"),
+        labels: ((row.tags ?? []) as string[]) ?? [],
         stage_id: (row.stage_id ?? null) as string | null,
         estimated_value: Number(row.estimated_value ?? 0),
         probability: Number(row.probability ?? 0),
@@ -137,25 +142,28 @@ export function useDashboardData(period: DashboardPeriod = "month") {
         updated_at: (row.updated_at ?? null) as string | null,
       }));
     },
+    enabled: !!accountId,
     refetchInterval: 15000,
   });
 
   // Fetch profiles for team performance
   const { data: profiles = [] } = useQuery({
-    queryKey: ["dashboard_profiles"],
+    queryKey: ["dashboard_profiles", accountId],
     queryFn: async () => {
       const { data, error } = await sb
         .from("profiles")
         .select("user_id, display_name, avatar_initials, online")
+        .eq("account_id", accountId)
         .order("display_name");
       if (error) throw error;
       return (data ?? []) as { user_id: string; display_name: string; avatar_initials: string | null; online: boolean }[];
     },
+    enabled: !!accountId,
   });
 
   // Fetch recent lead_movements
   const { data: movements = [] } = useQuery({
-    queryKey: ["dashboard_movements"],
+    queryKey: ["dashboard_movements", accountId],
     queryFn: async (): Promise<RecentActivity[]> => {
       const { data, error } = await sb
         .from("lead_movements")
@@ -198,6 +206,7 @@ export function useDashboardData(period: DashboardPeriod = "month") {
         };
       });
     },
+    enabled: !!accountId,
     refetchInterval: 15000,
   });
 
@@ -376,17 +385,17 @@ export function useDashboardData(period: DashboardPeriod = "month") {
     const channel = sb
       .channel("dashboard-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "contacts" }, () => {
-        qc.invalidateQueries({ queryKey: ["dashboard_leads"] });
+        qc.invalidateQueries({ queryKey: ["dashboard_leads", accountId] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "pipeline_stages" }, () => {
-        qc.invalidateQueries({ queryKey: ["dashboard_stages"] });
+        qc.invalidateQueries({ queryKey: ["dashboard_stages", accountId] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "lead_movements" }, () => {
-        qc.invalidateQueries({ queryKey: ["dashboard_movements"] });
+        qc.invalidateQueries({ queryKey: ["dashboard_movements", accountId] });
       })
       .subscribe();
     return () => { sb.removeChannel(channel); };
-  }, [qc]);
+  }, [accountId, qc]);
 
   return {
     kpis,

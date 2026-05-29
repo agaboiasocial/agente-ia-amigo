@@ -22,7 +22,7 @@ function FinanceiroPage() {
         </div>
 
         <div className="overflow-hidden rounded-lg border bg-card">
-          <div className="border-b px-5 py-3">
+          <div className="border-b px-4 md:px-5 py-3">
             <h2 className="text-sm font-semibold text-brand">Agenda de pagamentos</h2>
           </div>
           {isLoading ? (
@@ -34,32 +34,34 @@ function FinanceiroPage() {
               Nenhum lançamento financeiro encontrado.
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[500px]">
               <thead className="bg-background text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
-                  <th className="px-5 py-3 text-left">Cliente</th>
-                  <th className="px-5 py-3 text-left">Vencimento</th>
-                  <th className="px-5 py-3 text-left">Status</th>
-                  <th className="px-5 py-3 text-right">Valor</th>
+                  <th className="px-3 md:px-5 py-3 text-left">Cliente</th>
+                  <th className="px-3 md:px-5 py-3 text-left">Vencimento</th>
+                  <th className="px-3 md:px-5 py-3 text-left">Status</th>
+                  <th className="px-3 md:px-5 py-3 text-right">Valor</th>
                 </tr>
               </thead>
               <tbody>
                 {payments.map((payment) => (
                   <tr key={payment.id} className="border-t">
-                    <td className="px-5 py-3">{payment.contact?.name ?? "Sem contato"}</td>
-                    <td className="px-5 py-3 text-muted-foreground">
+                    <td className="px-3 md:px-5 py-3">{payment.contact?.name ?? "Sem contato"}</td>
+                    <td className="px-3 md:px-5 py-3 text-muted-foreground">
                       {new Date(`${payment.due_date}T00:00:00`).toLocaleDateString("pt-BR")}
                     </td>
-                    <td className="px-5 py-3">
+                    <td className="px-3 md:px-5 py-3">
                       <StatusBadge status={payment.status} />
                     </td>
-                    <td className="px-5 py-3 text-right font-semibold text-brand">
+                    <td className="px-3 md:px-5 py-3 text-right font-semibold text-brand">
                       {money.format(payment.amount)}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>

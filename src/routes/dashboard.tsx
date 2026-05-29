@@ -98,7 +98,7 @@ function DashboardPage() {
         )}
 
         {/* KPI cards */}
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <section className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6">
           <Kpi icon={Users} label="Novos Leads" value={dashboard.kpis.newLeads} color="text-success" />
           <Kpi icon={Target} label="Leads Ativos" value={dashboard.kpis.activeLeads} color="text-brand" />
           <Kpi icon={Percent} label="Taxa de Conversao" value={`${dashboard.kpis.conversionRate}%`} color="text-success" />
@@ -108,7 +108,7 @@ function DashboardPage() {
         </section>
 
         {/* Secondary KPIs */}
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="grid gap-3 grid-cols-2 lg:grid-cols-4">
           <Kpi icon={CheckCircle2} label="Ganhos" value={dashboard.kpis.wonCount} color="text-success" />
           <Kpi icon={AlertTriangle} label="Perdidos" value={dashboard.kpis.lostCount} color="text-destructive" />
           <Kpi icon={MessageSquare} label="Conversas Abertas" value={openConversations} color="text-brand" />
@@ -293,7 +293,7 @@ function DashboardPage() {
         </div>
 
         {/* Quick actions */}
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="grid gap-3 grid-cols-2 lg:grid-cols-4">
           <QuickLink to="/conversas" icon={MessageSquare} title="Nova Conversa" text="Atenda conversas e notas internas." />
           <QuickLink to="/pipeline" icon={KanbanSquare} title="Pipeline" text="Gerencie leads em Kanban." />
           <QuickLink to="/ias" icon={Bot} title="IAS Agente" text="Configure IA, tom e prompt." />

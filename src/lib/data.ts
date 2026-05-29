@@ -2,8 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 
-function logReadError(scope: string, error: unknown) {
-  console.warn(`[IAS] Falha ao carregar ${scope}`, error);
+function logReadError(scope: string, _error: unknown) {
+  console.warn(`[IAS] Falha ao carregar ${scope}`);
 }
 
 // ---------- Conversations ----------
@@ -309,10 +309,26 @@ function mapContact(row: RawContactRow): ContactRow {
     name: row.name,
     email: row.email,
     phone: row.phone_number,
-    channel: row.channel ?? "WhatsApp",
+    channel: row.channel ?? "manual",
     labels: row.tags ?? [],
     created_at: row.created_at ?? new Date().toISOString(),
   };
+}
+
+export function normalizeContactPhone(phone: string | null | undefined) {
+  const digits = (phone ?? "").replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.startsWith("55") || digits.length > 11) return digits;
+  return `55${digits}`;
+}
+
+function normalizeContactChannel(channel: string | null | undefined) {
+  const value = (channel ?? "manual").trim().toLowerCase();
+  const aliases: Record<string, string> = {
+    "whats app": "whatsapp",
+    website: "web",
+  };
+  return aliases[value] ?? value;
 }
 
 export function useContacts() {
@@ -335,22 +351,42 @@ export function useCreateContact() {
   const { accountId } = useAuth();
   return useMutation({
     mutationFn: async (c: Omit<ContactRow, "id" | "created_at">) => {
+      if (!accountId) throw new Error("Conta atual não identificada. Recarregue a página e tente novamente.");
+
+      const phone = normalizeContactPhone(c.phone);
+      const channel = normalizeContactChannel(c.channel);
+
+      if (phone) {
+        const { data: existing, error: duplicateError } = await supabase
+          .from("contacts")
+          .select("id")
+          .eq("account_id", accountId)
+          .eq("phone_number", phone)
+          .limit(1)
+          .maybeSingle();
+        if (duplicateError) throw duplicateError;
+        if (existing) throw new Error("Já existe um contato com este telefone nesta conta.");
+      }
+
       const { data, error } = await supabase
         .from("contacts")
         .insert({
-          name: c.name,
+          name: c.name.trim(),
           email: c.email,
-          phone_number: c.phone,
-          channel: c.channel,
+          phone_number: phone,
+          channel,
           tags: c.labels,
-          ...(accountId ? { account_id: accountId } : {}),
+          account_id: accountId,
         } as never)
         .select()
         .single();
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["contacts"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["contacts", accountId] });
+      qc.invalidateQueries({ queryKey: ["pipeline_leads"] });
+    },
   });
 }
 

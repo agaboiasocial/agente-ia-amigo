@@ -432,26 +432,26 @@ function ManageInstance({
     >
       <div className="space-y-6">
         {/* Connected success banner (first render only via fade) */}
-        <div className="bg-card border rounded-xl p-5 flex items-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-success/15 text-success grid place-items-center">
+        <div className="bg-card border rounded-xl p-4 md:p-5 flex flex-wrap sm:flex-nowrap items-center gap-3 md:gap-4">
+          <div className="h-12 w-12 rounded-full bg-success/15 text-success grid place-items-center shrink-0">
             <CheckCircle2 className="h-7 w-7" />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="font-semibold text-brand">WhatsApp Conectado!</div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-muted-foreground truncate">
               {form.profileName} · {form.phone}
             </div>
           </div>
           <Link
             to="/conversas"
-            className="h-9 px-4 rounded-lg bg-success text-success-foreground text-sm font-semibold inline-flex items-center gap-1.5"
+            className="h-9 px-4 rounded-lg bg-success text-success-foreground text-sm font-semibold inline-flex items-center gap-1.5 shrink-0"
           >
-            Ir para conversas <ArrowRight className="h-4 w-4" />
+            <span className="hidden sm:inline">Ir para conversas</span> <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
 
         {/* Info cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           <InfoCard label="Número conectado" value={form.phone} icon={Smartphone} />
           <InfoCard label="Nome do perfil" value={form.profileName} icon={Smartphone} />
           <InfoCard label="Última atividade" value={form.lastActivity} icon={Wifi} />
@@ -476,7 +476,7 @@ function ManageInstance({
             <Toggle label="Enviar confirmação de leitura" checked={form.readReceipts} onChange={() => set("readReceipts", !form.readReceipts)} />
           </div>
 
-          <div className="grid md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Field label="Equipe responsável">
               <select
                 value={form.team}
@@ -554,13 +554,13 @@ function ManageInstance({
               <input
                 readOnly
                 value={form.webhookUrl}
-                className="flex-1 h-10 px-3 rounded-lg border bg-background text-sm font-mono"
+                className="flex-1 min-w-0 h-10 px-3 rounded-lg border bg-background text-sm font-mono truncate"
               />
               <button
                 onClick={copyWebhook}
-                className="h-10 px-3 rounded-lg border text-sm hover:bg-background inline-flex items-center gap-1.5"
+                className="h-10 px-3 rounded-lg border text-sm hover:bg-background inline-flex items-center gap-1.5 shrink-0"
               >
-                <Copy className="h-4 w-4" /> Copiar
+                <Copy className="h-4 w-4" /> <span className="hidden sm:inline">Copiar</span>
               </button>
             </div>
           </Field>

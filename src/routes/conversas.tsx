@@ -264,7 +264,8 @@ function ConversasPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [mode, setMode] = useState<"reply" | "note">("reply");
-  const [showInfo, setShowInfo] = useState(true);
+  const [showInfo, setShowInfo] = useState(false);
+  const [mobileShowChat, setMobileShowChat] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [attachment, setAttachment] = useState<AttachmentDraft | null>(null);
   const [showTransfer, setShowTransfer] = useState(false);
@@ -428,23 +429,28 @@ function ConversasPage() {
   return (
     <AppLayout flush>
       <div className="h-full flex flex-col">
-        <div className="h-12 shrink-0 bg-card border-b px-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h1 className="text-sm font-semibold text-brand">Conversas</h1>
-            <span className="text-xs text-muted-foreground">· {convs.length} no total</span>
+        <div className="h-12 shrink-0 bg-card border-b px-3 md:px-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            {mobileShowChat && (
+              <button onClick={() => { setMobileShowChat(false); }} className="md:hidden h-8 w-8 rounded-lg border grid place-items-center shrink-0">
+                <PanelRightClose className="h-4 w-4" />
+              </button>
+            )}
+            <h1 className="text-sm font-semibold text-brand truncate">Conversas</h1>
+            <span className="text-xs text-muted-foreground hidden sm:inline">· {convs.length} no total</span>
           </div>
-          <div className="flex items-center gap-1 bg-background rounded-lg p-1 border">
+          <div className="flex items-center gap-1 bg-background rounded-lg p-1 border shrink-0">
             <button
               onClick={() => setView("list")}
-              className={`text-xs px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${view === "list" ? "bg-card shadow-sm text-brand font-semibold" : "text-muted-foreground"}`}
+              className={`text-xs px-2 sm:px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${view === "list" ? "bg-card shadow-sm text-brand font-semibold" : "text-muted-foreground"}`}
             >
-              <LayoutList className="h-3.5 w-3.5" /> Lista
+              <LayoutList className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Lista</span>
             </button>
             <button
               onClick={() => setView("kanban")}
-              className={`text-xs px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${view === "kanban" ? "bg-card shadow-sm text-brand font-semibold" : "text-muted-foreground"}`}
+              className={`text-xs px-2 sm:px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${view === "kanban" ? "bg-card shadow-sm text-brand font-semibold" : "text-muted-foreground"}`}
             >
-              <Columns3 className="h-3.5 w-3.5" /> Kanban
+              <Columns3 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Kanban</span>
             </button>
           </div>
         </div>
@@ -460,7 +466,7 @@ function ConversasPage() {
         ) : (
           <div className="flex flex-1 min-h-0">
             {/* Column 1 - list */}
-            <section className="w-[320px] shrink-0 border-r bg-card flex flex-col">
+            <section className={`w-full md:w-[320px] shrink-0 border-r bg-card flex flex-col ${mobileShowChat ? "hidden md:flex" : "flex"}`}>
               <div className="p-4 border-b space-y-3">
                 <div className="flex items-center justify-between">
                   <h2 className="font-semibold text-brand">Conversas</h2>
@@ -498,7 +504,7 @@ function ConversasPage() {
                     return (
                       <button
                         key={c.id}
-                        onClick={() => setActiveId(c.id)}
+                        onClick={() => { setActiveId(c.id); setMobileShowChat(true); }}
                         className={`w-full text-left px-4 py-3 border-b flex gap-3 hover:bg-background transition-colors ${sel ? "bg-background" : ""} ${c.unread ? "border-l-4 border-l-success" : ""}`}
                       >
                         <div className="h-10 w-10 rounded-full bg-brand/10 text-brand grid place-items-center text-xs font-bold shrink-0">
@@ -535,23 +541,27 @@ function ConversasPage() {
             </section>
 
             {/* Column 2 - chat */}
-            <section className="flex-1 flex flex-col bg-background min-w-0">
+            <section className={`flex-1 flex flex-col bg-background min-w-0 ${mobileShowChat ? "flex" : "hidden md:flex"}`}>
               {!active ? (
                 <div className="flex-1 grid place-items-center text-muted-foreground text-sm">
                   Selecione uma conversa
                 </div>
               ) : (
                 <>
-                  <header className="h-16 shrink-0 bg-card border-b px-5 flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-10 w-10 rounded-full bg-brand/10 text-brand grid place-items-center text-xs font-bold">
+                  <header className="h-14 md:h-16 shrink-0 bg-card border-b px-3 md:px-5 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                      {/* Mobile back button */}
+                      <button onClick={() => setMobileShowChat(false)} className="md:hidden h-8 w-8 rounded-lg border grid place-items-center shrink-0">
+                        <PanelRightClose className="h-4 w-4" />
+                      </button>
+                      <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-brand/10 text-brand grid place-items-center text-xs font-bold shrink-0">
                         {initials(active.contact?.name ?? "?")}
                       </div>
                       <div className="min-w-0">
-                        <div className="font-semibold text-foreground truncate">
+                        <div className="font-semibold text-foreground truncate text-sm md:text-base">
                           {active.contact?.name ?? "—"}
                         </div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-2">
+                        <div className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1 md:gap-2">
                           <span
                             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full ${channelColor(active.channel)}`}
                           >
@@ -561,24 +571,26 @@ function ConversasPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 md:gap-2 shrink-0">
                       <button
                         onClick={() => setShowTransfer(true)}
-                        className="h-9 px-3 rounded-lg text-xs font-medium border hover:bg-background flex items-center gap-1.5"
+                        className="h-8 md:h-9 px-2 md:px-3 rounded-lg text-xs font-medium border hover:bg-background flex items-center gap-1.5"
+                        title="Transferir"
                       >
-                        <ArrowLeftRight className="h-3.5 w-3.5" /> Transferir
+                        <ArrowLeftRight className="h-3.5 w-3.5" /> <span className="hidden lg:inline">Transferir</span>
                       </button>
                       <button
                         onClick={resolve}
-                        className="h-9 px-3 rounded-lg text-xs font-medium bg-success text-success-foreground hover:opacity-95 flex items-center gap-1.5"
+                        className="h-8 md:h-9 px-2 md:px-3 rounded-lg text-xs font-medium bg-success text-success-foreground hover:opacity-95 flex items-center gap-1.5"
+                        title="Resolver"
                       >
-                        <CheckCircle2 className="h-3.5 w-3.5" /> Resolver
+                        <CheckCircle2 className="h-3.5 w-3.5" /> <span className="hidden lg:inline">Resolver</span>
                       </button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button className="h-9 px-3 rounded-lg text-xs font-medium border hover:bg-background flex items-center gap-1.5">
-                            <Download className="h-3.5 w-3.5" style={{ color: "#2FAE7C" }} />{" "}
-                            Exportar Conversa
+                          <button className="h-8 md:h-9 px-2 md:px-3 rounded-lg text-xs font-medium border hover:bg-background flex items-center gap-1.5" title="Exportar">
+                            <Download className="h-3.5 w-3.5" style={{ color: "#2FAE7C" }} />
+                            <span className="hidden xl:inline">Exportar Conversa</span>
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-52">
@@ -650,7 +662,7 @@ function ConversasPage() {
                     </div>
                   </header>
 
-                  <div className="flex-1 overflow-auto p-6 space-y-4">
+                  <div className="flex-1 overflow-auto p-3 md:p-6 space-y-3 md:space-y-4">
                     {messages.length === 0 ? (
                       <div className="text-center text-sm text-muted-foreground py-10">
                         Sem mensagens ainda. Envie a primeira abaixo.
@@ -663,7 +675,7 @@ function ConversasPage() {
                             key={m.id}
                             className={`flex ${mine ? "justify-end" : "justify-start"}`}
                           >
-                            <div className="max-w-[70%]">
+                            <div className="max-w-[85%] md:max-w-[70%]">
                               <div
                                 className={`px-4 py-2.5 shadow-sm ${
                                   m.is_note
@@ -805,9 +817,9 @@ function ConversasPage() {
                         <button
                           onClick={send}
                           disabled={sendMsg.isPending || (!draft.trim() && !attachment)}
-                          className="h-11 px-5 rounded-xl bg-success text-success-foreground hover:opacity-95 flex items-center gap-2 font-semibold text-sm disabled:opacity-60"
+                          className="h-11 px-3 md:px-5 rounded-xl bg-success text-success-foreground hover:opacity-95 flex items-center gap-2 font-semibold text-sm disabled:opacity-60 shrink-0"
                         >
-                          <Send className="h-4 w-4" /> Enviar
+                          <Send className="h-4 w-4" /> <span className="hidden sm:inline">Enviar</span>
                         </button>
                       </div>
                     </div>
@@ -818,7 +830,7 @@ function ConversasPage() {
 
             {/* Column 3 - info */}
             {active && showInfo && (
-              <aside className="w-[300px] shrink-0 border-l bg-card overflow-auto">
+              <aside className="hidden lg:flex w-[300px] shrink-0 border-l bg-card overflow-auto flex-col">
                 <div className="p-5 text-center border-b">
                   <div className="h-20 w-20 mx-auto rounded-full bg-brand/10 text-brand grid place-items-center font-bold text-lg">
                     {initials(active.contact?.name ?? "?")}
@@ -1023,8 +1035,8 @@ function KanbanBoard({
   setDragId: (id: string | null) => void;
 }) {
   return (
-    <div className="flex-1 min-h-0 overflow-x-auto p-4 bg-background">
-      <div className="flex gap-4 h-full min-w-max">
+    <div className="flex-1 min-h-0 overflow-x-auto p-3 md:p-4 bg-background">
+      <div className="flex gap-3 md:gap-4 h-full min-w-max">
         {kanbanStages.map((stage) => {
           const items = convs.filter((c) => c.stage === stage.id);
           return (
@@ -1037,7 +1049,7 @@ function KanbanBoard({
                   setDragId(null);
                 }
               }}
-              className="w-[300px] shrink-0 bg-card rounded-xl border flex flex-col max-h-full"
+              className="w-[260px] md:w-[300px] shrink-0 bg-card rounded-xl border flex flex-col max-h-full"
             >
               <div className="px-4 py-3 border-b flex items-center justify-between">
                 <div className="flex items-center gap-2">

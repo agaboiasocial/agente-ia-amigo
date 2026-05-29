@@ -215,7 +215,7 @@ function PipelineSettingsPage() {
             {/* Add stage form */}
             <div className="rounded-lg border bg-card p-4 space-y-3">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase">Nova Etapa</h3>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <input
                   value={newStage.name}
                   onChange={(e) => setNewStage((p) => ({ ...p, name: e.target.value }))}

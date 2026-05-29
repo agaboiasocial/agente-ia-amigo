@@ -80,9 +80,9 @@ function EmpresaPage() {
 
   return (
     <AppLayout title="Empresa">
-      <div className="max-w-3xl space-y-6">
+      <div className="max-w-3xl space-y-4 md:space-y-6">
         {/* Info da Empresa */}
-        <div className="bg-card rounded-xl border p-6">
+        <div className="bg-card rounded-xl border p-4 md:p-6">
           <div className="flex items-center gap-3 mb-5">
             <div className="h-10 w-10 rounded-lg bg-success/15 text-success grid place-items-center">
               <Building2 className="h-5 w-5" />
@@ -105,9 +105,9 @@ function EmpresaPage() {
         </div>
 
         {/* Integração Webhook */}
-        <div className="bg-card rounded-xl border p-6">
+        <div className="bg-card rounded-xl border p-4 md:p-6">
           <div className="flex items-center gap-3 mb-5">
-            <div className="h-10 w-10 rounded-lg bg-brand/10 text-brand grid place-items-center">
+            <div className="h-10 w-10 rounded-lg bg-brand/10 text-brand grid place-items-center shrink-0">
               <Webhook className="h-5 w-5" />
             </div>
             <div>
@@ -122,7 +122,7 @@ function EmpresaPage() {
             <div>
               <label className="text-xs font-medium block mb-1">Webhook Endpoint (WhatsApp)</label>
               <div className="flex gap-2">
-                <input readOnly value={webhookEndpoint} className="flex-1 h-10 px-3 rounded-lg border bg-background text-sm font-mono" />
+                <input readOnly value={webhookEndpoint} className="flex-1 min-w-0 h-10 px-3 rounded-lg border bg-background text-sm font-mono truncate" />
                 <CopyBtn copied={copied === "endpoint"} onClick={() => handleCopy(webhookEndpoint, "endpoint")} />
               </div>
               <p className="text-[11px] text-muted-foreground mt-1">Configure esta URL na Evolution API para receber mensagens</p>
@@ -132,7 +132,7 @@ function EmpresaPage() {
             <div>
               <label className="text-xs font-medium block mb-1">Account ID</label>
               <div className="flex gap-2">
-                <input readOnly value={account.id} className="flex-1 h-10 px-3 rounded-lg border bg-background text-sm font-mono" />
+                <input readOnly value={account.id} className="flex-1 min-w-0 h-10 px-3 rounded-lg border bg-background text-sm font-mono truncate" />
                 <CopyBtn copied={copied === "id"} onClick={() => handleCopy(account.id, "id")} />
               </div>
               <p className="text-[11px] text-muted-foreground mt-1">Use no campo <code className="bg-muted px-1 rounded">AccountId</code> do n8n</p>
@@ -162,9 +162,9 @@ function EmpresaPage() {
         </div>
 
         {/* Configuração n8n */}
-        <div className="bg-card rounded-xl border p-6">
+        <div className="bg-card rounded-xl border p-4 md:p-6">
           <div className="flex items-center gap-3 mb-5">
-            <div className="h-10 w-10 rounded-lg bg-success/15 text-success grid place-items-center">
+            <div className="h-10 w-10 rounded-lg bg-success/15 text-success grid place-items-center shrink-0">
               <LinkIcon className="h-5 w-5" />
             </div>
             <div>
@@ -191,9 +191,9 @@ function EmpresaPage() {
         </div>
 
         {/* Payload de exemplo */}
-        <div className="bg-card rounded-xl border p-6">
+        <div className="bg-card rounded-xl border p-4 md:p-6">
           <h3 className="text-sm font-semibold text-brand mb-3">Payload de exemplo</h3>
-          <pre className="bg-background border rounded-lg p-4 text-xs overflow-x-auto text-muted-foreground">
+          <pre className="bg-background border rounded-lg p-3 md:p-4 text-xs overflow-x-auto text-muted-foreground">
 {`{
   "name": "João Silva",
   "phone": "+5511999999999",
@@ -211,7 +211,7 @@ function EmpresaPage() {
         </div>
 
         {/* Info adicional */}
-        <div className="bg-card rounded-xl border p-6">
+        <div className="bg-card rounded-xl border p-4 md:p-6">
           <h3 className="text-sm font-semibold text-brand mb-3">Informações adicionais</h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>

@@ -74,16 +74,16 @@ function RelatoriosPage() {
         ))}
       </div>
     }>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
         <Kpi icon={TrendingUp} label="Total de conversas" value={String(total)} trend={`${period}`} />
         <Kpi icon={MessageSquare} label="Em aberto" value={String(abertas)} trend="conversas ativas" />
         <Kpi icon={CheckCircle2} label="Resolvidas" value={String(resolvidas)} trend={`${taxa}% de resolução`} />
         <Kpi icon={Clock} label="Agentes ativos" value={String(agents.length)} trend="cadastrados" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
         <Card title="Conversas por dia" className="lg:col-span-2">
-          <div className="h-72">
+          <div className="h-56 md:h-72">
             <ResponsiveContainer>
               <LineChart data={perDay}>
                 <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.92 0.01 250)" />
@@ -96,7 +96,7 @@ function RelatoriosPage() {
           </div>
         </Card>
         <Card title="Conversas por canal">
-          <div className="h-72">
+          <div className="h-56 md:h-72">
             {byChannel.length === 0 ? <Empty /> : (
               <ResponsiveContainer>
                 <PieChart>
@@ -111,7 +111,7 @@ function RelatoriosPage() {
           </div>
         </Card>
         <Card title="Conversas por agente" className="lg:col-span-3">
-          <div className="h-72">
+          <div className="h-56 md:h-72">
             {byAgent.length === 0 ? <Empty /> : (
               <ResponsiveContainer>
                 <BarChart data={byAgent}>

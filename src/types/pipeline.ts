@@ -3,6 +3,7 @@
 
 export interface PipelineStage {
   id: string;
+  account_id?: string | null;
   name: string;
   slug: string;
   color: string;

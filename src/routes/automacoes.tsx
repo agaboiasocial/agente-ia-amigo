@@ -178,8 +178,8 @@ function AutomacoesPage() {
           </Button>
         </div>
       ) : (
-        <div className="bg-card border rounded-xl overflow-hidden">
-          <Table>
+        <div className="bg-card border rounded-xl overflow-hidden overflow-x-auto">
+          <Table className="min-w-[600px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>

@@ -28,9 +28,12 @@ import {
   MessageCircleQuestion,
   Phone,
   Video,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import logoSuporte from "@/assets/logo-suporte.png";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 type Status = "Aberto" | "Em andamento" | "Resolvido";
 type Ticket = {
@@ -44,8 +47,6 @@ type Ticket = {
   createdAt: string;
 };
 
-const STORAGE_KEY = "support_tickets_v1";
-
 const SupportCtx = createContext<{ open: () => void } | null>(null);
 
 export function useSupport() {
@@ -55,9 +56,12 @@ export function useSupport() {
 }
 
 export function SupportProvider({ children }: { children: ReactNode }) {
+  const { user, accountId } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<"home" | "new">("home");
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // form
   const [subject, setSubject] = useState("");
@@ -67,18 +71,36 @@ export function SupportProvider({ children }: { children: ReactNode }) {
   const [fileName, setFileName] = useState<string>("");
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setTickets(JSON.parse(raw));
-    } catch {}
-  }, []);
-
-  const persist = (next: Ticket[]) => {
-    setTickets(next);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {}
-  };
+    if (!isOpen || !user?.id || !accountId) return;
+    let cancelled = false;
+    const loadTickets = async () => {
+      setLoadingTickets(true);
+      const { data, error } = await (supabase as any)
+        .from("support_tickets")
+        .select("id, subject, category, priority, description, message, attachment_url, status, created_at")
+        .eq("account_id", accountId)
+        .order("created_at", { ascending: false });
+      if (cancelled) return;
+      if (error) {
+        toast.error(error.message);
+        setTickets([]);
+      } else {
+        setTickets(((data ?? []) as any[]).map((row) => ({
+          id: row.id,
+          subject: row.subject,
+          category: row.category ?? "Dúvida",
+          priority: row.priority ?? "Média",
+          description: row.description ?? row.message ?? "",
+          fileName: row.attachment_url ?? undefined,
+          status: mapStatus(row.status),
+          createdAt: row.created_at ?? new Date().toISOString(),
+        })));
+      }
+      setLoadingTickets(false);
+    };
+    void loadTickets();
+    return () => { cancelled = true; };
+  }, [accountId, isOpen, user?.id]);
 
   const reset = () => {
     setSubject("");
@@ -88,26 +110,56 @@ export function SupportProvider({ children }: { children: ReactNode }) {
     setFileName("");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || !description.trim()) {
       toast.error("Preencha assunto e descrição");
       return;
     }
-    const t: Ticket = {
-      id: crypto.randomUUID(),
-      subject: subject.trim().slice(0, 200),
-      category,
-      priority,
-      description: description.trim().slice(0, 2000),
-      fileName: fileName || undefined,
-      status: "Aberto",
-      createdAt: new Date().toISOString(),
-    };
-    persist([t, ...tickets]);
-    toast.success("Chamado enviado com sucesso");
-    reset();
-    setView("home");
+    if (!user?.id || !accountId) {
+      toast.error("Conta atual não identificada. Recarregue a página e tente novamente.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const payload = {
+        account_id: accountId,
+        user_id: user.id,
+        subject: subject.trim().slice(0, 200),
+        category,
+        priority,
+        description: description.trim().slice(0, 2000),
+        message: description.trim().slice(0, 2000),
+        attachment_url: fileName || null,
+        status: "open",
+      };
+      const { data, error } = await (supabase as any)
+        .from("support_tickets")
+        .insert(payload)
+        .select("id, subject, category, priority, description, message, attachment_url, status, created_at")
+        .single();
+      if (error) throw error;
+
+      const t: Ticket = {
+        id: data.id,
+        subject: data.subject,
+        category: data.category ?? category,
+        priority: data.priority ?? priority,
+        description: data.description ?? data.message ?? "",
+        fileName: data.attachment_url ?? undefined,
+        status: mapStatus(data.status),
+        createdAt: data.created_at ?? new Date().toISOString(),
+      };
+      setTickets((current) => [t, ...current]);
+      toast.success("Chamado enviado com sucesso");
+      reset();
+      setView("home");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao enviar chamado");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const statusBadge = (s: Status) => {
@@ -170,7 +222,11 @@ export function SupportProvider({ children }: { children: ReactNode }) {
 
                 <section className="space-y-3">
                   <h3 className="font-semibold text-[#0B3A5D]">Meus chamados</h3>
-                  {tickets.length === 0 ? (
+                  {loadingTickets ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Carregando chamados...
+                    </div>
+                  ) : tickets.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Nenhum chamado ainda.</p>
                   ) : (
                     <ul className="space-y-2">
@@ -278,7 +334,8 @@ export function SupportProvider({ children }: { children: ReactNode }) {
                   <Button type="button" variant="outline" className="flex-1" onClick={() => { reset(); setView("home"); }}>
                     Cancelar
                   </Button>
-                  <Button type="submit" className="flex-1 bg-[#2FAE7C] hover:bg-[#2FAE7C]/90 text-white">
+                  <Button type="submit" disabled={submitting} className="flex-1 bg-[#2FAE7C] hover:bg-[#2FAE7C]/90 text-white disabled:opacity-60">
+                    {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                     Enviar
                   </Button>
                 </div>
@@ -289,4 +346,10 @@ export function SupportProvider({ children }: { children: ReactNode }) {
       </Sheet>
     </SupportCtx.Provider>
   );
+}
+
+function mapStatus(status: string | null | undefined): Status {
+  if (status === "in_progress" || status === "Em andamento") return "Em andamento";
+  if (status === "resolved" || status === "Resolvido") return "Resolvido";
+  return "Aberto";
 }

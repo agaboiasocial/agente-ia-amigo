@@ -135,19 +135,22 @@ async function sendWhatsApp(instanceName, number, text) {
 }
 
 async function processAI(supa, conversationId, contactId, instanceName, accountId) {
-  // 1. Load AI settings
-  let query = supa.from("ai_settings").select("*");
-  if (accountId) query = query.eq("account_id", accountId);
-  const { data: settings } = await query.limit(1).maybeSingle();
-  if (!settings) {
-    // Fallback: try without account filter
-    const { data: fallback } = await supa.from("ai_settings").select("*").eq("is_active", true).limit(1).maybeSingle();
-    if (!fallback) { console.log("[AI] No settings found"); return; }
-    Object.assign(settings || {}, fallback);
-    // Re-check with fallback
-    return processAIWithSettings(supa, fallback, conversationId, contactId, instanceName);
+  if (!accountId) {
+    return;
   }
-  if (!settings.is_active) { console.log("[AI] Disabled"); return; }
+
+  // 1. Load AI settings for this account only.
+  const { data: settings } = await supa
+    .from("ai_settings")
+    .select("*")
+    .eq("account_id", accountId)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!settings) {
+    return;
+  }
+  if (!settings.is_active) return;
   return processAIWithSettings(supa, settings, conversationId, contactId, instanceName);
 }
 
@@ -158,21 +161,19 @@ async function processAIWithSettings(supa, settings, conversationId, contactId, 
     .select("id, phone_number, name, ai_paused")
     .eq("id", contactId)
     .maybeSingle();
-  if (!contact) { console.log("[AI] Contact not found"); return; }
-  if (contact.ai_paused) { console.log("[AI] Paused for", contact.name); return; }
+  if (!contact) return;
+  if (contact.ai_paused) return;
 
   // 2b. Check ignore list
   const ignoreNumbers = settings.ignore_numbers || [];
   const contactDigits = digits(contact.phone_number);
   if (ignoreNumbers.some((n) => digits(n) === contactDigits)) {
-    console.log("[AI] Number ignored:", contact.phone_number);
     return;
   }
 
   // 3. Check schedule
   if (!isWithinSchedule(settings)) {
     if (settings.off_hours_message) {
-      console.log("[AI] Off hours — sending message");
       await sendAndSave(supa, instanceName, contact, conversationId, contactId, settings.off_hours_message);
     }
     return;
@@ -186,7 +187,7 @@ async function processAIWithSettings(supa, settings, conversationId, contactId, 
 
   // 5. Build history
   const history = await buildConversationHistory(supa, conversationId);
-  if (history.length === 0) { console.log("[AI] No messages"); return; }
+  if (history.length === 0) return;
 
   // 6. System prompt
   const personaName = settings.persona_name || "Assistente";
@@ -198,16 +199,14 @@ Quando o atendimento precisar ir para um humano — por exemplo, o cliente pedir
 Esse código é removido automaticamente antes de chegar ao cliente. NUNCA mencione esse código diretamente ao cliente.`;
 
   // 7. Call OpenAI
-  console.log("[AI] Calling OpenAI model:", settings.model);
   let aiResponse = await callOpenAI(systemPrompt, history, settings.model, settings.temperature);
-  if (!aiResponse?.trim()) { console.log("[AI] Empty response"); return; }
+  if (!aiResponse?.trim()) return;
 
   // 8. Detect handoff
   const handoffDetected = aiResponse.includes(handoffKeyword);
   if (handoffDetected) {
     aiResponse = aiResponse.replace(new RegExp(handoffKeyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"), "").trim();
     await supa.from("contacts").update({ ai_paused: true, updated_at: new Date().toISOString() }).eq("id", contactId);
-    console.log("[AI] Handoff detected, pausing AI for", contact.name);
 
     // Notify group
     if (settings.notification_group_jid) {
@@ -222,7 +221,6 @@ Esse código é removido automaticamente antes de chegar ao cliente. NUNCA menci
   if (aiResponse.trim()) {
     await sendAndSave(supa, instanceName, contact, conversationId, contactId, aiResponse);
   }
-  console.log("[AI] Response sent to", contact.name, "handoff:", handoffDetected);
 }
 
 async function sendAndSave(supa, instanceName, contact, conversationId, contactId, fullText) {

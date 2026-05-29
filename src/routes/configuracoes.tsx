@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { useAgents, useQuickReplies, useLabels } from "@/lib/data";
-import { Plus, Trash2, Code, Copy, Inbox, ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
+import { useCreateInbox, useInboxes } from "@/lib/inboxes";
+import { Plus, Trash2, Code, Copy, Inbox, ArrowRight, ShieldCheck, Sparkles, Plug, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useChatPrefs, ensureFontLoaded, CHAT_FONTS, type ChatFont } from "@/hooks/use-chat-prefs";
 import { FormattedMessage } from "@/lib/chat-format";
@@ -18,35 +19,78 @@ function ConfigPage() {
   const { data: agents = [] } = useAgents();
   const { data: quickReplies = [] } = useQuickReplies();
   const { data: labels = [] } = useLabels();
+  const { data: inboxes = [], isLoading: inboxesLoading } = useInboxes();
+  const createInbox = useCreateInbox();
+
+  const createFirstInbox = async () => {
+    if (inboxes.length > 0) {
+      toast.info("Esta conta já possui uma caixa de entrada.");
+      return;
+    }
+
+    try {
+      await createInbox.mutateAsync({
+        inbox: {
+          name: "Caixa Geral",
+          channel: "Website",
+          config: { source: "settings_first_inbox" },
+          widget_color: "#2FAE7C",
+          welcome_message: "Olá! Como podemos ajudar?",
+          active: true,
+        },
+        members: user?.id ? [{ user_id: user.id }] : [],
+      });
+      toast.success("Primeira caixa de entrada criada.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao criar caixa de entrada");
+    }
+  };
 
   return (
     <AppLayout title="Configurações">
-      <div className="flex flex-col lg:flex-row gap-6">
-        <nav className="lg:w-56 shrink-0 space-y-3">
-          <Link
-            to="/caixas-entrada"
-            className="flex items-center gap-2 bg-card border rounded-xl p-3 shadow-sm hover:border-success transition-colors group"
-          >
-            <Inbox className="h-4 w-4 text-success" />
-            <span className="text-sm font-medium flex-1">Caixas de Entrada</span>
-            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-success" />
-          </Link>
-          <Link
+      <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
+        <nav className="lg:w-72 shrink-0 space-y-3">
+          <div className="bg-card border rounded-xl p-3 shadow-sm">
+            <Link
+              to="/caixas-entrada"
+              className="flex items-start gap-2 hover:text-success transition-colors group"
+            >
+              <Inbox className="h-4 w-4 text-success mt-0.5" />
+              <span className="min-w-0 flex-1">
+                <span className="text-sm font-semibold block">Caixas de Entrada</span>
+                <span className="text-xs text-muted-foreground block mt-0.5">
+                  Crie e organize os canais que recebem conversas.
+                </span>
+              </span>
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-success mt-0.5" />
+            </Link>
+            <button
+              onClick={createFirstInbox}
+              disabled={inboxesLoading || createInbox.isPending}
+              className="mt-3 h-9 w-full rounded-lg bg-success text-success-foreground text-xs font-semibold flex items-center justify-center gap-1.5 disabled:opacity-60"
+            >
+              {createInbox.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+              Criar primeira caixa
+            </button>
+          </div>
+          <SettingsLink
             to="/funcoes-permissoes"
-            className="flex items-center gap-2 bg-card border rounded-xl p-3 shadow-sm hover:border-success transition-colors group"
-          >
-            <ShieldCheck className="h-4 w-4 text-success" />
-            <span className="text-sm font-medium flex-1">Funções e Permissões</span>
-            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-success" />
-          </Link>
-          <Link
+            icon={ShieldCheck}
+            title="Permissões"
+            desc="Defina funções e o que cada perfil pode acessar."
+          />
+          <SettingsLink
+            to="/canais"
+            icon={Plug}
+            title="Integrações"
+            desc="Monitore WhatsApp conectado, webhook e caixa criada."
+          />
+          <SettingsLink
             to="/atributos"
-            className="flex items-center gap-2 bg-card border rounded-xl p-3 shadow-sm hover:border-success transition-colors group"
-          >
-            <Sparkles className="h-4 w-4 text-success" />
-            <span className="text-sm font-medium flex-1">Atributos Personalizados</span>
-            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-success" />
-          </Link>
+            icon={Sparkles}
+            title="Atributos"
+            desc="Campos extras para qualificar contatos e conversas."
+          />
           <div className="bg-card border rounded-xl p-2 shadow-sm">
             {tabs.map((t) => (
               <button
@@ -58,7 +102,10 @@ function ConfigPage() {
                     : "text-foreground hover:bg-background"
                 }`}
               >
-                {t}
+                <span className="font-medium">{t}</span>
+                <span className="block text-[11px] font-normal text-muted-foreground mt-0.5">
+                  {tabDescription(t)}
+                </span>
               </button>
             ))}
           </div>
@@ -193,7 +240,7 @@ function ConfigPage() {
                   (d, i) => (
                     <div
                       key={d}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-background border"
+                      className="flex flex-wrap sm:flex-nowrap items-center gap-2 md:gap-3 p-3 rounded-lg bg-background border"
                     >
                       <input
                         type="checkbox"
@@ -283,6 +330,46 @@ function Section({
     </div>
   );
 }
+
+function SettingsLink({
+  to,
+  icon: Icon,
+  title,
+  desc,
+}: {
+  to: string;
+  icon: typeof Inbox;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <Link
+      to={to}
+      className="flex items-start gap-2 bg-card border rounded-xl p-3 shadow-sm hover:border-success transition-colors group"
+    >
+      <Icon className="h-4 w-4 text-success mt-0.5" />
+      <span className="min-w-0 flex-1">
+        <span className="text-sm font-semibold block">{title}</span>
+        <span className="text-xs text-muted-foreground block mt-0.5">{desc}</span>
+      </span>
+      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-success mt-0.5" />
+    </Link>
+  );
+}
+
+function tabDescription(tab: string) {
+  const descriptions: Record<string, string> = {
+    Perfil: "Dados básicos da conta e usuário logado.",
+    Agentes: "Lista dos usuários disponíveis no atendimento.",
+    Aparência: "Preferências visuais individuais do chat.",
+    "Respostas rápidas": "Atalhos de mensagens; edição ainda demonstrativa.",
+    Labels: "Etiquetas cadastradas para organização.",
+    Horário: "Grade visual de atendimento; salvamento ainda demonstrativo.",
+    Widget: "Preview e código demonstrativo do widget.",
+  };
+  return descriptions[tab] ?? "Configuração do sistema.";
+}
+
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <label className="block">

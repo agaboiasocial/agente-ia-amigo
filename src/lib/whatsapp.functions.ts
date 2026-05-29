@@ -92,11 +92,10 @@ export const connectWhatsApp = createServerFn({ method: "POST" })
         }),
       });
       if (!wRes.ok) {
-        const txt = await wRes.text().catch(() => "");
-        console.warn("webhook set failed", wRes.status, txt);
+        console.warn("webhook set failed", wRes.status);
       }
-    } catch (e) {
-      console.warn("webhook set error", e);
+    } catch {
+      console.warn("webhook set error");
     }
 
     // The whatsapp_instances row is created/updated when the connection.update
@@ -142,16 +141,16 @@ export const disconnectWhatsApp = createServerFn({ method: "POST" })
     // Logout (disconnects the device)
     try {
       await fetch(`${baseUrl()}/instance/logout/${name}`, { method: "DELETE", headers });
-    } catch (e) {
-      console.warn("logout failed", e);
+    } catch {
+      console.warn("logout failed");
     }
 
     // Optionally remove the instance entirely from Evolution
     if (data.deleteInstance) {
       try {
         await fetch(`${baseUrl()}/instance/delete/${name}`, { method: "DELETE", headers });
-      } catch (e) {
-        console.warn("delete failed", e);
+      } catch {
+        console.warn("delete failed");
       }
     }
 

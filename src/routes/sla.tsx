@@ -26,7 +26,7 @@ function SlaPage() {
 
   return (
     <AppLayout title="SLA — Service Level Agreement">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
         <Card className="border-l-4 border-l-success">
           <Header icon={CheckCircle2} color="text-success bg-success/10" label="Dentro do SLA" />
           <div className="text-3xl font-bold text-success">{dentro}</div>
@@ -50,19 +50,20 @@ function SlaPage() {
       </div>
 
       <div className="bg-card rounded-xl shadow-sm border overflow-hidden mb-6">
-        <div className="px-5 py-4 border-b">
+        <div className="px-4 md:px-5 py-4 border-b">
           <h3 className="font-semibold text-brand">Conversas com risco de SLA</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Monitoramento em tempo real</p>
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[700px]">
           <thead className="bg-background text-xs uppercase tracking-wider text-muted-foreground">
             <tr>
-              <th className="text-left px-5 py-3">Conversa</th>
-              <th className="text-left px-5 py-3">Contato</th>
-              <th className="text-left px-5 py-3">Agente</th>
-              <th className="text-left px-5 py-3">Aberta em</th>
-              <th className="text-left px-5 py-3">SLA restante</th>
-              <th className="text-left px-5 py-3">Status</th>
+              <th className="text-left px-3 md:px-5 py-3">Conversa</th>
+              <th className="text-left px-3 md:px-5 py-3">Contato</th>
+              <th className="text-left px-3 md:px-5 py-3">Agente</th>
+              <th className="text-left px-3 md:px-5 py-3 hidden sm:table-cell">Aberta em</th>
+              <th className="text-left px-3 md:px-5 py-3">SLA restante</th>
+              <th className="text-left px-3 md:px-5 py-3">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -71,17 +72,17 @@ function SlaPage() {
               const warn = rem > 0 && rem <= 10;
               return (
                 <tr key={c.id} className="border-t hover:bg-background">
-                  <td className="px-5 py-3 font-mono text-xs text-brand">#{c.id.slice(0,8)}</td>
-                  <td className="px-5 py-3 font-medium">{c.contact?.name ?? "—"}</td>
-                  <td className="px-5 py-3 text-muted-foreground">{agentName(c.assigned_to)}</td>
-                  <td className="px-5 py-3 text-muted-foreground">{new Date(c.opened_at).toLocaleString("pt-BR")}</td>
-                  <td className="px-5 py-3">
+                  <td className="px-3 md:px-5 py-3 font-mono text-xs text-brand">#{c.id.slice(0,8)}</td>
+                  <td className="px-3 md:px-5 py-3 font-medium">{c.contact?.name ?? "—"}</td>
+                  <td className="px-3 md:px-5 py-3 text-muted-foreground">{agentName(c.assigned_to)}</td>
+                  <td className="px-3 md:px-5 py-3 text-muted-foreground hidden sm:table-cell">{new Date(c.opened_at).toLocaleString("pt-BR")}</td>
+                  <td className="px-3 md:px-5 py-3">
                     {out
                       ? <span className="text-destructive font-semibold">Estourou há {Math.abs(rem)}min</span>
                       : <span className={warn ? "text-warning-foreground font-semibold" : "text-foreground"}>{rem} min</span>
                     }
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="px-3 md:px-5 py-3">
                     {out ? (
                       <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-destructive text-destructive-foreground font-medium pulse-danger">
                         Fora do SLA
@@ -101,6 +102,7 @@ function SlaPage() {
             })}
           </tbody>
         </table>
+        </div>
         {withSla.length === 0 && (
           <div className="p-12 text-center text-sm text-muted-foreground">Nenhuma conversa em aberto</div>
         )}

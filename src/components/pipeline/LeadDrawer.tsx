@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { normalizeContactPhone } from "@/lib/data";
 import type { PipelineLead, PipelineStage, LeadNote, LeadTask, LeadMovement } from "@/types/pipeline";
 import { toast } from "sonner";
 import {
@@ -70,23 +71,46 @@ export function LeadDrawer({ lead, stages, onClose, onMoveToStage }: Props) {
 /* ── Details Tab ── */
 function DetailsTab({ lead, stages, onMoveToStage }: { lead: PipelineLead; stages: PipelineStage[]; onMoveToStage: (id: string, stageId: string) => void }) {
   const qc = useQueryClient();
+  const { accountId } = useAuth();
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ name: lead.name, phone: lead.phone ?? "", email: lead.email ?? "", estimated_value: String(lead.estimated_value), source: lead.source, notes: lead.notes ?? "" });
+  const [form, setForm] = useState({
+    name: lead.name,
+    phone: lead.phone ?? "",
+    email: lead.email ?? "",
+    estimated_value: String(lead.estimated_value),
+    source: lead.source,
+    tags: lead.labels.join(", "),
+    notes: lead.notes ?? "",
+  });
 
   useEffect(() => {
-    setForm({ name: lead.name, phone: lead.phone ?? "", email: lead.email ?? "", estimated_value: String(lead.estimated_value), source: lead.source, notes: lead.notes ?? "" });
+    setForm({
+      name: lead.name,
+      phone: lead.phone ?? "",
+      email: lead.email ?? "",
+      estimated_value: String(lead.estimated_value),
+      source: lead.source,
+      tags: lead.labels.join(", "),
+      notes: lead.notes ?? "",
+    });
   }, [lead]);
 
   const save = useMutation({
     mutationFn: async () => {
+      if (!accountId) throw new Error("Conta atual não identificada. Recarregue a página e tente novamente.");
+      const phone = normalizeContactPhone(form.phone);
+      const tags = form.tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean);
       const { error } = await sb.from("contacts").update({
-        name: form.name, phone: form.phone || null, email: form.email || null,
-        estimated_value: Number(form.estimated_value) || 0, source: form.source, notes: form.notes || null,
+        name: form.name.trim(), phone_number: phone, email: form.email || null,
+        estimated_value: Number(form.estimated_value) || 0, source: form.source, tags, notes: form.notes || null,
         updated_at: new Date().toISOString(),
-      }).eq("id", lead.id);
+      }).eq("id", lead.id).eq("account_id", accountId);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["pipeline_leads"] }); toast.success("Lead atualizado"); setEditing(false); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["pipeline_leads", accountId] }); toast.success("Lead atualizado"); setEditing(false); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -107,6 +131,23 @@ function DetailsTab({ lead, stages, onMoveToStage }: { lead: PipelineLead; stage
         <InfoRow icon={Mail} label="Email" value={editing ? <input value={form.email} onChange={(e) => set("email", e.target.value)} className={inputSm} /> : (lead.email ?? "—")} />
         <InfoRow icon={DollarSign} label="Valor" value={editing ? <input type="number" value={form.estimated_value} onChange={(e) => set("estimated_value", e.target.value)} className={inputSm} /> : `R$ ${Number(lead.estimated_value).toFixed(2)}`} />
         <InfoRow icon={Tag} label="Origem" value={editing ? <select value={form.source} onChange={(e) => set("source", e.target.value)} className={inputSm}><option value="manual">Manual</option><option value="whatsapp">WhatsApp</option><option value="website">Website</option><option value="instagram">Instagram</option><option value="indicacao">Indicação</option></select> : lead.source} />
+        <InfoRow
+          icon={Tag}
+          label="Tags"
+          value={
+            editing ? (
+              <input value={form.tags} onChange={(e) => set("tags", e.target.value)} className={inputSm} placeholder="VIP, Urgente" />
+            ) : lead.labels.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {lead.labels.map((tag) => (
+                  <span key={tag} className="rounded bg-warning/30 px-1.5 py-0.5 text-[10px] font-medium">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            ) : "—"
+          }
+        />
       </div>
 
       <div className="pt-3 border-t">

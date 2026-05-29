@@ -7,6 +7,17 @@ import { Search, Plus, X, Mail, Phone, MessageCircle, Tag, Users, Loader2 } from
 
 export const Route = createFileRoute("/contatos")({ component: ContatosPage });
 
+const CONTACT_CHANNELS = [
+  { value: "manual", label: "Manual" },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "web", label: "Web" },
+  { value: "instagram", label: "Instagram" },
+];
+
+function channelLabel(value: string) {
+  return CONTACT_CHANNELS.find((c) => c.value === value.toLowerCase())?.label ?? value;
+}
+
 function ContatosPage() {
   const { data: all = [], isLoading } = useContacts();
   const create = useCreateContact();
@@ -14,11 +25,11 @@ function ContatosPage() {
   const [channel, setChannel] = useState("Todos");
   const [drawer, setDrawer] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", channel: "WhatsApp" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", channel: "manual" });
 
   const list = useMemo(
     () => all.filter((c) =>
-      (channel === "Todos" || c.channel === channel) &&
+      (channel === "Todos" || c.channel.toLowerCase() === channel) &&
       (q === "" || c.name.toLowerCase().includes(q.toLowerCase()) || (c.email ?? "").includes(q))
     ),
     [q, channel, all]
@@ -32,25 +43,26 @@ function ContatosPage() {
       await create.mutateAsync({ name: form.name, email: form.email || null, phone: form.phone || null, channel: form.channel, labels: [] });
       toast.success("Contato criado!");
       setShowNew(false);
-      setForm({ name: "", email: "", phone: "", channel: "WhatsApp" });
+      setForm({ name: "", email: "", phone: "", channel: "manual" });
     } catch (e: any) { toast.error(e.message); }
   };
 
   return (
     <AppLayout title="Contatos" actions={
-      <button onClick={() => setShowNew(true)} className="h-9 px-4 rounded-lg bg-success text-success-foreground text-sm font-semibold flex items-center gap-2 hover:opacity-95">
-        <Plus className="h-4 w-4" /> Novo contato
+      <button onClick={() => setShowNew(true)} className="h-9 px-3 md:px-4 rounded-lg bg-success text-success-foreground text-sm font-semibold flex items-center gap-2 hover:opacity-95">
+        <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Novo contato</span><span className="sm:hidden">Novo</span>
       </button>
     }>
       <div className="bg-card rounded-xl shadow-sm border overflow-hidden">
-        <div className="p-4 border-b flex flex-wrap gap-3 items-center">
-          <div className="relative flex-1 min-w-[240px]">
+        <div className="p-3 md:p-4 border-b flex flex-wrap gap-2 md:gap-3 items-center">
+          <div className="relative flex-1 min-w-[180px] md:min-w-[240px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nome ou email..."
               className="w-full h-10 pl-9 pr-3 rounded-lg bg-background border text-sm focus:outline-none focus:ring-2 focus:ring-success" />
           </div>
           <select value={channel} onChange={(e) => setChannel(e.target.value)} className="h-10 px-3 rounded-lg border bg-background text-sm">
-            {["Todos", "WhatsApp", "Web", "Instagram"].map((o) => <option key={o}>{o}</option>)}
+            <option value="Todos">Todos</option>
+            {CONTACT_CHANNELS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
         {isLoading ? (
@@ -61,34 +73,34 @@ function ContatosPage() {
             <p className="text-sm text-muted-foreground">{all.length === 0 ? "Nenhum contato cadastrado ainda. Clique em \"Novo contato\" para começar." : "Nenhum contato encontrado com esses filtros."}</p>
           </div>
         ) : (
-          <div className="overflow-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-background text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <th className="text-left px-5 py-3">Nome</th>
-                  <th className="text-left px-5 py-3">Email</th>
-                  <th className="text-left px-5 py-3">Telefone</th>
-                  <th className="text-left px-5 py-3">Canal</th>
-                  <th className="text-left px-5 py-3">Criado em</th>
+                  <th className="text-left px-3 md:px-5 py-3">Nome</th>
+                  <th className="text-left px-3 md:px-5 py-3 hidden sm:table-cell">Email</th>
+                  <th className="text-left px-3 md:px-5 py-3">Telefone</th>
+                  <th className="text-left px-3 md:px-5 py-3">Canal</th>
+                  <th className="text-left px-3 md:px-5 py-3 hidden sm:table-cell">Criado em</th>
                 </tr>
               </thead>
               <tbody>
                 {list.map((c) => (
                   <tr key={c.id} onClick={() => setDrawer(c.id)} className="border-t hover:bg-background cursor-pointer transition-colors">
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-full bg-brand/10 text-brand grid place-items-center text-xs font-bold">
+                    <td className="px-3 md:px-5 py-3">
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <div className="h-8 w-8 md:h-9 md:w-9 rounded-full bg-brand/10 text-brand grid place-items-center text-xs font-bold shrink-0">
                           {c.name.split(" ").slice(0, 2).map((s) => s[0]).join("").toUpperCase()}
                         </div>
-                        <span className="font-medium">{c.name}</span>
+                        <span className="font-medium truncate max-w-[120px] md:max-w-none">{c.name}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-3 text-muted-foreground">{c.email ?? "—"}</td>
-                    <td className="px-5 py-3 text-muted-foreground">{c.phone ?? "—"}</td>
-                    <td className="px-5 py-3">
-                      <span className="text-xs px-2 py-1 rounded-full bg-success/15 text-success">{c.channel}</span>
+                    <td className="px-3 md:px-5 py-3 text-muted-foreground hidden sm:table-cell">{c.email ?? "—"}</td>
+                    <td className="px-3 md:px-5 py-3 text-muted-foreground">{c.phone ?? "—"}</td>
+                    <td className="px-3 md:px-5 py-3">
+                      <span className="text-xs px-2 py-1 rounded-full bg-success/15 text-success">{channelLabel(c.channel)}</span>
                     </td>
-                    <td className="px-5 py-3 text-muted-foreground">{new Date(c.created_at).toLocaleDateString("pt-BR")}</td>
+                    <td className="px-3 md:px-5 py-3 text-muted-foreground hidden sm:table-cell">{new Date(c.created_at).toLocaleDateString("pt-BR")}</td>
                   </tr>
                 ))}
               </tbody>
@@ -113,7 +125,7 @@ function ContatosPage() {
                 <span className="text-xs font-medium text-foreground">Canal</span>
                 <select value={form.channel} onChange={(e) => setForm({ ...form, channel: e.target.value })}
                   className="mt-1 w-full h-10 px-3 rounded-lg border bg-background text-sm">
-                  {["WhatsApp", "Web", "Instagram"].map((o) => <option key={o}>{o}</option>)}
+                  {CONTACT_CHANNELS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </label>
             </div>
@@ -155,7 +167,7 @@ function ContactDrawer({ c, onClose }: { c: ContactRow; onClose: () => void }) {
         <div className="p-5 space-y-3 text-sm">
           <Row icon={Mail} label="Email" value={c.email ?? "—"} />
           <Row icon={Phone} label="Telefone" value={c.phone ?? "—"} />
-          <Row icon={MessageCircle} label="Canal" value={c.channel} />
+          <Row icon={MessageCircle} label="Canal" value={channelLabel(c.channel)} />
           <Row icon={Tag} label="Cliente desde" value={new Date(c.created_at).toLocaleDateString("pt-BR")} />
         </div>
       </aside>

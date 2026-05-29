@@ -100,7 +100,7 @@ function Page() {
     <SuperAdminLayout title="Dashboard">
       <div className="space-y-6">
         {/* KPI cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
           {[
             { label: "Organizações", value: String(stats.totalAccounts), icon: Building2 },
             { label: "Usuários", value: String(stats.totalUsers), icon: Users },
@@ -163,15 +163,15 @@ function Page() {
           <div className="bg-white rounded-lg border p-5 lg:col-span-2">
             <h3 className="font-semibold text-[#0B3A5D] mb-4">Contas mais ativas</h3>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[500px]">
                 <thead className="bg-slate-50 text-slate-600">
                   <tr>
-                    <th className="text-left px-4 py-2">Conta</th>
-                    <th className="text-left px-4 py-2">Leads</th>
-                    <th className="text-left px-4 py-2">Conversas</th>
-                    <th className="text-left px-4 py-2">Membros</th>
-                    <th className="text-left px-4 py-2">MRR</th>
-                    <th className="text-left px-4 py-2">Criada em</th>
+                    <th className="text-left px-3 md:px-4 py-2">Conta</th>
+                    <th className="text-left px-3 md:px-4 py-2">Leads</th>
+                    <th className="text-left px-3 md:px-4 py-2">Conversas</th>
+                    <th className="text-left px-3 md:px-4 py-2">Membros</th>
+                    <th className="text-left px-3 md:px-4 py-2">MRR</th>
+                    <th className="text-left px-3 md:px-4 py-2 hidden sm:table-cell">Criada em</th>
                   </tr>
                 </thead>
                 <tbody>

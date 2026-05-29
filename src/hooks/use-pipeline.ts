@@ -13,24 +13,38 @@ import { useMemo, useState, useEffect } from "react";
 
 const sb = supabase as any;
 
+function stageSlug(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export function usePipelineStages() {
+  const { accountId } = useAuth();
   return useQuery({
-    queryKey: ["pipeline_stages"],
+    queryKey: ["pipeline_stages", accountId],
     queryFn: async (): Promise<PipelineStage[]> => {
       const { data, error } = await sb
         .from("pipeline_stages")
         .select("*")
+        .eq("account_id", accountId)
         .eq("is_active", true)
         .order("position");
       if (error) throw error;
       return data ?? [];
     },
+    enabled: !!accountId,
   });
 }
 
 export function useLossReasons() {
+  const { accountId } = useAuth();
   return useQuery({
-    queryKey: ["loss_reasons"],
+    queryKey: ["loss_reasons", accountId],
     queryFn: async (): Promise<LossReason[]> => {
       const { data, error } = await sb
         .from("loss_reasons")
@@ -40,16 +54,19 @@ export function useLossReasons() {
       if (error) throw error;
       return data ?? [];
     },
+    enabled: !!accountId,
   });
 }
 
 export function usePipelineLeads() {
+  const { accountId } = useAuth();
   return useQuery({
-    queryKey: ["pipeline_leads"],
+    queryKey: ["pipeline_leads", accountId],
     queryFn: async (): Promise<PipelineLead[]> => {
       const { data, error } = await sb
         .from("contacts")
         .select("*")
+        .eq("account_id", accountId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []).map((row: Record<string, unknown>) => ({
@@ -57,8 +74,8 @@ export function usePipelineLeads() {
         name: String(row.name ?? "Sem nome"),
         phone: (row.phone ?? row.phone_number ?? null) as string | null,
         email: (row.email ?? null) as string | null,
-        channel: String(row.channel ?? "WhatsApp"),
-        labels: ((row.labels ?? row.tags ?? []) as string[]) ?? [],
+        channel: String(row.channel ?? "manual"),
+        labels: ((row.tags ?? []) as string[]) ?? [],
         stage_id: (row.stage_id ?? null) as string | null,
         estimated_value: Number(row.estimated_value ?? 0),
         probability: Number(row.probability ?? 0),
@@ -76,13 +93,14 @@ export function usePipelineLeads() {
         updated_at: (row.updated_at ?? null) as string | null,
       })) as PipelineLead[];
     },
+    enabled: !!accountId,
     refetchInterval: 10000,
   });
 }
 
 export function usePipeline() {
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, accountId } = useAuth();
   const { data: stages = [], isLoading: stagesLoading } = usePipelineStages();
   const { data: lossReasons = [] } = useLossReasons();
   const { data: rawLeads = [], isLoading: leadsLoading } = usePipelineLeads();
@@ -151,7 +169,7 @@ export function usePipeline() {
         patch.lost_at = new Date().toISOString();
         if (lossReasonId) patch.loss_reason_id = lossReasonId;
       }
-      const { error } = await sb.from("contacts").update(patch).eq("id", leadId);
+      const { error } = await sb.from("contacts").update(patch).eq("id", leadId).eq("account_id", accountId);
       if (error) throw error;
       // Record movement
       await sb.from("lead_movements").insert({
@@ -163,7 +181,7 @@ export function usePipeline() {
       });
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["pipeline_leads"] });
+      qc.invalidateQueries({ queryKey: ["pipeline_leads", accountId] });
     },
   });
 
@@ -173,10 +191,11 @@ export function usePipeline() {
       const { error } = await sb
         .from("contacts")
         .update({ assigned_to: assignedTo, updated_at: new Date().toISOString() })
-        .eq("id", leadId);
+        .eq("id", leadId)
+        .eq("account_id", accountId);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["pipeline_leads"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pipeline_leads", accountId] }),
   });
 
   // Update lead
@@ -185,21 +204,61 @@ export function usePipeline() {
       const { error } = await sb
         .from("contacts")
         .update({ ...patch, updated_at: new Date().toISOString() })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("account_id", accountId);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["pipeline_leads"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pipeline_leads", accountId] }),
   });
 
   // Delete lead
   const deleteLead = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await sb.from("contacts").delete().eq("id", id);
+      const { error } = await sb.from("contacts").delete().eq("id", id).eq("account_id", accountId);
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["pipeline_leads"] });
-      qc.invalidateQueries({ queryKey: ["contacts"] });
+      qc.invalidateQueries({ queryKey: ["pipeline_leads", accountId] });
+      qc.invalidateQueries({ queryKey: ["contacts", accountId] });
+    },
+  });
+
+  const renameStage = useMutation({
+    mutationFn: async ({ stageId, name }: { stageId: string; name: string }) => {
+      const nextName = name.trim();
+      if (!accountId) throw new Error("Conta atual não identificada. Recarregue a página e tente novamente.");
+      if (!nextName) throw new Error("Informe o nome da etapa.");
+
+      const duplicate = stages.some(
+        (stage) => stage.id !== stageId && stage.name.trim().toLowerCase() === nextName.toLowerCase(),
+      );
+      if (duplicate) throw new Error("Já existe uma etapa com este nome nesta conta.");
+
+      const nextSlug = stageSlug(nextName);
+      const { data, error } = await sb
+        .from("pipeline_stages")
+        .update({ name: nextName, slug: nextSlug, updated_at: new Date().toISOString() })
+        .eq("id", stageId)
+        .eq("account_id", accountId)
+        .select("id")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("Etapa não encontrada para esta conta.");
+    },
+    onMutate: async ({ stageId, name }) => {
+      await qc.cancelQueries({ queryKey: ["pipeline_stages", accountId] });
+      const previous = qc.getQueryData<PipelineStage[]>(["pipeline_stages", accountId]);
+      qc.setQueryData<PipelineStage[]>(["pipeline_stages", accountId], (current) =>
+        (current ?? []).map((stage) => (stage.id === stageId ? { ...stage, name: name.trim() } : stage)),
+      );
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) qc.setQueryData(["pipeline_stages", accountId], context.previous);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["pipeline_stages", accountId] });
+      qc.invalidateQueries({ queryKey: ["pipeline_leads", accountId] });
     },
   });
 
@@ -216,14 +275,14 @@ export function usePipeline() {
     const channel = sb
       .channel("pipeline-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "contacts" }, () => {
-        qc.invalidateQueries({ queryKey: ["pipeline_leads"] });
+        qc.invalidateQueries({ queryKey: ["pipeline_leads", accountId] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "pipeline_stages" }, () => {
-        qc.invalidateQueries({ queryKey: ["pipeline_stages"] });
+        qc.invalidateQueries({ queryKey: ["pipeline_stages", accountId] });
       })
       .subscribe();
     return () => { sb.removeChannel(channel); };
-  }, [qc]);
+  }, [accountId, qc]);
 
   return {
     stages,
@@ -237,6 +296,7 @@ export function usePipeline() {
     updateLeadAssignee,
     updateLead,
     deleteLead,
+    renameStage,
     getColumnTotals,
     isSlaBreached,
   };

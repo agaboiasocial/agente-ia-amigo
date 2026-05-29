@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import {
   MessageSquare,
   Users,
@@ -24,12 +24,44 @@ import {
   KanbanSquare,
   Wallet,
   Building2,
+  Menu,
+  X,
 } from "lucide-react";
 import logoIas from "@/assets/logo-ias.png";
 import { useAuth } from "@/hooks/use-auth";
 import { useSupport } from "@/components/support/SupportCenter";
 import { useInboxes, type InboxChannel } from "@/lib/inboxes";
 import { useConversations } from "@/lib/data";
+
+// ── Mobile sidebar context ──
+const SidebarCtx = createContext<{ open: boolean; toggle: () => void }>({ open: false, toggle: () => {} });
+
+export function useMobileSidebar() {
+  return useContext(SidebarCtx);
+}
+
+export function MobileSidebarProvider({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  // Close on route change
+  useEffect(() => { setOpen(false); }, [pathname]);
+
+  return (
+    <SidebarCtx.Provider value={{ open, toggle: () => setOpen((s) => !s) }}>
+      {children}
+    </SidebarCtx.Provider>
+  );
+}
+
+export function MobileMenuButton() {
+  const { toggle } = useMobileSidebar();
+  return (
+    <button onClick={toggle} className="md:hidden h-9 w-9 rounded-lg border grid place-items-center hover:bg-muted">
+      <Menu className="h-5 w-5" />
+    </button>
+  );
+}
 
 const items = [
   { to: "/dashboard", label: "Dashboard", icon: BarChart3 },
@@ -61,6 +93,7 @@ export function AppSidebar() {
   const [inboxOpen, setInboxOpen] = useState(true);
   const { data: inboxes = [] } = useInboxes();
   const { data: convs = [] } = useConversations();
+  const { open: mobileOpen, toggle: toggleMobile } = useMobileSidebar();
 
   const handleLogout = async () => {
     await signOut();
@@ -76,8 +109,8 @@ export function AppSidebar() {
   const inboxCount = (id: string) =>
     convs.filter((c) => (c as { inbox_id?: string }).inbox_id === id && c.status !== "resolvida").length;
 
-  return (
-    <aside className="hidden md:flex w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground">
+  const sidebarContent = (
+    <aside className="flex w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground h-full">
       <div className="px-5 py-5 flex items-center gap-2 border-b border-sidebar-border">
         <img src={logoIas} alt="IAS" className="h-10 w-10 rounded-lg bg-white object-contain p-0.5" />
         <div className="leading-tight">
@@ -211,6 +244,30 @@ export function AppSidebar() {
         </button>
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <div className="hidden md:flex shrink-0">{sidebarContent}</div>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-black/50" onClick={toggleMobile} />
+          <div className="relative z-10 h-full w-60 animate-in slide-in-from-left">
+            {/* Close button */}
+            <button
+              onClick={toggleMobile}
+              className="absolute top-3 -right-10 h-8 w-8 rounded-full bg-white/90 grid place-items-center shadow"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

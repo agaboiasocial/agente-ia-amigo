@@ -110,7 +110,7 @@ function Page() {
       ) : (
         <div className="space-y-6">
           {/* KPIs */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             {[
               { label: "Organizações", value: String(accounts.length), icon: Building2 },
               { label: "Usuários Ativos", value: String(data?.totalUsers ?? 0), icon: Users },
@@ -128,8 +128,8 @@ function Page() {
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-lg border overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="bg-white rounded-lg border overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
                   <th className="text-left px-4 py-3">Organização</th>
@@ -167,8 +167,8 @@ function Page() {
 
           {/* Edit modal */}
           {editing && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-              <div className="w-full max-w-md rounded-xl bg-white border shadow-2xl p-6 space-y-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+              <div className="w-full max-w-md rounded-xl bg-white border shadow-2xl p-5 md:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
                 <h2 className="text-base font-semibold text-[#0B3A5D]">Editar Plano — {editing.name}</h2>
                 <div>
                   <label className="text-xs font-medium block mb-1">Plano</label>
