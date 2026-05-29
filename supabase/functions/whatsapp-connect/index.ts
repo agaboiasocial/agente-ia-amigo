@@ -35,10 +35,18 @@ Deno.serve(async (req) => {
     });
     const connectBody = await connectRes.json().catch(() => null);
     const qr =
-      body?.qrcode?.base64 || body?.qrcode?.code ||
-      connectBody?.base64 || connectBody?.qrcode?.base64 ||
-      connectBody?.code || "";
-    if (!qr) return json({ error: "QR Code não retornado pela Evolution API" }, 500);
+      body?.qrcode?.base64 || body?.qrcode?.code || body?.qrcode ||
+      body?.base64 || body?.code ||
+      connectBody?.base64 || connectBody?.qrcode?.base64 || connectBody?.qrcode?.code || connectBody?.qrcode ||
+      connectBody?.code || connectBody?.pairingCode || "";
+    if (!qr) {
+      console.error("QR not found. create response:", JSON.stringify(body));
+      console.error("QR not found. connect response:", JSON.stringify(connectBody));
+      return json({
+        error: "QR Code não retornado pela Evolution API",
+        debug: { createStatus: createRes.status, connectStatus: connectRes.status },
+      }, 500);
+    }
 
     const webhookUrl = `${functionsBaseUrl()}/whatsapp-webhook/${encodeURIComponent(instanceName)}`;
     await fetch(`${baseUrl}/webhook/set/${encodeURIComponent(instanceName)}`, {
