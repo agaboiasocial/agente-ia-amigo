@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { callEdgeFunction } from "@/lib/edge-functions";
+
 import { MessageCircle, Plus, RefreshCw, CheckCircle2, AlertCircle, Loader2, PowerOff } from "lucide-react";
 import { toast } from "sonner";
 
@@ -80,14 +80,18 @@ function CanaisPage() {
     void load();
   }, [authLoading, load]);
 
+  const evoProxy = async (payload: Record<string, unknown>) => {
+    const { data, error } = await supabase.functions.invoke("evolution-proxy", {
+      body: { ...payload, accountId },
+    });
+    if (error) throw error;
+    return data;
+  };
+
   const refreshOne = async (inst: Instance) => {
     setRefreshingId(inst.id);
     try {
-      await callEdgeFunction("whatsapp-refresh", {
-        method: "POST",
-        token: session?.access_token,
-        body: { instanceName: inst.instance_name, instanceId: inst.id },
-      });
+      await evoProxy({ action: "refresh", instanceName: inst.instance_name });
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao atualizar status");
@@ -103,11 +107,7 @@ function CanaisPage() {
     if (!confirm(msg)) return;
     setDisconnectingId(inst.id);
     try {
-      await callEdgeFunction("whatsapp-disconnect", {
-        method: "POST",
-        token: session?.access_token,
-        body: { instanceName: inst.instance_name, deleteInstance: remove },
-      });
+      await evoProxy({ action: "disconnect", instanceName: inst.instance_name, body: { deleteInstance: remove } });
       toast.success(remove ? "Instância removida" : "Número desconectado");
       await load();
     } catch (e) {
