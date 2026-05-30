@@ -29,7 +29,7 @@ export async function callEdgeFunction<T = unknown>(
 
   const { data, error } = await supabase.functions.invoke(name, {
     method: (options.method as "GET" | "POST" | "PATCH" | "DELETE") ?? "POST",
-    body: options.body !== undefined ? options.body : undefined,
+    body: (options.body ?? undefined) as Record<string, unknown> | undefined,
     headers: options.token ? { Authorization: `Bearer ${options.token}` } : undefined,
   });
 

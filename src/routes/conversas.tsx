@@ -51,22 +51,17 @@ import {
   Users,
   Users2,
   Phone,
+  Settings2,
 } from "lucide-react";
 import { MessageComposer } from "@/components/MessageComposer";
 import { FormattedMessage } from "@/lib/chat-format";
 import { useChatPrefs, ensureFontLoaded } from "@/hooks/use-chat-prefs";
 import { supabase } from "@/integrations/supabase/client";
 import { edgeFunctionUrl } from "@/lib/edge-functions";
+import { useConversationStages, type ConversationStage } from "@/hooks/use-conversation-stages";
+import { ConversationKanbanSettings } from "@/components/ConversationKanbanSettings";
 
 export const Route = createFileRoute("/conversas")({ component: ConversasPage });
-
-type KanbanStage = "novo" | "atendimento" | "aguardando" | "resolvido";
-const kanbanStages: { id: KanbanStage; label: string; color: string }[] = [
-  { id: "novo", label: "Novo", color: "#F2C94C" },
-  { id: "atendimento", label: "Em atendimento", color: "#2FAE7C" },
-  { id: "aguardando", label: "Aguardando cliente", color: "#0B3A5D" },
-  { id: "resolvido", label: "Resolvido", color: "#94A3B8" },
-];
 
 const tabs = ["Abertas", "Pendentes", "Resolvidas", "Todas"] as const;
 
@@ -265,8 +260,10 @@ function ConversasPage() {
   const { data: agents = [] } = useAgents();
   const { data: teams = [] } = useTeams();
   const { data: instances = [] } = useWhatsAppInstances();
+  const { data: kanbanStages = [] } = useConversationStages();
 
   const [view, setView] = useState<"list" | "kanban">("list");
+  const [kanbanSettingsOpen, setKanbanSettingsOpen] = useState(false);
   const [tab, setTab] = useState<(typeof tabs)[number]>("Todas");
   const [query, setQuery] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -355,7 +352,7 @@ function ConversasPage() {
     }
   };
 
-  const moveCard = (id: string, stage: KanbanStage) => {
+  const moveCard = (id: string, stage: string) => {
     updateConv.mutate({ id, patch: { stage } });
   };
 
@@ -447,19 +444,30 @@ function ConversasPage() {
             <h1 className="text-sm font-semibold text-brand truncate">Conversas</h1>
             <span className="text-xs text-muted-foreground hidden sm:inline">· {convs.length} no total</span>
           </div>
-          <div className="flex items-center gap-1 bg-background rounded-lg p-1 border shrink-0">
-            <button
-              onClick={() => setView("list")}
-              className={`text-xs px-2 sm:px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${view === "list" ? "bg-card shadow-sm text-brand font-semibold" : "text-muted-foreground"}`}
-            >
-              <LayoutList className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Lista</span>
-            </button>
-            <button
-              onClick={() => setView("kanban")}
-              className={`text-xs px-2 sm:px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${view === "kanban" ? "bg-card shadow-sm text-brand font-semibold" : "text-muted-foreground"}`}
-            >
-              <Columns3 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Kanban</span>
-            </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {view === "kanban" && (
+              <button
+                onClick={() => setKanbanSettingsOpen(true)}
+                className="h-8 px-2 sm:px-3 rounded-lg border bg-background hover:bg-muted text-xs font-medium flex items-center gap-1.5 text-muted-foreground"
+                title="Editar colunas do Kanban"
+              >
+                <Settings2 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Editar Kanban</span>
+              </button>
+            )}
+            <div className="flex items-center gap-1 bg-background rounded-lg p-1 border">
+              <button
+                onClick={() => setView("list")}
+                className={`text-xs px-2 sm:px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${view === "list" ? "bg-card shadow-sm text-brand font-semibold" : "text-muted-foreground"}`}
+              >
+                <LayoutList className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Lista</span>
+              </button>
+              <button
+                onClick={() => setView("kanban")}
+                className={`text-xs px-2 sm:px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${view === "kanban" ? "bg-card shadow-sm text-brand font-semibold" : "text-muted-foreground"}`}
+              >
+                <Columns3 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Kanban</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -470,7 +478,7 @@ function ConversasPage() {
         ) : convs.length === 0 ? (
           <EmptyAll />
         ) : view === "kanban" ? (
-          <KanbanBoard convs={filtered} onMove={moveCard} dragId={dragId} setDragId={setDragId} />
+          <KanbanBoard convs={filtered} stages={kanbanStages} onMove={moveCard} dragId={dragId} setDragId={setDragId} />
         ) : (
           <div className="flex flex-1 min-h-0">
             {/* Column 1 - list */}
@@ -868,7 +876,7 @@ function ConversasPage() {
                     className="w-full h-9 px-2 rounded-md border bg-background text-sm"
                   >
                     {kanbanStages.map((s) => (
-                      <option key={s.id} value={s.id}>
+                      <option key={s.id} value={s.key}>
                         {s.label}
                       </option>
                     ))}
@@ -988,6 +996,8 @@ function ConversasPage() {
           </div>
         </div>
       )}
+
+      <ConversationKanbanSettings open={kanbanSettingsOpen} onClose={() => setKanbanSettingsOpen(false)} />
     </AppLayout>
   );
 }
@@ -1033,27 +1043,37 @@ function EmptyAll() {
 
 function KanbanBoard({
   convs,
+  stages,
   onMove,
   dragId,
   setDragId,
 }: {
   convs: ConvRow[];
-  onMove: (id: string, stage: KanbanStage) => void;
+  stages: ConversationStage[];
+  onMove: (id: string, stage: string) => void;
   dragId: string | null;
   setDragId: (id: string | null) => void;
 }) {
+  // Conversations whose stage doesn't match any column land in the first column
+  const stageKeys = new Set(stages.map((s) => s.key));
+  const firstKey = stages[0]?.key;
   return (
     <div className="flex-1 min-h-0 overflow-x-auto p-3 md:p-4 bg-background">
       <div className="flex gap-3 md:gap-4 h-full min-w-max">
-        {kanbanStages.map((stage) => {
-          const items = convs.filter((c) => c.stage === stage.id);
+        {stages.map((stage, idx) => {
+          const items = convs.filter((c) => {
+            const st = c.stage || firstKey;
+            // Unknown stages fall into the first column
+            if (!stageKeys.has(st)) return idx === 0;
+            return st === stage.key;
+          });
           return (
             <div
               key={stage.id}
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => {
                 if (dragId) {
-                  onMove(dragId, stage.id);
+                  onMove(dragId, stage.key);
                   setDragId(null);
                 }
               }}
