@@ -52,6 +52,7 @@ import {
   Users2,
   Phone,
   Settings2,
+  UserCheck,
 } from "lucide-react";
 import { MessageComposer } from "@/components/MessageComposer";
 import { FormattedMessage } from "@/lib/chat-format";
@@ -344,12 +345,31 @@ function ConversasPage() {
         file_name: item?.file.name ?? null,
         mime_type: item?.file.type ?? null,
       });
+      // Auto-assume: ao responder (não nota) uma conversa sem dono, vira dono e pausa a IA
+      if (mode === "reply" && user?.id && !active.assigned_to) {
+        updateConv.mutate({ id: active.id, patch: { assigned_to: user.id } });
+        if (active.contact_id && !active.contact?.ai_paused) {
+          const sb = (await import("@/integrations/supabase/client")).supabase as any;
+          sb.from("contacts").update({ ai_paused: true, updated_at: new Date().toISOString() }).eq("id", active.contact_id);
+        }
+      }
       if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
     } catch (e: unknown) {
       setDraft(body);
       if (item) setAttachment(item);
       toast.error(e instanceof Error ? e.message : "Erro ao enviar");
     }
+  };
+
+  const claimConversation = () => {
+    if (!active || !user?.id) return;
+    updateConv.mutate({ id: active.id, patch: { assigned_to: user.id } });
+    if (active.contact_id && !active.contact?.ai_paused) {
+      import("@/integrations/supabase/client").then(({ supabase }) => {
+        (supabase as any).from("contacts").update({ ai_paused: true, updated_at: new Date().toISOString() }).eq("id", active.contact_id);
+      });
+    }
+    toast.success("Conversa atribuída a você");
   };
 
   const moveCard = (id: string, stage: string) => {
@@ -588,6 +608,15 @@ function ConversasPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 md:gap-2 shrink-0">
+                      {!active.assigned_to && (
+                        <button
+                          onClick={claimConversation}
+                          className="h-8 md:h-9 px-2 md:px-3 rounded-lg text-xs font-semibold bg-brand text-brand-foreground hover:opacity-95 flex items-center gap-1.5"
+                          title="Assumir esta conversa"
+                        >
+                          <UserCheck className="h-3.5 w-3.5" /> <span className="hidden lg:inline">Assumir</span>
+                        </button>
+                      )}
                       <button
                         onClick={() => setShowTransfer(true)}
                         className="h-8 md:h-9 px-2 md:px-3 rounded-lg text-xs font-medium border hover:bg-background flex items-center gap-1.5"
