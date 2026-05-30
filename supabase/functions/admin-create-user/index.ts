@@ -106,9 +106,9 @@ Deno.serve(async (req) => {
       userId = newUser.user.id;
       isNew = true;
 
-      // Create profile
+      // Create profile (profiles table has no email column)
       await admin.from("profiles").upsert({
-        user_id: userId, email, display_name: full_name,
+        user_id: userId, display_name: full_name,
         account_id: effectiveAccountId || null,
       }, { onConflict: "user_id" });
 

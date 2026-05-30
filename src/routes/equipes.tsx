@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import {
-  Users, UserPlus, Shield, Edit, Trash2, Mail, ShieldCheck, Lock, Loader2, Plus,
+  Users, UserPlus, Shield, Edit, Trash2, ShieldCheck, Lock, Loader2, Plus,
 } from "lucide-react";
 
 export const Route = createFileRoute("/equipes")({ component: EquipesPage });
@@ -23,7 +23,7 @@ interface Member {
   user_id: string;
   role: OrgRole;
   is_active: boolean;
-  profile?: { display_name: string; email: string; user_id: string };
+  profile?: { display_name: string; user_id: string };
 }
 
 function getRoleLabel(role: string) {
@@ -64,7 +64,7 @@ function EquipesPage() {
       if (membersData?.length > 0) {
         const userIds = membersData.map((m: any) => m.user_id);
         const { data: profiles } = await (supabase as any)
-          .from("profiles").select("user_id, display_name, email")
+          .from("profiles").select("user_id, display_name")
           .in("user_id", userIds);
 
         setMembers(membersData.map((m: any) => ({
@@ -211,7 +211,7 @@ function EquipesPage() {
                       {m.user_id === user?.id && <span className="text-xs text-muted-foreground ml-2">(você)</span>}
                     </p>
                     <p className="text-sm text-muted-foreground truncate flex items-center gap-1">
-                      <Mail className="h-3 w-3 shrink-0" /> {m.profile?.email || "Email não disponível"}
+                      <Shield className="h-3 w-3 shrink-0" /> {getRoleLabel(m.role)}
                     </p>
                   </div>
                   <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getRoleBadgeClass(m.role)}`}>
