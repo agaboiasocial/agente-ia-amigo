@@ -22,7 +22,6 @@ import {
   Send as SendIcon,
   Facebook,
   KanbanSquare,
-  Wallet,
   Building2,
   Menu,
   X,
@@ -71,8 +70,6 @@ const items = [
   { to: "/canais", label: "Canais Conectados", icon: Inbox },
   { to: "/contatos", label: "Contatos/Leads", icon: Users },
   { to: "/equipes", label: "Equipes", icon: Users2 },
-  { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
-  { to: "/financeiro", label: "Financeiro", icon: Wallet },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
