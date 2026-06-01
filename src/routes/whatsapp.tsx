@@ -171,7 +171,11 @@ function ConnectFlow({ onConnected, accountId }: { onConnected: (i: Instance) =>
 
   // Setup (create instance + webhook + QR)
   const startConnect = async () => {
-    if (!instanceName.trim() || !accountId) { toast.error("Informe o nome da instância"); return; }
+    if (!instanceName.trim()) { toast.error("Informe o nome da instância"); return; }
+    if (!accountId) {
+      toast.error("Sua conta não está vinculada a uma organização. Conecte o WhatsApp pelo login do administrador da organização.");
+      return;
+    }
     cleanup();
     setError("");
     setState("loading");
