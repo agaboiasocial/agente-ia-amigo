@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { callEdgeFunction } from "@/lib/edge-functions";
 import { MessageCircle, Plus, RefreshCw, CheckCircle2, AlertCircle, Loader2, PowerOff } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,12 +21,10 @@ type Instance = {
   inbox_name: string | null;
 };
 
-async function evoProxy(accountId: string | null, payload: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke("evolution-proxy", {
-    body: { ...payload, accountId },
-  });
-  if (error) throw error;
-  return data as Record<string, unknown>;
+function normalizedStatus(status: string | null) {
+  if (status === "open" || status === "connected") return "connected";
+  if (status === "connecting" || status === "pending") return "connecting";
+  return "disconnected";
 }
 
 function CanaisPage() {
@@ -35,7 +34,7 @@ function CanaisPage() {
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { accountId, loading: authLoading } = useAuth();
+  const { accountId, session, loading: authLoading } = useAuth();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -59,6 +58,7 @@ function CanaisPage() {
         const inbox = inboxByInstance.get(inst.instance_name);
         return {
           ...inst,
+          status: normalizedStatus(inst.status),
           inbox_id: inbox?.id ?? null,
           inbox_name: inbox?.name ?? null,
         };
@@ -80,7 +80,10 @@ function CanaisPage() {
   const refreshOne = async (inst: Instance) => {
     setRefreshingId(inst.id);
     try {
-      await evoProxy(accountId, { action: "refresh", instanceName: inst.instance_name });
+      await callEdgeFunction("whatsapp-refresh", {
+        method: "POST",
+        body: { instanceName: inst.instance_name, instanceId: inst.id, accountId },
+      });
       await load();
       toast.success("Status atualizado");
     } catch (e) {
@@ -97,11 +100,11 @@ function CanaisPage() {
     if (!confirm(msg)) return;
     setDisconnectingId(inst.id);
     try {
-      await evoProxy(accountId, { action: "disconnect", instanceName: inst.instance_name, body: { deleteInstance: remove } });
-      if (remove) {
-        // Also remove from DB
-        await (supabase as any).from("whatsapp_instances").delete().eq("id", inst.id);
-      }
+      await callEdgeFunction("whatsapp-disconnect", {
+        method: "POST",
+        token: session?.access_token,
+        body: { instanceName: inst.instance_name, deleteInstance: remove },
+      });
       toast.success(remove ? "Instância removida" : "Número desconectado");
       await load();
     } catch (e) {
@@ -112,9 +115,10 @@ function CanaisPage() {
   };
 
   const statusBadge = (s: string | null) => {
-    if (s === "connected" || s === "open")
+    const status = normalizedStatus(s);
+    if (status === "connected")
       return <span className="inline-flex items-center gap-1 text-success text-sm font-medium"><CheckCircle2 className="h-4 w-4" /> Conectado</span>;
-    if (s === "connecting" || s === "pending")
+    if (status === "connecting")
       return <span className="inline-flex items-center gap-1 text-warning-foreground text-sm"><Loader2 className="h-4 w-4 animate-spin" /> Conectando</span>;
     return <span className="inline-flex items-center gap-1 text-muted-foreground text-sm"><AlertCircle className="h-4 w-4" /> Desconectado</span>;
   };

@@ -6,7 +6,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
-    const { instanceName, instanceId } = await readJson(req);
+    const { instanceName, instanceId, accountId } = await readJson(req);
     if (!instanceName) return json({ error: "instanceName required" }, 400);
 
     const { baseUrl, token } = evolutionConfig();
@@ -20,30 +20,35 @@ Deno.serve(async (req) => {
     const profileName = body?.instance?.profileName || null;
     const phoneNumber = body?.instance?.owner || body?.instance?.wuid || null;
 
-    if (instanceId) {
-      const supa = adminClient();
-      const updateData: Record<string, unknown> = {
-        status: connected ? "connected" : state === "connecting" ? "connecting" : "disconnected",
-        updated_at: new Date().toISOString(),
-      };
-      if (phoneNumber) updateData.phone_number = String(phoneNumber).replace(/\D/g, "");
-      if (profileName) updateData.profile_name = profileName;
+    const supa = adminClient();
+    const normalizedStatus = connected ? "connected" : state === "connecting" ? "connecting" : "disconnected";
+    const cleanPhone = phoneNumber ? String(phoneNumber).replace(/\D/g, "") : null;
+    const updateData: Record<string, unknown> = {
+      status: normalizedStatus,
+      updated_at: new Date().toISOString(),
+    };
+    if (cleanPhone) updateData.phone_number = cleanPhone;
+    if (profileName) updateData.profile_name = profileName;
+    if (accountId) updateData.account_id = accountId;
 
-      const { data: updatedInstance, error } = await supa
-        .from("whatsapp_instances")
-        .update(updateData)
-        .eq("id", instanceId)
-        .select("account_id, instance_name")
-        .maybeSingle();
-      if (error) throw error;
-      if (updateData.status === "connected") {
-        await ensureWhatsAppInbox({
-          accountId: updatedInstance?.account_id,
-          instanceName: updatedInstance?.instance_name || instanceName,
-          phoneNumber: phoneNumber ? String(phoneNumber).replace(/\D/g, "") : null,
-          profileName,
-        });
-      }
+    let updateQuery = supa.from("whatsapp_instances").update(updateData);
+    updateQuery = instanceId
+      ? updateQuery.eq("id", instanceId)
+      : updateQuery.eq("instance_name", instanceName);
+
+    const { data: updatedInstance, error } = await updateQuery
+      .select("account_id, instance_name")
+      .maybeSingle();
+    if (error) throw error;
+
+    const resolvedAccountId = updatedInstance?.account_id || accountId || null;
+    if (normalizedStatus === "connected" && resolvedAccountId) {
+      await ensureWhatsAppInbox({
+        accountId: resolvedAccountId,
+        instanceName: updatedInstance?.instance_name || instanceName,
+        phoneNumber: cleanPhone,
+        profileName,
+      });
     }
 
     return json({ state, connected, profileName, phoneNumber });

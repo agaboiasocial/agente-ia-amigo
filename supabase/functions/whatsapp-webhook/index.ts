@@ -239,8 +239,19 @@ Deno.serve(async (req) => {
         const phone = data?.wuid ? jidToNumber(data.wuid) : "";
         const profileName = data?.profileName || "";
         if (state && instance) {
+          const normalizedStatus = state === "open" || state === "connected"
+            ? "connected"
+            : state === "connecting" || state === "pending"
+              ? "connecting"
+              : "disconnected";
           await supabase.from("whatsapp_instances")
-            .update({ status: state === "open" ? "connected" : "disconnected", name: profileName || instance, phone_number: phone })
+            .update({
+              status: normalizedStatus,
+              name: profileName || instance,
+              profile_name: profileName || null,
+              phone_number: phone ? digits(phone) : null,
+              updated_at: new Date().toISOString(),
+            })
             .eq("instance_name", instance);
         }
       } catch (e) { console.error("[WH] connection update error:", e); }

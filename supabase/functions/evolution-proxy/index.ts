@@ -188,7 +188,44 @@ Deno.serve(async (req) => {
         const d = await r.json().catch(() => ({}));
         const state = d?.instance?.state ?? d?.state ?? "unknown";
         const name = d?.instance?.profileName ?? d?.profileName ?? null;
-        const phone = d?.instance?.wuid ? d.instance.wuid.split("@")[0] : d?.wuid?.split("@")[0] ?? null;
+        const rawPhone = d?.instance?.owner ?? d?.instance?.wuid ?? d?.owner ?? d?.wuid ?? null;
+        const phone = rawPhone ? String(rawPhone).split("@")[0].replace(/\D/g, "") : null;
+        const normalizedStatus = state === "open" || state === "connected"
+          ? "connected"
+          : state === "connecting" || state === "pending"
+            ? "connecting"
+            : "disconnected";
+
+        if (accountId || normalizedStatus === "connected") {
+          const update: Record<string, unknown> = {
+            status: normalizedStatus,
+            updated_at: new Date().toISOString(),
+          };
+          if (accountId) update.account_id = accountId;
+          if (name) {
+            update.name = name;
+            update.profile_name = name;
+          }
+          if (phone) update.phone_number = phone;
+
+          const { data: updatedInstance } = await supa
+            .from("whatsapp_instances")
+            .update(update)
+            .eq("instance_name", inst)
+            .select("account_id, instance_name")
+            .maybeSingle();
+
+          const resolvedAccountId = updatedInstance?.account_id || accountId || null;
+          if (normalizedStatus === "connected" && resolvedAccountId) {
+            await ensureWhatsAppInbox({
+              accountId: resolvedAccountId,
+              instanceName: inst,
+              phoneNumber: phone,
+              profileName: name,
+            });
+          }
+        }
+
         return json({ connected: state === "open", state, profileName: name, phoneNumber: phone });
       } catch {
         return json({ connected: false, state: "unknown", profileName: null, phoneNumber: null });
