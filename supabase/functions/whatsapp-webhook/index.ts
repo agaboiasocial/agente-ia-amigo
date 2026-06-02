@@ -127,10 +127,10 @@ async function upsertContactAndConversation(supabase: any, accountId: string, ph
     contactId = newContact.id;
   }
 
-  // Find or create conversation
+  // Find or create conversation (status check: open|pending|resolved|snoozed)
   const { data: conv } = await supabase.from("conversations")
     .select("id").eq("account_id", accountId).eq("contact_id", contactId)
-    .neq("status", "resolvida").order("created_at", { ascending: false }).maybeSingle();
+    .neq("status", "resolved").order("created_at", { ascending: false }).maybeSingle();
 
   let conversationId: string;
   if (conv) {
@@ -141,7 +141,7 @@ async function upsertContactAndConversation(supabase: any, accountId: string, ph
       account_id: accountId,
       contact_id: contactId,
       channel: "whatsapp",
-      status: "aberta",
+      status: "open",
       instance_name: instanceName,
       last_message_at: new Date().toISOString(),
     }).select("id").single();

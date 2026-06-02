@@ -55,8 +55,16 @@ function readStringAttribute(
   return typeof value === "string" && value ? value : fallback;
 }
 
+// DB usa inglês (open/pending/resolved/snoozed); o frontend usa português.
+const DB_TO_UI_STATUS: Record<string, string> = {
+  open: "aberta", pending: "pendente", resolved: "resolvida", snoozed: "pendente",
+};
+const UI_TO_DB_STATUS: Record<string, string> = {
+  aberta: "open", pendente: "pending", resolvida: "resolved",
+};
+
 function mapConversation(row: RawConversationRow): ConvRow {
-  const status = row.status ?? "aberta";
+  const status = DB_TO_UI_STATUS[row.status ?? ""] ?? row.status ?? "aberta";
   const stage = readStringAttribute(
     row.custom_attributes,
     "stage",
@@ -113,6 +121,9 @@ export function useUpdateConversation() {
         dbPatch.assigned_agent_id = dbPatch.assigned_to;
         delete dbPatch.assigned_to;
       }
+      if ("status" in dbPatch && typeof dbPatch.status === "string") {
+        dbPatch.status = UI_TO_DB_STATUS[dbPatch.status] ?? dbPatch.status;
+      }
       if ("stage" in dbPatch) {
         const { data: current } = await supabase
           .from("conversations")
@@ -145,7 +156,7 @@ export function useCreateConversation() {
           channel: payload.channel,
           assigned_agent_id: payload.assigned_to ?? null,
           custom_attributes: { stage: "novo" },
-          status: "aberta",
+          status: "open",
           ...(accountId ? { account_id: accountId } : {}),
         } as never)
         .select()
