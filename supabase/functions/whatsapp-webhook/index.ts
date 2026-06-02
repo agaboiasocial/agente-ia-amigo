@@ -51,6 +51,19 @@ async function evoGetBase64(instance: string, data: any) {
   } catch { return null; }
 }
 
+// Busca o nome do perfil quando o pushName não vem no payload
+async function fetchProfileName(instance: string, number: string): Promise<string | null> {
+  try {
+    const res = await evoFetch(`/chat/fetchProfile/${instance}`, "POST", { number });
+    if (res.ok) {
+      const d = await res.json();
+      const name = d?.name || d?.pushName || d?.verifiedName || d?.wuid || null;
+      if (name && typeof name === "string" && !/^\d+$/.test(name)) return name;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
 // ─── Storage upload ─────────────────────────────────────────────────────────
 async function uploadMedia(supabase: any, base64: string, mimetype: string, convId: string, msgId: string) {
   try {
@@ -290,7 +303,11 @@ Deno.serve(async (req) => {
   }
 
   // ── Upsert contact + conversation ─────────────────────────────────────────
-  const clientName = fromMe ? "" : (data.pushName || "");
+  let clientName = fromMe ? "" : (data.pushName || "");
+  // Se não veio nome no payload, tenta buscar o perfil na Evolution API
+  if (!clientName && !fromMe) {
+    clientName = (await fetchProfileName(instance, senderNumber)) || "";
+  }
   const result = await upsertContactAndConversation(supabase, accountId, senderNumber, clientName, instance);
   if (!result) return ok({ error: "Failed to upsert" });
   const { contactId, conversationId, aiPaused } = result;
