@@ -12,6 +12,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { SupportProvider } from "@/components/support/SupportCenter";
 
 import appCss from "../styles.css?url";
+import faviconUrl from "@/assets/logo-ias.png?url";
 
 function NotFoundComponent() {
   return (
@@ -89,6 +90,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b0e831e5-437d-4d17-b004-d3f18865a2e4/id-preview-6efd353c--b8a4d7ce-8b50-441a-a1a6-fe328bbeae50.lovable.app-1778194616167.png" },
     ],
     links: [
+      { rel: "icon", type: "image/png", href: faviconUrl },
+      { rel: "shortcut icon", type: "image/png", href: faviconUrl },
+      { rel: "apple-touch-icon", href: faviconUrl },
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
