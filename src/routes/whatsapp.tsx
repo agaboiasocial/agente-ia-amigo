@@ -18,7 +18,23 @@ async function evoProxy(accountId: string, payload: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke("evolution-proxy", {
     body: { ...payload, accountId },
   });
-  if (error) throw error;
+  if (error) {
+    // supabase.functions.invoke devolve mensagem genérica para non-2xx;
+    // a mensagem real vem no corpo da resposta (error.context).
+    let msg = error.message;
+    try {
+      const ctx = (error as { context?: { json?: () => Promise<unknown> } }).context;
+      if (ctx?.json) {
+        const body = (await ctx.json()) as { error?: string };
+        if (body?.error) msg = body.error;
+      }
+    } catch { /* mantém msg genérica */ }
+    throw new Error(msg);
+  }
+  // Defesa extra: edge function pode devolver {error} em 200
+  if (data && (data as { error?: string }).error) {
+    throw new Error((data as { error: string }).error);
+  }
   return data as Record<string, unknown>;
 }
 

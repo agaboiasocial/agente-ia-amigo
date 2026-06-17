@@ -101,13 +101,25 @@ Deno.serve(async (req) => {
 
     // ── Action: setup — create instance + configure webhook + get QR ──
     if (action === "setup") {
-      if (!instanceName) return json({ error: "instanceName required" }, 400);
+      if (!instanceName) return json({ error: "Informe o nome da instância" }, 400);
       const inst = String(instanceName).trim();
       const webhookUrl = `${functionsBaseUrl()}/whatsapp-webhook/${encodeURIComponent(inst)}`;
       let qr: string | null = null;
       const steps: Record<string, unknown> = {};
 
-      // 1. Create instance WITH webhook
+      // 0. Isolamento: o nome já pertence a OUTRA organização?
+      if (accountId) {
+        const { data: owned } = await supa
+          .from("whatsapp_instances")
+          .select("account_id")
+          .eq("instance_name", inst)
+          .maybeSingle();
+        if (owned?.account_id && owned.account_id !== accountId) {
+          return json({ error: `O nome "${inst}" já está em uso por outra organização. Escolha outro nome.` }, 409);
+        }
+      }
+
+      // 1. Create instance WITH webhook — NÃO engole erro (causa do "IAS não criado")
       try {
         const r = await evoFetch(baseUrl, apiKey, "/instance/create", "POST", {
           instanceName: inst,
@@ -119,11 +131,29 @@ Deno.serve(async (req) => {
           },
         });
         const d = await r.json().catch(() => ({}));
-        steps.create = { status: r.status };
+        steps.create = { status: r.status, body: d };
         console.log("[setup] create", inst, r.status);
+        if (!r.ok) {
+          const rawMsg = d?.response?.message ?? d?.message ?? "";
+          const msgText = Array.isArray(rawMsg) ? rawMsg.join(", ") : String(rawMsg);
+          const lower = msgText.toLowerCase();
+          const alreadyExists = r.status === 403 || r.status === 409 ||
+            lower.includes("already") || lower.includes("exists") || lower.includes("in use");
+          if (!alreadyExists) {
+            // Erro real (número inválido, recusado, etc.) — devolve mensagem clara
+            return json({
+              error: `Não foi possível criar a instância na Evolution API: ${msgText || `erro ${r.status}`}`,
+              steps,
+            }, 422);
+          }
+          // "already exists" → instância já existe, segue como reconexão
+        }
       } catch (e) {
         console.error("[setup] create error:", e);
-        steps.create = { error: String(e) };
+        return json({
+          error: `Falha ao conectar na Evolution API. Verifique se a API está online. (${String(e)})`,
+          steps,
+        }, 502);
       }
 
       // 2. Configure webhook with 3-format fallback + verification
