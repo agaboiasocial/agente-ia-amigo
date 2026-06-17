@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  HelpCircle,
   Plus,
   ArrowLeft,
   Paperclip,
@@ -174,9 +175,16 @@ export function SupportProvider({ children }: { children: ReactNode }) {
     <SupportCtx.Provider value={{ open: () => { setIsOpen(true); setView("home"); } }}>
       {children}
 
-      {/* O acesso ao Suporte é pela sidebar (item "Suporte").
-          O botão flutuante foi removido para não conflitar com o
-          composer/Enviar nas telas de chat. */}
+      {/* Floating button — posicionado mais acima para não encostar no
+          botão Enviar do composer nas telas de chat. */}
+      <button
+        type="button"
+        onClick={() => { setIsOpen(true); setView("home"); }}
+        aria-label="Abrir Central de Suporte"
+        className="fixed bottom-24 right-5 md:bottom-28 md:right-6 z-30 h-12 w-12 md:h-14 md:w-14 rounded-full bg-[#2FAE7C] text-white shadow-lg hover:brightness-110 transition grid place-items-center"
+      >
+        <HelpCircle className="h-5 w-5 md:h-6 md:w-6" />
+      </button>
 
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
