@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import {
   Sheet,
   SheetContent,
@@ -57,6 +58,10 @@ export function useSupport() {
 
 export function SupportProvider({ children }: { children: ReactNode }) {
   const { user, accountId } = useAuth();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Esconde o botão flutuante nas telas com composer de mensagem (chat),
+  // pra não conflitar com o botão Enviar. Nelas o Suporte fica na sidebar.
+  const hideFab = /^\/(conversas|minha-caixa|caixas)/.test(pathname);
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<"home" | "new">("home");
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -175,15 +180,17 @@ export function SupportProvider({ children }: { children: ReactNode }) {
     <SupportCtx.Provider value={{ open: () => { setIsOpen(true); setView("home"); } }}>
       {children}
 
-      {/* Floating button */}
-      <button
-        type="button"
-        onClick={() => { setIsOpen(true); setView("home"); }}
-        aria-label="Abrir Central de Suporte"
-        className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full bg-[#2FAE7C] text-white shadow-lg hover:brightness-110 transition grid place-items-center"
-      >
-        <HelpCircle className="h-6 w-6" />
-      </button>
+      {/* Floating button — escondido nas telas de chat (Suporte fica na sidebar) */}
+      {!hideFab && (
+        <button
+          type="button"
+          onClick={() => { setIsOpen(true); setView("home"); }}
+          aria-label="Abrir Central de Suporte"
+          className="fixed bottom-5 right-5 md:bottom-6 md:right-6 z-30 h-12 w-12 md:h-14 md:w-14 rounded-full bg-[#2FAE7C] text-white shadow-lg hover:brightness-110 transition grid place-items-center"
+        >
+          <HelpCircle className="h-5 w-5 md:h-6 md:w-6" />
+        </button>
+      )}
 
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
