@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
     const supa = adminClient();
     const { data: conversation, error: convError } = await supa
       .from("conversations")
-      .select("id, contact_id, instance_name")
+      .select("id, contact_id, instance_name, account_id")
       .eq("id", conversationId)
       .maybeSingle();
     if (convError) throw convError;
@@ -28,6 +28,7 @@ Deno.serve(async (req) => {
     const text = String(body || "").trim();
     const msgType = mediaUrl ? (mediaType || "image") : "text";
     const baseMessage = {
+      account_id: conversation.account_id,
       conversation_id: conversationId,
       contact_id: conversation.contact_id,
       instance_name: conversation.instance_name,

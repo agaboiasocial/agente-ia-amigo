@@ -4,6 +4,7 @@ import { AppSidebar, MobileMenuButton, MobileSidebarProvider } from "./AppSideba
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
+import { useRealtimeChat } from "@/hooks/use-realtime-chat";
 
 export function AppLayout({
   children,
@@ -18,6 +19,7 @@ export function AppLayout({
 }) {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
+  useRealtimeChat(); // realtime das conversas + toast de nova mensagem
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/" });

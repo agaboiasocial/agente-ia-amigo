@@ -372,7 +372,7 @@ Deno.serve(async (req) => {
 
     // Agent message from phone — save and pause AI
     await supabase.from("messages").insert({
-      conversation_id: conversationId, contact_id: contactId, instance_name: instance,
+      account_id: accountId, conversation_id: conversationId, contact_id: contactId, instance_name: instance,
       message_id: data.key.id, content: contentToSave, is_from_contact: false,
       is_private: false, sender_name: "Agente", message_type: parsed.mediaType, media_url: mediaUrl,
     });
@@ -413,7 +413,7 @@ Deno.serve(async (req) => {
     const offMsg = settings?.off_hours_message || "Estamos fora do horário de atendimento. Retornaremos em breve!";
     await evoSendText(instance, senderNumber, offMsg);
     await supabase.from("messages").insert({
-      conversation_id: conversationId, contact_id: contactId, instance_name: instance,
+      account_id: accountId, conversation_id: conversationId, contact_id: contactId, instance_name: instance,
       content: offMsg, is_from_contact: false, is_private: false, sender_name: "IAS", message_type: "text",
     });
     await markOutbound(supabase, conversationId, offMsg);
@@ -463,7 +463,7 @@ Deno.serve(async (req) => {
     const apiBody = await evoSendText(instance, senderNumber, parts[i]);
     const msgId = apiBody?.key?.id || apiBody?.message?.key?.id || null;
     await supabase.from("messages").insert({
-      conversation_id: conversationId, contact_id: contactId, instance_name: instance,
+      account_id: accountId, conversation_id: conversationId, contact_id: contactId, instance_name: instance,
       message_id: msgId, content: parts[i], is_from_contact: false,
       is_private: false, sender_name: "IAS", message_type: "text",
     });
