@@ -7,6 +7,7 @@ import {
   useSendMessage,
   useUpdateConversation,
   useDeleteConversation,
+  useMarkRead,
   useAgents,
   type ConvRow,
   type MsgRow,
@@ -124,6 +125,31 @@ function formatTime(iso: string | null) {
   if (d.toDateString() === today.toDateString())
     return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
+// Tempo relativo curto: "5 min", "2 h", "3 d"
+function timeAgo(iso: string | null) {
+  if (!iso) return "";
+  const diff = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "agora";
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h} h`;
+  const d = Math.floor(h / 24);
+  return `${d} d`;
+}
+
+// Status de atendimento da conversa (IA / Humano / Aguardando humano)
+type Attendance = { type: "ai" | "human" | "waiting"; label: string; cls: string };
+function attendanceOf(conv: ConvRow, agentName: string | null): Attendance {
+  if (conv.assigned_to) {
+    return { type: "human", label: agentName || "Humano", cls: "bg-brand/10 text-brand" };
+  }
+  if (conv.contact?.ai_paused) {
+    return { type: "waiting", label: "Aguardando", cls: "bg-warning/25 text-warning-foreground" };
+  }
+  return { type: "ai", label: "IA", cls: "bg-success/15 text-success" };
 }
 
 // ----- Export helpers -----
@@ -258,10 +284,17 @@ function ConversasPage() {
   const { data: convs = [], isLoading } = useConversations();
   const updateConv = useUpdateConversation();
   const deleteConv = useDeleteConversation();
+  const markRead = useMarkRead();
   const { data: agents = [] } = useAgents();
   const { data: teams = [] } = useTeams();
   const { data: instances = [] } = useWhatsAppInstances();
   const { data: kanbanStages = [] } = useConversationStages();
+
+  // user_id → nome do atendente (para badge "Humano" / "com Fulano")
+  const agentNameById = useMemo(
+    () => new Map(agents.map((a) => [a.user_id, a.display_name])),
+    [agents],
+  );
 
   const [view, setView] = useState<"list" | "kanban">("list");
   const [kanbanSettingsOpen, setKanbanSettingsOpen] = useState(false);
@@ -276,6 +309,13 @@ function ConversasPage() {
   const [attachment, setAttachment] = useState<AttachmentDraft | null>(null);
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferTab, setTransferTab] = useState<"agente" | "equipe" | "numero">("agente");
+
+  // Abre a conversa e marca como lida (zera contador de não-lidas)
+  const openConversation = (id: string) => {
+    setActiveId(id);
+    setMobileShowChat(true);
+    markRead.mutate(id);
+  };
 
   const filtered = useMemo(() => {
     return convs.filter((c) => {
@@ -537,14 +577,24 @@ function ConversasPage() {
                     const Icon = channelIcon(c.channel);
                     const sel = c.id === active?.id;
                     const name = c.contact?.name ?? "—";
+                    const att = attendanceOf(c, c.assigned_to ? agentNameById.get(c.assigned_to) ?? null : null);
+                    const AttIcon = att.type === "ai" ? Bot : att.type === "human" ? Users : BotOff;
                     return (
                       <button
                         key={c.id}
-                        onClick={() => { setActiveId(c.id); setMobileShowChat(true); }}
+                        onClick={() => openConversation(c.id)}
                         className={`w-full text-left px-4 py-3 border-b flex gap-3 hover:bg-background transition-colors ${sel ? "bg-background" : ""} ${c.unread ? "border-l-4 border-l-success" : ""}`}
                       >
-                        <div className="h-10 w-10 rounded-full bg-brand/10 text-brand grid place-items-center text-xs font-bold shrink-0">
-                          {initials(name)}
+                        <div className="relative shrink-0">
+                          <div className="h-10 w-10 rounded-full bg-brand/10 text-brand grid place-items-center text-xs font-bold">
+                            {initials(name)}
+                          </div>
+                          {/* Contador estilo WhatsApp de mensagens não respondidas */}
+                          {c.unread_count > 0 && (
+                            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-success text-success-foreground text-[10px] font-bold grid place-items-center ring-2 ring-card">
+                              {c.unread_count > 99 ? "99+" : c.unread_count}
+                            </span>
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
@@ -557,16 +607,27 @@ function ConversasPage() {
                               {formatTime(c.last_message_at)}
                             </span>
                           </div>
-                          <p className="text-xs truncate mt-0.5 text-muted-foreground">
+                          <p className={`text-xs truncate mt-0.5 ${c.unread ? "text-foreground font-medium" : "text-muted-foreground"}`}>
                             {c.last_message ?? "Sem mensagens"}
                           </p>
-                          <div className="flex items-center gap-2 mt-1.5">
+                          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                            {/* Badge de atendimento: IA / Humano / Aguardando */}
+                            <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${att.cls}`}>
+                              <AttIcon className="h-2.5 w-2.5" />
+                              {att.type === "human" ? `com ${att.label.split(" ")[0]}` : att.label}
+                            </span>
                             <span
                               className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full ${channelColor(c.channel)}`}
                             >
                               <Icon className="h-3 w-3" />
                               {c.channel}
                             </span>
+                            {/* Aguardando resposta há X */}
+                            {c.waiting && (
+                              <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-warning/20 text-warning-foreground font-medium">
+                                Aguardando {timeAgo(c.last_message_at)}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </button>
@@ -597,13 +658,29 @@ function ConversasPage() {
                         <div className="font-semibold text-foreground truncate text-sm md:text-base">
                           {active.contact?.name ?? "—"}
                         </div>
-                        <div className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1 md:gap-2">
+                        <div className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1 md:gap-2 flex-wrap">
+                          {(() => {
+                            const att = attendanceOf(active, active.assigned_to ? agentNameById.get(active.assigned_to) ?? null : null);
+                            const AttIcon = att.type === "ai" ? Bot : att.type === "human" ? Users : BotOff;
+                            return (
+                              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full font-medium ${att.cls}`} title={
+                                att.type === "ai" ? "IA atendendo automaticamente" :
+                                att.type === "human" ? "Humano responsável pelo atendimento" :
+                                "IA pausada — aguardando atendente"
+                              }>
+                                <AttIcon className="h-3 w-3" />
+                                {att.type === "human" ? `Humano · ${att.label}` : att.type === "ai" ? "IA atendendo" : "Aguardando humano"}
+                              </span>
+                            );
+                          })()}
                           <span
                             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full ${channelColor(active.channel)}`}
                           >
                             {active.channel}
                           </span>
-                          · {active.status}
+                          {active.waiting && (
+                            <span className="text-warning-foreground">· Cliente aguarda há {timeAgo(active.last_message_at)}</span>
+                          )}
                         </div>
                       </div>
                     </div>

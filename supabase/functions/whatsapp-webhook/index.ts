@@ -114,6 +114,16 @@ function parseMessage(data: any) {
   return { text: null, mediaType: "unknown", caption: null };
 }
 
+// ─── Conversa: marcar entrada/saída (last_message + contador) ───────────────
+async function markInbound(supabase: any, convId: string, text: string) {
+  try { await supabase.rpc("mark_conversation_inbound", { _conv_id: convId, _text: text }); }
+  catch (e) { console.error("[markInbound]", e); }
+}
+async function markOutbound(supabase: any, convId: string, text: string) {
+  try { await supabase.rpc("mark_conversation_outbound", { _conv_id: convId, _text: text }); }
+  catch (e) { console.error("[markOutbound]", e); }
+}
+
 // ─── Upsert contact + conversation ──────────────────────────────────────────
 async function upsertContactAndConversation(supabase: any, accountId: string, phone: string, pushName: string, instanceName: string) {
   // Find or create contact
@@ -367,6 +377,7 @@ Deno.serve(async (req) => {
       is_private: false, sender_name: "Agente", message_type: parsed.mediaType, media_url: mediaUrl,
     });
     await supabase.from("contacts").update({ ai_paused: true }).eq("id", contactId);
+    await markOutbound(supabase, conversationId, contentToSave);
     console.log(`[WH] Agent message from phone — AI paused`);
     return ok({ agent_message: true });
   }
@@ -378,6 +389,8 @@ Deno.serve(async (req) => {
     is_private: false, sender_name: data.pushName || senderNumber,
     message_type: parsed.mediaType, media_url: mediaUrl,
   });
+  // Atualiza conversa: último texto, aguardando resposta, contador++
+  await markInbound(supabase, conversationId, contentToSave);
 
   // ── AI disabled or paused → stop ──────────────────────────────────────────
   if (!aiActive) return ok({ ai: "disabled" });
@@ -403,6 +416,7 @@ Deno.serve(async (req) => {
       conversation_id: conversationId, contact_id: contactId, instance_name: instance,
       content: offMsg, is_from_contact: false, is_private: false, sender_name: "IAS", message_type: "text",
     });
+    await markOutbound(supabase, conversationId, offMsg);
     return ok({ ai: "off_hours" });
   }
 
@@ -455,6 +469,8 @@ Deno.serve(async (req) => {
     });
     if (i < parts.length - 1) await new Promise((r) => setTimeout(r, 1000));
   }
+  // IA respondeu → conversa deixa de aguardar, contador zera
+  await markOutbound(supabase, conversationId, cleanResponse);
 
   console.log(`[WH] ✓ Conv=${conversationId} parts=${parts.length} handoff=${needsHandoff}`);
   return ok({ messages_sent: parts.length, needs_handoff: needsHandoff });

@@ -108,9 +108,16 @@ Deno.serve(async (req) => {
     if (insertError) throw insertError;
 
     const lastMsg = text || `[${msgType}]`;
+    // Resposta do agente → conversa deixa de aguardar e zera o contador de não-lidas
     await supa
       .from("conversations")
-      .update({ last_message: lastMsg, last_message_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .update({
+        last_message: lastMsg,
+        last_message_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        last_message_from_contact: false,
+        unread_count: 0,
+      })
       .eq("id", conversationId);
 
     return json({ ok: true, sent: true });

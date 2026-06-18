@@ -18,6 +18,8 @@ export interface ConvRow {
   last_message: string | null;
   last_message_at: string | null;
   unread: boolean;
+  unread_count: number;
+  waiting: boolean; // última mensagem é do cliente (aguardando resposta)
   sla_minutes: number | null;
   opened_at: string;
   resolved_at: string | null;
@@ -42,6 +44,8 @@ interface RawConversationRow {
   inbox_id: string | null;
   instance_name: string | null;
   sla_status: string | null;
+  unread_count: number | null;
+  last_message_from_contact: boolean | null;
   custom_attributes: Record<string, unknown> | null;
   contact?: { id: string; name: string; ai_paused?: boolean } | null;
 }
@@ -80,7 +84,9 @@ function mapConversation(row: RawConversationRow): ConvRow {
     assigned_to: row.assigned_agent_id,
     last_message: row.last_message,
     last_message_at: row.last_message_at ?? row.updated_at ?? row.created_at,
-    unread: readStringAttribute(row.custom_attributes, "unread", "false") === "true",
+    unread: (row.unread_count ?? 0) > 0,
+    unread_count: row.unread_count ?? 0,
+    waiting: !!row.last_message_from_contact,
     sla_minutes: null,
     opened_at: row.created_at ?? new Date().toISOString(),
     resolved_at: row.resolved_at,
@@ -138,6 +144,23 @@ export function useUpdateConversation() {
         delete dbPatch.stage;
       }
       const { error } = await supabase.from("conversations").update(dbPatch as never).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
+  });
+}
+
+// Marca a conversa como lida para o atendente (zera o contador de não-lidas).
+// NÃO altera "aguardando resposta" — isso só muda quando o agente responde.
+export function useMarkRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (conversationId: string) => {
+      const { error } = await supabase
+        .from("conversations")
+        .update({ unread_count: 0 } as never)
+        .eq("id", conversationId)
+        .gt("unread_count", 0); // só escreve se havia não-lidas (evita update desnecessário)
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),

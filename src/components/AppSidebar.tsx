@@ -103,6 +103,8 @@ export function AppSidebar() {
   const myCount = convs.filter((c) => c.assigned_to === user?.id && c.status !== "resolvida").length;
   const unassignedCount = convs.filter((c) => !c.assigned_to && c.status !== "resolvida").length;
   const allCount = convs.filter((c) => c.status !== "resolvida").length;
+  // Total de conversas com mensagens não respondidas (badge do menu Conversas)
+  const waitingCount = convs.filter((c) => (c as { unread_count?: number }).unread_count && (c as { unread_count?: number }).unread_count! > 0).length;
   const inboxCount = (id: string) =>
     convs.filter((c) => (c as { inbox_id?: string }).inbox_id === id && c.status !== "resolvida").length;
 
@@ -189,6 +191,11 @@ export function AppSidebar() {
             >
               <Icon className="h-4 w-4" />
               <span className="flex-1">{it.label}</span>
+              {it.to === "/conversas" && waitingCount > 0 && (
+                <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-success text-success-foreground text-[11px] font-bold grid place-items-center">
+                  {waitingCount > 99 ? "99+" : waitingCount}
+                </span>
+              )}
             </Link>
           );
         })}
