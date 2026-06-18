@@ -2,10 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
-import { Bot, Sparkles, Wand2, BookOpen, Zap, CheckCircle2, Save, Clock, Users, AlertTriangle } from "lucide-react";
+import { Bot, Sparkles, Wand2, Zap, CheckCircle2, Save, Clock, Users, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { KnowledgeBase } from "@/components/ias/KnowledgeBase";
 
 export const Route = createFileRoute("/ias")({ component: IASPage });
 
@@ -145,6 +146,7 @@ function IASPage() {
         </button>
       }
     >
+      <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Status card */}
         <div className="lg:col-span-2 bg-card rounded-xl border shadow-sm p-6">
@@ -326,15 +328,11 @@ function IASPage() {
           <Stat icon={Sparkles} label="Taxa de resolução" value="78%" tone="brand" />
           <Stat icon={Wand2} label="Tempo médio" value="1m 12s" tone="warning" />
 
-          <div className="bg-brand text-brand-foreground rounded-xl p-5">
-            <BookOpen className="h-5 w-5 mb-2" />
-            <h3 className="font-semibold text-sm">Base de conhecimento</h3>
-            <p className="text-xs opacity-80 mt-1">42 documentos · 218 perguntas treinadas</p>
-            <button className="mt-4 h-9 px-3 rounded-lg bg-warning text-warning-foreground text-xs font-semibold w-full">
-              Gerenciar conhecimento
-            </button>
-          </div>
         </div>
+      </div>
+
+      {/* Base de Conhecimento — documentos que a IA consulta */}
+      <KnowledgeBase />
       </div>
     </AppLayout>
   );

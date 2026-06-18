@@ -190,8 +190,54 @@ function isWithinSchedule(settings: any): boolean {
   } catch { return true; }
 }
 
+// ─── Base de Conhecimento: busca textual e monta o contexto p/ o prompt ──────
+function normalize(s: string) {
+  return (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+async function buildKnowledgeContext(supabase: any, accountId: string | null, query: string): Promise<string> {
+  if (!accountId) return "";
+  const { data: docs } = await supabase.from("ai_knowledge_documents")
+    .select("file_name, extracted_text")
+    .eq("account_id", accountId).eq("enabled", true).eq("status", "ready")
+    .limit(20);
+  if (!docs || docs.length === 0) return "";
+
+  const terms = normalize(query).split(/\W+/).filter((w: string) => w.length >= 4);
+  const MAX_CONTEXT = 6000;
+  const snippets: string[] = [];
+  let total = 0;
+
+  for (const doc of docs) {
+    const text: string = doc.extracted_text || "";
+    if (!text) continue;
+    const paras = text.split(/\n\s*\n|\n/).map((p: string) => p.trim()).filter((p: string) => p.length > 20);
+    const scored = paras
+      .map((p: string) => {
+        const lp = normalize(p);
+        const score = terms.reduce((s: number, t: string) => s + (lp.includes(t) ? 1 : 0), 0);
+        return { p, score };
+      })
+      .filter((x: { score: number }) => x.score > 0)
+      .sort((a: { score: number }, b: { score: number }) => b.score - a.score);
+
+    let chosen = scored.slice(0, 3).map((x: { p: string }) => x.p);
+    // Doc pequeno sem match → inclui o início (pode ser relevante)
+    if (chosen.length === 0 && text.length < 1500) chosen = [text];
+
+    for (const c of chosen) {
+      if (total + c.length > MAX_CONTEXT) break;
+      snippets.push(`[${doc.file_name}] ${c}`);
+      total += c.length;
+    }
+    if (total >= MAX_CONTEXT) break;
+  }
+
+  if (snippets.length === 0) return "";
+  return `\n\n---\nBASE DE CONHECIMENTO DA EMPRESA\nUse as informações abaixo como referência para responder. Se a resposta não estiver nos documentos, não invente — responda com base no conhecimento geral apenas quando fizer sentido e de forma transparente.\n\n${snippets.join("\n\n")}`;
+}
+
 // ─── AI generation ──────────────────────────────────────────────────────────
-async function generateAIResponse(supabase: any, conversationId: string, settings: any, imageBase64: string | null) {
+async function generateAIResponse(supabase: any, conversationId: string, settings: any, imageBase64: string | null, accountId: string | null) {
   if (!OPENAI_API_KEY) return null;
 
   const basePrompt = settings.system_prompt?.trim() ||
@@ -204,7 +250,11 @@ async function generateAIResponse(supabase: any, conversationId: string, setting
     .eq("conversation_id", conversationId).eq("is_private", false)
     .order("created_at", { ascending: false }).limit(20);
 
-  const messages: any[] = [{ role: "system", content: basePrompt + handoffRule + visionRule }];
+  // Busca na Base de Conhecimento com base na última mensagem do cliente
+  const lastUserMsg = (history || []).find((m: any) => m.is_from_contact)?.content || "";
+  const knowledgeBlock = await buildKnowledgeContext(supabase, accountId, lastUserMsg);
+
+  const messages: any[] = [{ role: "system", content: basePrompt + handoffRule + visionRule + knowledgeBlock }];
   for (const m of (history || []).reverse()) {
     if (!m.content) continue;
     messages.push({ role: m.is_from_contact ? "user" : "assistant", content: m.content });
@@ -421,7 +471,7 @@ Deno.serve(async (req) => {
   }
 
   // ── Generate AI response ──────────────────────────────────────────────────
-  const aiResponse = await generateAIResponse(supabase, conversationId, settings, imageBase64);
+  const aiResponse = await generateAIResponse(supabase, conversationId, settings, imageBase64, accountId);
   if (!aiResponse) return ok({ ai: "no_response" });
 
   // ── Handoff detection ─────────────────────────────────────────────────────
