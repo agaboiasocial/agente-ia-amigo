@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/AppLayout";
 import type { PipelineStage, LossReason } from "@/types/pipeline";
 import { toast } from "sonner";
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/pipeline-settings")({ component: Pipeline
 
 function useStagesCrud() {
   const qc = useQueryClient();
+  const { accountId } = useAuth();
   const stages = useQuery<PipelineStage[]>({
     queryKey: ["pipeline_stages_all"],
     queryFn: async () => {
@@ -33,7 +35,8 @@ function useStagesCrud() {
         const { error } = await sb.from("pipeline_stages").update(s).eq("id", s.id);
         if (error) throw error;
       } else {
-        const { error } = await sb.from("pipeline_stages").insert(s);
+        // account_id é obrigatório pela RLS (tenant isolation)
+        const { error } = await sb.from("pipeline_stages").insert({ ...s, account_id: accountId });
         if (error) throw error;
       }
     },
@@ -61,6 +64,7 @@ function useStagesCrud() {
 
 function useLossReasonsCrud() {
   const qc = useQueryClient();
+  const { accountId } = useAuth();
   const reasons = useQuery<LossReason[]>({
     queryKey: ["loss_reasons_all"],
     queryFn: async () => {
@@ -76,7 +80,7 @@ function useLossReasonsCrud() {
         const { error } = await sb.from("loss_reasons").update(r).eq("id", r.id);
         if (error) throw error;
       } else {
-        const { error } = await sb.from("loss_reasons").insert(r);
+        const { error } = await sb.from("loss_reasons").insert({ ...r, account_id: accountId });
         if (error) throw error;
       }
     },
