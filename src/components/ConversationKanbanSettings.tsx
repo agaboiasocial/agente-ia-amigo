@@ -14,10 +14,11 @@ const PRESET_COLORS = [
 
 export function ConversationKanbanSettings({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { data: stages = [] } = useConversationStages();
-  const { addStage, updateStage, deleteStage } = useStageMutations();
+  const { addStage, updateStage, deleteStage, reorder } = useStageMutations();
   const [local, setLocal] = useState<ConversationStage[]>([]);
   const [newLabel, setNewLabel] = useState("");
   const [newColor, setNewColor] = useState(PRESET_COLORS[0]);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
 
   useEffect(() => { if (open) setLocal(stages); }, [open, stages]);
 
@@ -53,6 +54,17 @@ export function ConversationKanbanSettings({ open, onClose }: { open: boolean; o
     });
   };
 
+  // Reordenar colunas por drag&drop — salva a nova ordem automaticamente
+  const handleDrop = (targetIdx: number) => {
+    if (dragIdx === null || dragIdx === targetIdx) { setDragIdx(null); return; }
+    const next = [...local];
+    const [moved] = next.splice(dragIdx, 1);
+    next.splice(targetIdx, 0, moved);
+    setLocal(next);
+    setDragIdx(null);
+    reorder.mutate(next, { onError: (e: any) => toast.error(e.message || "Erro ao reordenar") });
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div className="w-full max-w-lg rounded-xl bg-card border shadow-2xl flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
@@ -67,9 +79,17 @@ export function ConversationKanbanSettings({ open, onClose }: { open: boolean; o
         </div>
 
         <div className="p-5 overflow-y-auto flex-1 space-y-3">
-          {local.map((s) => (
-            <div key={s.id} className="flex items-center gap-2 p-2 rounded-lg border bg-background">
-              <GripVertical className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+          {local.map((s, i) => (
+            <div
+              key={s.id}
+              draggable
+              onDragStart={() => setDragIdx(i)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => handleDrop(i)}
+              onDragEnd={() => setDragIdx(null)}
+              className={`flex items-center gap-2 p-2 rounded-lg border bg-background transition-opacity ${dragIdx === i ? "opacity-40" : ""}`}
+            >
+              <GripVertical className="h-4 w-4 text-muted-foreground/50 shrink-0 cursor-grab active:cursor-grabbing" />
               <input
                 type="color"
                 value={s.color}

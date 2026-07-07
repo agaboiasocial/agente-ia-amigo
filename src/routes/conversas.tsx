@@ -538,7 +538,14 @@ function ConversasPage() {
         ) : convs.length === 0 ? (
           <EmptyAll />
         ) : view === "kanban" ? (
-          <KanbanBoard convs={filtered} stages={kanbanStages} onMove={moveCard} dragId={dragId} setDragId={setDragId} />
+          <KanbanBoard
+            convs={filtered}
+            stages={kanbanStages}
+            onMove={moveCard}
+            onOpenCard={(id) => { openConversation(id); setView("list"); }}
+            dragId={dragId}
+            setDragId={setDragId}
+          />
         ) : (
           <div className="flex flex-1 min-h-0">
             {/* Column 1 - list */}
@@ -1151,12 +1158,14 @@ function KanbanBoard({
   convs,
   stages,
   onMove,
+  onOpenCard,
   dragId,
   setDragId,
 }: {
   convs: ConvRow[];
   stages: ConversationStage[];
   onMove: (id: string, stage: string) => void;
+  onOpenCard: (id: string) => void;
   dragId: string | null;
   setDragId: (id: string | null) => void;
 }) {
@@ -1209,7 +1218,8 @@ function KanbanBoard({
                       draggable
                       onDragStart={() => setDragId(c.id)}
                       onDragEnd={() => setDragId(null)}
-                      className={`bg-background border rounded-lg p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${dragId === c.id ? "opacity-50 rotate-1" : ""} ${c.unread ? "border-l-4 border-l-success" : ""}`}
+                      onClick={() => { if (!dragId) onOpenCard(c.id); }}
+                      className={`bg-background border rounded-lg p-3 cursor-pointer hover:shadow-md transition-all ${dragId === c.id ? "opacity-50 rotate-1" : ""} ${c.unread ? "border-l-4 border-l-success" : ""}`}
                     >
                       <div className="flex items-start gap-2">
                         <div className="h-8 w-8 rounded-full bg-brand/10 text-brand grid place-items-center text-[10px] font-bold shrink-0">
