@@ -387,7 +387,9 @@ function ConversasPage() {
       });
       // Auto-assume: ao responder (não nota) uma conversa sem dono, vira dono e pausa a IA
       if (mode === "reply" && user?.id && !active.assigned_to) {
-        updateConv.mutate({ id: active.id, patch: { assigned_to: user.id } });
+        const patch: Record<string, unknown> = { assigned_to: user.id };
+        if (active.status === "pendente") patch.status = "aberta"; // sai da fila de pendentes
+        updateConv.mutate({ id: active.id, patch });
         if (active.contact_id && !active.contact?.ai_paused) {
           const sb = (await import("@/integrations/supabase/client")).supabase as any;
           sb.from("contacts").update({ ai_paused: true, updated_at: new Date().toISOString() }).eq("id", active.contact_id);
@@ -403,7 +405,9 @@ function ConversasPage() {
 
   const claimConversation = () => {
     if (!active || !user?.id) return;
-    updateConv.mutate({ id: active.id, patch: { assigned_to: user.id } });
+    const patch: Record<string, unknown> = { assigned_to: user.id };
+    if (active.status === "pendente") patch.status = "aberta"; // sai da fila de pendentes
+    updateConv.mutate({ id: active.id, patch });
     if (active.contact_id && !active.contact?.ai_paused) {
       import("@/integrations/supabase/client").then(({ supabase }) => {
         (supabase as any).from("contacts").update({ ai_paused: true, updated_at: new Date().toISOString() }).eq("id", active.contact_id);

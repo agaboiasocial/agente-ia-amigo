@@ -479,6 +479,8 @@ Deno.serve(async (req) => {
   const needsHandoff = aiResponse.includes(handoffKeyword);
   if (needsHandoff) {
     await supabase.from("contacts").update({ ai_paused: true }).eq("id", contactId);
+    // Envia a conversa para a fila de PENDENTES (aguardando intervenção humana)
+    await supabase.from("conversations").update({ status: "pending" }).eq("id", conversationId);
     if (settings?.notification_group_jid) {
       const { data: contact } = await supabase.from("contacts").select("name, phone_number").eq("id", contactId).maybeSingle();
       let notifyText = `🔔 *Lead aguarda atendimento humano*\n*Nome:* ${contact?.name || senderNumber}\n*Telefone:* ${senderNumber}`;
