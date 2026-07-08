@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Building2,
   Webhook,
+  LifeBuoy,
   Menu,
   X,
 } from "lucide-react";
@@ -23,6 +24,7 @@ const top = [
   { to: "/super-admin/accounts", label: "Accounts", icon: Grid3x3 },
   { to: "/super-admin/users", label: "Users", icon: User },
   { to: "/super-admin/active-clients", label: "Clientes Ativos", icon: Building2 },
+  { to: "/super-admin/tickets", label: "Chamados", icon: LifeBuoy },
   { to: "/super-admin/webhooks", label: "Webhooks", icon: Webhook },
 ];
 

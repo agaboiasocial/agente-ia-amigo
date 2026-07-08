@@ -25,7 +25,6 @@ import {
   ArrowLeft,
   Paperclip,
   BookOpen,
-  MessageCircleQuestion,
   Phone,
   Video,
   Loader2,
@@ -34,6 +33,17 @@ import { toast } from "sonner";
 import logoSuporte from "@/assets/logo-suporte.png";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+
+// ─── Config dos links de suporte (atualizar quando os valores oficiais forem definidos) ──
+const SUPPORT_WHATSAPP = ""; // número oficial, só dígitos com DDI. Ex: "5511999999999"
+const SUPPORT_WELCOME = "Olá! Preciso de ajuda com a plataforma IAS.";
+const TUTORIALS_URL = "";    // portal de treinamento (link virá depois)
+const DOCS_URL = "";         // documentação (opcional)
+
+function openExternal(url: string, fallbackMsg: string) {
+  if (!url) { toast.info(fallbackMsg); return; }
+  window.open(url, "_blank", "noopener,noreferrer");
+}
 
 type Status = "Aberto" | "Em andamento" | "Resolvido";
 type Ticket = {
@@ -251,18 +261,29 @@ export function SupportProvider({ children }: { children: ReactNode }) {
                 <section className="space-y-2">
                   <h3 className="font-semibold text-[#0B3A5D]">Links rápidos</h3>
                   <div className="grid grid-cols-1 gap-1.5">
-                    <a href="#" className="flex items-center gap-2 text-sm rounded-md px-2 py-2 hover:bg-muted">
-                      <BookOpen className="h-4 w-4 text-[#0B3A5D]" /> Documentação
-                    </a>
-                    <a href="#" className="flex items-center gap-2 text-sm rounded-md px-2 py-2 hover:bg-muted">
-                      <MessageCircleQuestion className="h-4 w-4 text-[#0B3A5D]" /> FAQ
-                    </a>
-                    <a href="#" className="flex items-center gap-2 text-sm rounded-md px-2 py-2 hover:bg-muted">
+                    <button
+                      onClick={() => {
+                        const url = SUPPORT_WHATSAPP
+                          ? `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(SUPPORT_WELCOME)}`
+                          : "";
+                        openExternal(url, "Número do suporte será disponibilizado em breve.");
+                      }}
+                      className="flex items-center gap-2 text-sm rounded-md px-2 py-2 hover:bg-muted text-left"
+                    >
                       <Phone className="h-4 w-4 text-[#2FAE7C]" /> WhatsApp do suporte
-                    </a>
-                    <a href="#" className="flex items-center gap-2 text-sm rounded-md px-2 py-2 hover:bg-muted">
-                      <Video className="h-4 w-4 text-[#0B3A5D]" /> Tutoriais em vídeo
-                    </a>
+                    </button>
+                    <button
+                      onClick={() => openExternal(TUTORIALS_URL, "O portal de treinamento estará disponível em breve.")}
+                      className="flex items-center gap-2 text-sm rounded-md px-2 py-2 hover:bg-muted text-left"
+                    >
+                      <Video className="h-4 w-4 text-[#0B3A5D]" /> Tutoriais
+                    </button>
+                    <button
+                      onClick={() => openExternal(DOCS_URL, "A documentação estará disponível em breve.")}
+                      className="flex items-center gap-2 text-sm rounded-md px-2 py-2 hover:bg-muted text-left"
+                    >
+                      <BookOpen className="h-4 w-4 text-[#0B3A5D]" /> Documentação
+                    </button>
                   </div>
                 </section>
               </>

@@ -36,6 +36,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
 import { Route as SuperAdminWebhooksRouteImport } from './routes/super-admin.webhooks'
 import { Route as SuperAdminUsersRouteImport } from './routes/super-admin.users'
+import { Route as SuperAdminTicketsRouteImport } from './routes/super-admin.tickets'
 import { Route as SuperAdminSidekiqRouteImport } from './routes/super-admin.sidekiq'
 import { Route as SuperAdminSettingsRouteImport } from './routes/super-admin.settings'
 import { Route as SuperAdminPlatformAppsRouteImport } from './routes/super-admin.platform-apps'
@@ -181,6 +182,11 @@ const SuperAdminUsersRoute = SuperAdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => SuperAdminRoute,
 } as any)
+const SuperAdminTicketsRoute = SuperAdminTicketsRouteImport.update({
+  id: '/tickets',
+  path: '/tickets',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
 const SuperAdminSidekiqRoute = SuperAdminSidekiqRouteImport.update({
   id: '/sidekiq',
   path: '/sidekiq',
@@ -262,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/super-admin/platform-apps': typeof SuperAdminPlatformAppsRoute
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/sidekiq': typeof SuperAdminSidekiqRoute
+  '/super-admin/tickets': typeof SuperAdminTicketsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
   '/super-admin/webhooks': typeof SuperAdminWebhooksRoute
   '/super-admin/': typeof SuperAdminIndexRoute
@@ -299,6 +306,7 @@ export interface FileRoutesByTo {
   '/super-admin/platform-apps': typeof SuperAdminPlatformAppsRoute
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/sidekiq': typeof SuperAdminSidekiqRoute
+  '/super-admin/tickets': typeof SuperAdminTicketsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
   '/super-admin/webhooks': typeof SuperAdminWebhooksRoute
   '/super-admin': typeof SuperAdminIndexRoute
@@ -338,6 +346,7 @@ export interface FileRoutesById {
   '/super-admin/platform-apps': typeof SuperAdminPlatformAppsRoute
   '/super-admin/settings': typeof SuperAdminSettingsRoute
   '/super-admin/sidekiq': typeof SuperAdminSidekiqRoute
+  '/super-admin/tickets': typeof SuperAdminTicketsRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
   '/super-admin/webhooks': typeof SuperAdminWebhooksRoute
   '/super-admin/': typeof SuperAdminIndexRoute
@@ -378,6 +387,7 @@ export interface FileRouteTypes {
     | '/super-admin/platform-apps'
     | '/super-admin/settings'
     | '/super-admin/sidekiq'
+    | '/super-admin/tickets'
     | '/super-admin/users'
     | '/super-admin/webhooks'
     | '/super-admin/'
@@ -415,6 +425,7 @@ export interface FileRouteTypes {
     | '/super-admin/platform-apps'
     | '/super-admin/settings'
     | '/super-admin/sidekiq'
+    | '/super-admin/tickets'
     | '/super-admin/users'
     | '/super-admin/webhooks'
     | '/super-admin'
@@ -453,6 +464,7 @@ export interface FileRouteTypes {
     | '/super-admin/platform-apps'
     | '/super-admin/settings'
     | '/super-admin/sidekiq'
+    | '/super-admin/tickets'
     | '/super-admin/users'
     | '/super-admin/webhooks'
     | '/super-admin/'
@@ -677,6 +689,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminUsersRouteImport
       parentRoute: typeof SuperAdminRoute
     }
+    '/super-admin/tickets': {
+      id: '/super-admin/tickets'
+      path: '/tickets'
+      fullPath: '/super-admin/tickets'
+      preLoaderRoute: typeof SuperAdminTicketsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
     '/super-admin/sidekiq': {
       id: '/super-admin/sidekiq'
       path: '/sidekiq'
@@ -752,6 +771,7 @@ interface SuperAdminRouteChildren {
   SuperAdminPlatformAppsRoute: typeof SuperAdminPlatformAppsRoute
   SuperAdminSettingsRoute: typeof SuperAdminSettingsRoute
   SuperAdminSidekiqRoute: typeof SuperAdminSidekiqRoute
+  SuperAdminTicketsRoute: typeof SuperAdminTicketsRoute
   SuperAdminUsersRoute: typeof SuperAdminUsersRoute
   SuperAdminWebhooksRoute: typeof SuperAdminWebhooksRoute
   SuperAdminIndexRoute: typeof SuperAdminIndexRoute
@@ -766,6 +786,7 @@ const SuperAdminRouteChildren: SuperAdminRouteChildren = {
   SuperAdminPlatformAppsRoute: SuperAdminPlatformAppsRoute,
   SuperAdminSettingsRoute: SuperAdminSettingsRoute,
   SuperAdminSidekiqRoute: SuperAdminSidekiqRoute,
+  SuperAdminTicketsRoute: SuperAdminTicketsRoute,
   SuperAdminUsersRoute: SuperAdminUsersRoute,
   SuperAdminWebhooksRoute: SuperAdminWebhooksRoute,
   SuperAdminIndexRoute: SuperAdminIndexRoute,
