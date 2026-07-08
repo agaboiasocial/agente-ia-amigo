@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Plus,
   Trash2,
@@ -15,8 +18,11 @@ import {
   AlignLeft,
   X,
   GripVertical,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+
+const sb = supabase as any;
 
 export const Route = createFileRoute("/atributos")({ component: Page });
 
@@ -46,19 +52,21 @@ const TYPE_META: Record<AttrType, { label: string; icon: React.ComponentType<{ c
   longtext: { label: "Texto longo", icon: AlignLeft },
 };
 
-const SEED: Attribute[] = [
-  { id: "1", name: "CPF", key: "cpf", type: "text", target: "contact", required: false, showInPanel: true, createdAt: "2026-01-10" },
-  { id: "2", name: "Data de nascimento", key: "data_nascimento", type: "date", target: "contact", required: false, showInPanel: true, createdAt: "2026-01-12" },
-  { id: "3", name: "Empresa", key: "empresa", type: "text", target: "contact", required: true, showInPanel: true, createdAt: "2026-01-15" },
-  { id: "4", name: "Origem do lead", key: "origem_lead", type: "list", target: "contact", required: true, showInPanel: true, options: ["Google Ads", "Instagram", "Indicação", "Site", "Outro"], createdAt: "2026-01-18" },
-  { id: "5", name: "Plano contratado", key: "plano_contratado", type: "list", target: "contact", required: false, showInPanel: true, options: ["Free", "Starter", "Pro", "Enterprise"], createdAt: "2026-02-02" },
-  { id: "6", name: "Valor do contrato", key: "valor_contrato", type: "number", target: "contact", required: false, showInPanel: false, createdAt: "2026-02-10" },
-  { id: "7", name: "Motivo do contato", key: "motivo_contato", type: "list", target: "conversation", required: true, showInPanel: true, options: ["Dúvida", "Suporte", "Venda", "Reclamação"], createdAt: "2026-02-15" },
-  { id: "8", name: "Prioridade interna", key: "prioridade_interna", type: "list", target: "conversation", required: false, showInPanel: true, options: ["Baixa", "Média", "Alta", "Urgente"], createdAt: "2026-02-20" },
-  { id: "9", name: "Produto de interesse", key: "produto_interesse", type: "text", target: "conversation", required: false, showInPanel: true, createdAt: "2026-03-01" },
-];
-
-const STORAGE_KEY = "ias.custom-attributes.v1";
+// Atributos agora persistidos na tabela custom_attribute_definitions (por conta)
+function mapRow(r: any): Attribute {
+  return {
+    id: r.id,
+    name: r.name,
+    key: r.key,
+    description: r.description ?? undefined,
+    type: r.attribute_type as AttrType,
+    target: r.applies_to as AttrTarget,
+    required: !!r.is_required,
+    showInPanel: r.show_in_sidebar ?? true,
+    options: r.list_options ?? undefined,
+    createdAt: r.created_at ?? new Date().toISOString(),
+  };
+}
 
 function slugify(s: string) {
   return s
@@ -69,51 +77,77 @@ function slugify(s: string) {
     .replace(/^_+|_+$/g, "");
 }
 
-function load(): Attribute[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Attribute[]) : SEED;
-  } catch {
-    return SEED;
-  }
-}
-
 function Page() {
+  const { accountId } = useAuth();
+  const qc = useQueryClient();
   const [tab, setTab] = useState<AttrTarget>("contact");
-  const [attrs, setAttrs] = useState<Attribute[]>([]);
   const [modal, setModal] = useState<{ mode: "create" | "edit"; attr?: Attribute } | null>(null);
 
-  useEffect(() => setAttrs(load()), []);
-  const persist = (next: Attribute[]) => {
-    setAttrs(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  };
+  const { data: attrs = [], isLoading } = useQuery({
+    queryKey: ["custom_attributes", accountId],
+    queryFn: async (): Promise<Attribute[]> => {
+      let q = sb.from("custom_attribute_definitions").select("*").order("created_at", { ascending: true });
+      if (accountId) q = q.eq("account_id", accountId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return ((data ?? []) as any[]).map(mapRow);
+    },
+    enabled: !!accountId,
+  });
 
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["custom_attributes", accountId] });
   const filtered = useMemo(() => attrs.filter((a) => a.target === tab), [attrs, tab]);
 
   const onCreate = () => setModal({ mode: "create" });
   const onEdit = (a: Attribute) => setModal({ mode: "edit", attr: a });
-  const onDelete = (a: Attribute) => {
+
+  const onDelete = async (a: Attribute) => {
     if (!confirm(`Excluir atributo "${a.name}"?`)) return;
-    persist(attrs.filter((x) => x.id !== a.id));
+    const { error } = await sb.from("custom_attribute_definitions").delete().eq("id", a.id);
+    if (error) { toast.error(error.message); return; }
+    invalidate();
     toast.success("Atributo excluído");
   };
 
-  const onSave = (data: Omit<Attribute, "id" | "createdAt" | "key"> & { key?: string }) => {
-    if (modal?.mode === "edit" && modal.attr) {
-      persist(attrs.map((a) => (a.id === modal.attr!.id ? { ...a, ...data, key: modal.attr!.key } : a)));
-      toast.success("Atributo atualizado");
-    } else {
-      const key = slugify(data.name);
-      if (attrs.some((a) => a.key === key)) {
-        toast.error("Já existe um atributo com essa chave");
-        return;
+  const onSave = async (data: Omit<Attribute, "id" | "createdAt" | "key"> & { key?: string }) => {
+    try {
+      if (modal?.mode === "edit" && modal.attr) {
+        const { error } = await sb.from("custom_attribute_definitions").update({
+          name: data.name,
+          description: data.description ?? null,
+          attribute_type: data.type,
+          applies_to: data.target,
+          is_required: data.required,
+          show_in_sidebar: data.showInPanel,
+          list_options: data.type === "list" ? data.options ?? [] : null,
+        }).eq("id", modal.attr.id);
+        if (error) throw error;
+        toast.success("Atributo atualizado");
+      } else {
+        const key = slugify(data.name);
+        if (attrs.some((a) => a.key === key)) {
+          toast.error("Já existe um atributo com essa chave");
+          return;
+        }
+        const { error } = await sb.from("custom_attribute_definitions").insert({
+          account_id: accountId,
+          name: data.name,
+          key,
+          description: data.description ?? null,
+          attribute_type: data.type,
+          applies_to: data.target,
+          is_required: data.required,
+          show_in_sidebar: data.showInPanel,
+          list_options: data.type === "list" ? data.options ?? [] : null,
+        });
+        if (error) throw error;
+        toast.success("Atributo criado");
       }
-      const attr: Attribute = { ...data, id: crypto.randomUUID(), key, createdAt: new Date().toISOString() };
-      persist([...attrs, attr]);
-      toast.success("Atributo criado");
+      invalidate();
+      setModal(null);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao salvar atributo");
     }
-    setModal(null);
   };
 
   return (
@@ -147,7 +181,9 @@ function Page() {
           ))}
         </div>
 
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="grid place-items-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        ) : filtered.length === 0 ? (
           <EmptyState onCreate={onCreate} />
         ) : (
           <table className="w-full text-sm">
