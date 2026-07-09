@@ -1,5 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/AppLayout";
 import {
   Plus,
@@ -7,6 +10,7 @@ import {
   Pencil,
   Copy,
   Trash2,
+  Loader2,
   ChevronDown,
   MessageSquare,
   Users,
@@ -201,63 +205,99 @@ const SYSTEM_ROLES: Role[] = [
   { id: "sys-agente", name: "Agente", description: "Acesso a conversas atribuídas e contatos.", system: true, users: 12, createdAt: "—", permissions: agentePerms(), badgeColor: "#F2C94C" },
 ];
 
-const STORAGE_KEY = "ias.custom-roles.v1";
+const sb = supabase as any;
 
-function loadCustom(): Role[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Role[]) : [];
-  } catch {
-    return [];
+function mergePerms(raw: unknown): Permissions {
+  const base = emptyPerms();
+  if (raw && typeof raw === "object") {
+    for (const mid of Object.keys(base)) {
+      const mod = (raw as any)[mid];
+      if (mod && typeof mod === "object") {
+        for (const key of Object.keys(base[mid])) {
+          base[mid][key] = !!mod[key];
+        }
+      }
+    }
   }
+  return base;
 }
-function saveCustom(roles: Role[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(roles));
+
+function mapRow(r: any, counts: Record<string, number>): Role {
+  return {
+    id: r.id,
+    name: r.name,
+    description: r.description ?? "",
+    system: false,
+    users: counts[r.id] ?? 0,
+    createdAt: r.created_at ?? new Date().toISOString(),
+    permissions: mergePerms(r.permissions),
+    badgeColor: "#2FAE7C",
+  };
 }
 
 function Page() {
-  const [custom, setCustom] = useState<Role[]>([]);
+  const { accountId } = useAuth();
+  const qc = useQueryClient();
   const [modal, setModal] = useState<{ mode: "create" | "edit"; role?: Role } | null>(null);
 
-  useEffect(() => {
-    setCustom(loadCustom());
-  }, []);
+  const { data: custom = [], isLoading } = useQuery({
+    queryKey: ["custom_roles", accountId],
+    enabled: !!accountId,
+    queryFn: async () => {
+      const [{ data: rolesData, error }, { data: memberData }] = await Promise.all([
+        sb.from("custom_roles").select("*").eq("account_id", accountId).order("created_at", { ascending: true }),
+        sb.from("account_members").select("custom_role_id").eq("account_id", accountId).eq("is_active", true),
+      ]);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const m of (memberData ?? [])) {
+        if (m.custom_role_id) counts[m.custom_role_id] = (counts[m.custom_role_id] ?? 0) + 1;
+      }
+      return (rolesData ?? []).map((r: any) => mapRow(r, counts));
+    },
+  });
 
-  const persist = (next: Role[]) => {
-    setCustom(next);
-    saveCustom(next);
-  };
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["custom_roles", accountId] });
+
+  const saveMut = useMutation({
+    mutationFn: async (payload: { id?: string; name: string; description: string; permissions: Permissions }) => {
+      if (payload.id) {
+        const { error } = await sb.from("custom_roles")
+          .update({ name: payload.name, description: payload.description, permissions: payload.permissions })
+          .eq("id", payload.id);
+        if (error) throw error;
+      } else {
+        const { error } = await sb.from("custom_roles")
+          .insert({ name: payload.name, description: payload.description, permissions: payload.permissions, account_id: accountId, is_default: false });
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_d, v) => { invalidate(); toast.success(v.id ? "Função atualizada" : "Função criada"); setModal(null); },
+    onError: (e: any) => toast.error(e?.message || "Erro ao salvar função"),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await sb.from("custom_roles").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { invalidate(); toast.success("Função excluída"); },
+    onError: (e: any) => toast.error(e?.message || "Erro ao excluir"),
+  });
 
   const onCreate = () => setModal({ mode: "create" });
   const onEdit = (r: Role) => setModal({ mode: "edit", role: r });
   const onDuplicate = (r: Role) => {
-    const dup: Role = { ...r, id: crypto.randomUUID(), name: `${r.name} (cópia)`, system: false, users: 0, createdAt: new Date().toISOString(), permissions: JSON.parse(JSON.stringify(r.permissions)) };
-    persist([...custom, dup]);
-    toast.success("Função duplicada");
+    saveMut.mutate({ name: `${r.name} (cópia)`, description: r.description, permissions: JSON.parse(JSON.stringify(r.permissions)) });
   };
   const onDelete = (r: Role) => {
+    if (r.users > 0) { toast.error(`Remova esta função dos ${r.users} usuário(s) antes de excluir`); return; }
     if (!confirm(`Excluir função "${r.name}"?`)) return;
-    persist(custom.filter((x) => x.id !== r.id));
-    toast.success("Função excluída");
+    deleteMut.mutate(r.id);
   };
 
-  const onSave = (data: Omit<Role, "id" | "system" | "users" | "createdAt" | "badgeColor">) => {
-    if (modal?.mode === "edit" && modal.role) {
-      persist(custom.map((r) => (r.id === modal.role!.id ? { ...r, ...data } : r)));
-      toast.success("Função atualizada");
-    } else {
-      const role: Role = {
-        ...data,
-        id: crypto.randomUUID(),
-        system: false,
-        users: 0,
-        createdAt: new Date().toISOString(),
-        badgeColor: "#2FAE7C",
-      };
-      persist([...custom, role]);
-      toast.success("Função criada");
-    }
-    setModal(null);
+  const onSave = (data: { name: string; description: string; permissions: Permissions }) => {
+    saveMut.mutate(modal?.mode === "edit" && modal.role ? { id: modal.role.id, ...data } : data);
   };
 
   return (
@@ -281,7 +321,9 @@ function Page() {
 
         <section>
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Funções personalizadas</h3>
-          {custom.length === 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : custom.length === 0 ? (
             <div className="bg-card border rounded-xl p-10 text-center">
               <div className="mx-auto h-14 w-14 rounded-2xl bg-success/15 text-success grid place-items-center mb-3">
                 <ShieldCheck className="h-7 w-7" />
@@ -296,7 +338,7 @@ function Page() {
             </div>
           ) : (
             <div className="grid md:grid-cols-3 gap-4">
-              {custom.map((r) => (
+              {custom.map((r: Role) => (
                 <RoleCard key={r.id} role={r} onEdit={() => onEdit(r)} onDuplicate={() => onDuplicate(r)} onDelete={() => onDelete(r)} />
               ))}
             </div>

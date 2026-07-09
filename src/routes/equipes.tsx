@@ -22,9 +22,12 @@ interface Member {
   id: string;
   user_id: string;
   role: OrgRole;
+  custom_role_id: string | null;
   is_active: boolean;
   profile?: { display_name: string; user_id: string };
 }
+
+interface CustomRole { id: string; name: string }
 
 function getRoleLabel(role: string) {
   return ROLES.find((r) => r.value === role)?.label ?? role;
@@ -41,12 +44,14 @@ function getInitials(name?: string) {
 function EquipesPage() {
   const { accountId, user, isAdmin, organizationRole } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
+  const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [editRole, setEditRole] = useState<OrgRole>("member");
+  const [editCustomRoleId, setEditCustomRoleId] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({ email: "", password: "", full_name: "", role: "member" as OrgRole });
@@ -77,7 +82,15 @@ function EquipesPage() {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchMembers(); }, [accountId]);
+  const fetchCustomRoles = async () => {
+    if (!accountId) return;
+    const { data } = await (supabase as any)
+      .from("custom_roles").select("id, name")
+      .eq("account_id", accountId).order("name", { ascending: true });
+    setCustomRoles(data ?? []);
+  };
+
+  useEffect(() => { fetchMembers(); fetchCustomRoles(); }, [accountId]);
 
   // Realtime
   useEffect(() => {
@@ -114,7 +127,9 @@ function EquipesPage() {
     if (!selectedMember) return;
     setSaving(true);
     try {
-      const { error } = await (supabase as any).from("account_members").update({ role: editRole }).eq("id", selectedMember.id);
+      const { error } = await (supabase as any).from("account_members")
+        .update({ role: editRole, custom_role_id: editCustomRoleId || null })
+        .eq("id", selectedMember.id);
       if (error) throw error;
       toast.success("Papel atualizado");
       setEditOpen(false);
@@ -212,6 +227,9 @@ function EquipesPage() {
                     </p>
                     <p className="text-sm text-muted-foreground truncate flex items-center gap-1">
                       <Shield className="h-3 w-3 shrink-0" /> {getRoleLabel(m.role)}
+                      {m.custom_role_id && (
+                        <span className="text-brand">· {customRoles.find((r) => r.id === m.custom_role_id)?.name ?? "Função"}</span>
+                      )}
                     </p>
                   </div>
                   <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getRoleBadgeClass(m.role)}`}>
@@ -220,7 +238,7 @@ function EquipesPage() {
                   {m.user_id !== user?.id && (
                     <div className="flex items-center gap-1">
                       {m.role !== "owner" && (
-                        <button onClick={() => { setSelectedMember(m); setEditRole(m.role); setEditOpen(true); }}
+                        <button onClick={() => { setSelectedMember(m); setEditRole(m.role); setEditCustomRoleId(m.custom_role_id ?? ""); setEditOpen(true); }}
                           className="h-9 w-9 rounded-lg hover:bg-muted grid place-items-center text-muted-foreground" title="Editar papel">
                           <Edit className="h-4 w-4" />
                         </button>
@@ -300,6 +318,19 @@ function EquipesPage() {
                   <option key={r.value} value={r.value}>{r.label} — {r.description}</option>
                 ))}
               </select>
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium block mb-1">Função personalizada</span>
+              <select value={editCustomRoleId} onChange={(e) => setEditCustomRoleId(e.target.value)}
+                className="w-full h-10 px-3 rounded-lg border bg-background text-sm">
+                <option value="">Nenhuma</option>
+                {customRoles.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Defina funções em Funções e Permissões. {customRoles.length === 0 && "Nenhuma criada ainda."}
+              </p>
             </label>
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => setEditOpen(false)} className="h-9 px-4 rounded-lg border text-sm hover:bg-muted">Cancelar</button>
