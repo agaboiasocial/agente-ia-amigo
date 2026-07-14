@@ -188,8 +188,10 @@ function IASPage() {
             </Field>
             <Field label="Modelo de IA">
               <select value={model} onChange={(e) => setModel(e.target.value)} className="w-full h-10 px-3 rounded-lg border bg-background text-sm">
-                <option value="gpt-4o-mini">IAS-Pro (gpt-4o-mini)</option>
+                <option value="gpt-5.4-mini">IAS-Ultra (gpt-5.4-mini)</option>
+                <option value="gpt-5.1-mini">IAS-Plus (gpt-5.1-mini)</option>
                 <option value="gpt-4.1-mini">IAS-Lite (gpt-4.1-mini)</option>
+                <option value="gpt-4o-mini">IAS-Pro (gpt-4o-mini)</option>
                 <option value="gpt-4.1">IAS-Max (gpt-4.1)</option>
               </select>
             </Field>
