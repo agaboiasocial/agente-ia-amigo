@@ -759,6 +759,21 @@ function ConversasPage() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                       <button
+                        onClick={toggleAI}
+                        className={`h-9 px-3 rounded-lg border text-xs font-semibold flex items-center gap-1.5 ${
+                          active?.contact?.ai_paused
+                            ? "bg-background text-muted-foreground hover:bg-muted"
+                            : "bg-success/15 text-success border-success/30 hover:bg-success/25"
+                        }`}
+                        title={active?.contact?.ai_paused ? "Clique para reativar a IA" : "Clique para pausar a IA"}
+                      >
+                        {active?.contact?.ai_paused ? (
+                          <><BotOff className="h-4 w-4" /> <span className="hidden sm:inline">IA Pausada</span></>
+                        ) : (
+                          <><Bot className="h-4 w-4" /> <span className="hidden sm:inline">IA Ativa</span></>
+                        )}
+                      </button>
+                      <button
                         onClick={() => setShowInfo((s) => !s)}
                         className="h-9 w-9 rounded-lg border hover:bg-background grid place-items-center"
                         title="Painel"
