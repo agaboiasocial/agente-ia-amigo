@@ -467,9 +467,10 @@ Deno.serve(async (req) => {
   await markInbound(supabase, conversationId, contentToSave);
 
   // ── AI disabled or paused → stop ──────────────────────────────────────────
-  if (!aiActive) return ok({ ai: "disabled" });
-  if (aiPaused) return ok({ ai: "paused" });
-  if (!effectiveText && parsed.mediaType !== "image") return ok({ ai: "no_content" });
+  console.log(`[WH] gate aiActive=${aiActive} aiPaused=${aiPaused} hasText=${!!effectiveText} type=${parsed.mediaType}`);
+  if (!aiActive) { console.log("[WH] stop: IA desativada (is_active=false)"); return ok({ ai: "disabled" }); }
+  if (aiPaused) { console.log("[WH] stop: contato pausado (ai_paused=true)"); return ok({ ai: "paused" }); }
+  if (!effectiveText && parsed.mediaType !== "image") { console.log("[WH] stop: sem conteúdo"); return ok({ ai: "no_content" }); }
 
   // ── Buffer ────────────────────────────────────────────────────────────────
   const bufferMs = (settings?.buffer_seconds ?? 3) * 1000;
@@ -480,7 +481,7 @@ Deno.serve(async (req) => {
   const { data: newer } = await supabase.from("messages")
     .select("id").eq("conversation_id", conversationId).eq("is_from_contact", true)
     .gt("created_at", arrivedAt).limit(1).maybeSingle();
-  if (newer) return ok({ ai: "buffered_by_newer" });
+  if (newer) { console.log("[WH] stop: buffered_by_newer (chegou msg mais nova)"); return ok({ ai: "buffered_by_newer" }); }
 
   // ── Schedule check ────────────────────────────────────────────────────────
   if (!isWithinSchedule(settings)) {
@@ -496,7 +497,7 @@ Deno.serve(async (req) => {
 
   // ── Generate AI response ──────────────────────────────────────────────────
   const aiResponse = await generateAIResponse(supabase, conversationId, settings, imageBase64, accountId);
-  if (!aiResponse) return ok({ ai: "no_response" });
+  if (!aiResponse) { console.log("[WH] stop: no_response (OpenAI não retornou — ver logs [AI])"); return ok({ ai: "no_response" }); }
 
   // ── Handoff detection ─────────────────────────────────────────────────────
   const handoffKeyword = settings?.handoff_keyword || "#humano";
