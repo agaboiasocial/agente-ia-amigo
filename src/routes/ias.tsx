@@ -114,16 +114,10 @@ function IASPage() {
         off_hours_message: offHoursMessage,
         updated_at: new Date().toISOString(),
       };
-      if (settings?.id) {
-        const { error } = await sb
-          .from("ai_settings")
-          .update(payload)
-          .eq("id", settings.id)
-          .eq("account_id", accountId);
-        if (error) throw error;
-        return;
-      }
-      const { error } = await sb.from("ai_settings").insert(payload);
+      // Uma linha por conta (constraint única em account_id) — evita duplicatas
+      const { error } = await sb
+        .from("ai_settings")
+        .upsert(payload, { onConflict: "account_id" });
       if (error) throw error;
     },
     onSuccess: () => {
