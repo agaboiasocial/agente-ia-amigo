@@ -271,16 +271,40 @@ async function generateAIResponse(supabase: any, conversationId: string, setting
     }
   }
 
-  const model = imageBase64 ? "gpt-4o" : (settings.model || "gpt-4o-mini");
-  try {
+  const chosen = imageBase64 ? "gpt-4o" : (settings.model || "gpt-4o-mini");
+  const FALLBACK = "gpt-4o-mini";
+
+  const callModel = async (model: string): Promise<string | null> => {
+    // Família gpt-5 só aceita temperature padrão (1) e usa max_completion_tokens
+    const isGpt5 = /^gpt-5/i.test(model);
+    const body: any = { model, messages };
+    if (isGpt5) {
+      body.max_completion_tokens = 600;
+    } else {
+      body.temperature = settings.temperature ?? 0.7;
+      body.max_tokens = 600;
+    }
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPENAI_API_KEY}` },
-      body: JSON.stringify({ model, messages, temperature: settings.temperature ?? 0.7, max_tokens: 600 }),
+      body: JSON.stringify(body),
     });
-    if (!res.ok) { console.error("[AI] erro:", res.status); return null; }
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      console.error(`[AI] erro modelo ${model}:`, res.status, errText.slice(0, 300));
+      return null;
+    }
     const data = await res.json();
     return data.choices?.[0]?.message?.content?.trim() || null;
+  };
+
+  try {
+    let reply = await callModel(chosen);
+    if (reply === null && chosen !== FALLBACK) {
+      console.warn(`[AI] fallback ${chosen} -> ${FALLBACK}`);
+      reply = await callModel(FALLBACK);
+    }
+    return reply;
   } catch (e) { console.error("[AI] exception:", e); return null; }
 }
 
