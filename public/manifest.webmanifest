@@ -1,0 +1,17 @@
+{
+  "name": "IAS — Agente IA Social",
+  "short_name": "IAS",
+  "description": "Atendimento omnichannel inteligente para sua equipe.",
+  "start_url": "/conversas",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B3A5D",
+  "theme_color": "#0B3A5D",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/pwa-192.png", "sizes": "192x192", "purpose": "any" },
+    { "src": "/pwa-512.png", "sizes": "512x512", "purpose": "any" },
+    { "src": "/pwa-512.png", "sizes": "512x512", "purpose": "maskable" }
+  ]
+}

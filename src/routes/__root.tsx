@@ -7,9 +7,11 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/hooks/use-auth";
 import { SupportProvider } from "@/components/support/SupportCenter";
+import { InstallPWA } from "@/components/InstallPWA";
 
 import appCss from "../styles.css?url";
 import faviconUrl from "@/assets/logo-ias.png?url";
@@ -75,10 +77,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "Agente IA Social — Plataforma de Atendimento" },
       { name: "description", content: "IAS — atendimento omnichannel inteligente para sua equipe." },
       { name: "author", content: "Agente IA Social" },
+      { name: "theme-color", content: "#0B3A5D" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "IAS" },
       { property: "og:title", content: "Agente IA Social — Plataforma de Atendimento" },
       { property: "og:description", content: "IAS — atendimento omnichannel inteligente para sua equipe." },
       { property: "og:type", content: "website" },
@@ -90,9 +97,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b0e831e5-437d-4d17-b004-d3f18865a2e4/id-preview-6efd353c--b8a4d7ce-8b50-441a-a1a6-fe328bbeae50.lovable.app-1778194616167.png" },
     ],
     links: [
+      { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "icon", type: "image/png", href: faviconUrl },
       { rel: "shortcut icon", type: "image/png", href: faviconUrl },
-      { rel: "apple-touch-icon", href: faviconUrl },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
@@ -122,11 +130,21 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+    const onLoad = () => {
+      navigator.serviceWorker.register("/sw.js").catch((e) => console.warn("[PWA] SW falhou:", e));
+    };
+    if (document.readyState === "complete") onLoad();
+    else window.addEventListener("load", onLoad, { once: true });
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <SupportProvider>
           <Outlet />
+          <InstallPWA />
           <Toaster position="top-right" richColors />
         </SupportProvider>
       </AuthProvider>

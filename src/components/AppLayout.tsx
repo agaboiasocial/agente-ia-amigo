@@ -27,7 +27,7 @@ export function AppLayout({
 
   if (loading || !session) {
     return (
-      <div className="h-screen w-full grid place-items-center bg-background text-muted-foreground">
+      <div className="h-[100dvh] w-full grid place-items-center bg-background text-muted-foreground">
         <Loader2 className="h-6 w-6 animate-spin" />
       </div>
     );
@@ -35,11 +35,11 @@ export function AppLayout({
 
   return (
     <MobileSidebarProvider>
-      <div className="flex h-screen w-full bg-background overflow-hidden">
+      <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           {title && (
-            <header className="h-14 shrink-0 bg-card border-b flex items-center justify-between px-4 md:px-6 gap-2">
+            <header className="min-h-14 shrink-0 bg-card border-b flex items-center justify-between px-4 md:px-6 gap-2 [padding-top:env(safe-area-inset-top)]">
               <div className="flex items-center gap-2 min-w-0">
                 <MobileMenuButton />
                 <h1 className="text-base md:text-lg font-semibold text-brand truncate">{title}</h1>
@@ -52,7 +52,7 @@ export function AppLayout({
           )}
           {/* If no title bar, show a mobile-only header for the hamburger */}
           {!title && (
-            <header className="h-12 shrink-0 bg-card border-b flex items-center px-4 md:hidden">
+            <header className="min-h-12 shrink-0 bg-card border-b flex items-center px-4 md:hidden [padding-top:env(safe-area-inset-top)]">
               <MobileMenuButton />
               <span className="ml-2 text-sm font-semibold text-brand">Agente IA Social</span>
             </header>

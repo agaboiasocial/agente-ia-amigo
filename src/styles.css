@@ -119,6 +119,12 @@
     color: var(--color-foreground);
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+  /* iOS: evita zoom automático ao focar inputs (fonte < 16px dispara zoom) */
+  @media (max-width: 640px) {
+    input, select, textarea { font-size: 16px; }
   }
 }
 
