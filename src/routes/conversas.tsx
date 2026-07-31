@@ -54,6 +54,7 @@ import {
   Phone,
   Settings2,
   UserCheck,
+  ListChecks,
 } from "lucide-react";
 import { MessageComposer } from "@/components/MessageComposer";
 import { FormattedMessage } from "@/lib/chat-format";
@@ -62,6 +63,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { edgeFunctionUrl } from "@/lib/edge-functions";
 import { useConversationStages, type ConversationStage } from "@/hooks/use-conversation-stages";
 import { ConversationKanbanSettings } from "@/components/ConversationKanbanSettings";
+import { ContactTasksModal } from "@/components/ContactTasksModal";
 
 export const Route = createFileRoute("/conversas")({ component: ConversasPage });
 
@@ -306,6 +308,7 @@ function ConversasPage() {
   const [showInfo, setShowInfo] = useState(false);
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [tasksOpen, setTasksOpen] = useState(false);
   const [attachment, setAttachment] = useState<AttachmentDraft | null>(null);
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferTab, setTransferTab] = useState<"agente" | "equipe" | "numero">("agente");
@@ -798,6 +801,9 @@ function ConversasPage() {
                               <><BotOff className="h-4 w-4 mr-2" /> Pausar IA</>
                             )}
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setTasksOpen(true)} disabled={!active?.contact_id}>
+                            <ListChecks className="h-4 w-4 mr-2" /> Tarefas
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={handleDelete}
@@ -1130,6 +1136,13 @@ function ConversasPage() {
       )}
 
       <ConversationKanbanSettings open={kanbanSettingsOpen} onClose={() => setKanbanSettingsOpen(false)} />
+      {tasksOpen && active?.contact_id && (
+        <ContactTasksModal
+          contactId={active.contact_id}
+          contactName={active.contact?.name ?? undefined}
+          onClose={() => setTasksOpen(false)}
+        />
+      )}
     </AppLayout>
   );
 }
