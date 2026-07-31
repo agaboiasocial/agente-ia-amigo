@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WhatsappRouteImport } from './routes/whatsapp'
+import { Route as TarefasRouteImport } from './routes/tarefas'
 import { Route as SuperAdminRouteImport } from './routes/super-admin'
 import { Route as SlaRouteImport } from './routes/sla'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
@@ -50,6 +51,11 @@ import { Route as CaixasIdRouteImport } from './routes/caixas.$id'
 const WhatsappRoute = WhatsappRouteImport.update({
   id: '/whatsapp',
   path: '/whatsapp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TarefasRoute = TarefasRouteImport.update({
+  id: '/tarefas',
+  path: '/tarefas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SuperAdminRoute = SuperAdminRouteImport.update({
@@ -258,6 +264,7 @@ export interface FileRoutesByFullPath {
   '/relatorios': typeof RelatoriosRoute
   '/sla': typeof SlaRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/tarefas': typeof TarefasRoute
   '/whatsapp': typeof WhatsappRoute
   '/caixas/$id': typeof CaixasIdRoute
   '/super-admin/accounts': typeof SuperAdminAccountsRoute
@@ -296,6 +303,7 @@ export interface FileRoutesByTo {
   '/pipeline-settings': typeof PipelineSettingsRoute
   '/relatorios': typeof RelatoriosRoute
   '/sla': typeof SlaRoute
+  '/tarefas': typeof TarefasRoute
   '/whatsapp': typeof WhatsappRoute
   '/caixas/$id': typeof CaixasIdRoute
   '/super-admin/accounts': typeof SuperAdminAccountsRoute
@@ -336,6 +344,7 @@ export interface FileRoutesById {
   '/relatorios': typeof RelatoriosRoute
   '/sla': typeof SlaRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/tarefas': typeof TarefasRoute
   '/whatsapp': typeof WhatsappRoute
   '/caixas/$id': typeof CaixasIdRoute
   '/super-admin/accounts': typeof SuperAdminAccountsRoute
@@ -377,6 +386,7 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/sla'
     | '/super-admin'
+    | '/tarefas'
     | '/whatsapp'
     | '/caixas/$id'
     | '/super-admin/accounts'
@@ -415,6 +425,7 @@ export interface FileRouteTypes {
     | '/pipeline-settings'
     | '/relatorios'
     | '/sla'
+    | '/tarefas'
     | '/whatsapp'
     | '/caixas/$id'
     | '/super-admin/accounts'
@@ -454,6 +465,7 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/sla'
     | '/super-admin'
+    | '/tarefas'
     | '/whatsapp'
     | '/caixas/$id'
     | '/super-admin/accounts'
@@ -494,6 +506,7 @@ export interface RootRouteChildren {
   RelatoriosRoute: typeof RelatoriosRoute
   SlaRoute: typeof SlaRoute
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
+  TarefasRoute: typeof TarefasRoute
   WhatsappRoute: typeof WhatsappRoute
   CaixasIdRoute: typeof CaixasIdRoute
 }
@@ -505,6 +518,13 @@ declare module '@tanstack/react-router' {
       path: '/whatsapp'
       fullPath: '/whatsapp'
       preLoaderRoute: typeof WhatsappRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tarefas': {
+      id: '/tarefas'
+      path: '/tarefas'
+      fullPath: '/tarefas'
+      preLoaderRoute: typeof TarefasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/super-admin': {
@@ -820,6 +840,7 @@ const rootRouteChildren: RootRouteChildren = {
   RelatoriosRoute: RelatoriosRoute,
   SlaRoute: SlaRoute,
   SuperAdminRoute: SuperAdminRouteWithChildren,
+  TarefasRoute: TarefasRoute,
   WhatsappRoute: WhatsappRoute,
   CaixasIdRoute: CaixasIdRoute,
 }

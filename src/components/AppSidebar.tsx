@@ -23,6 +23,7 @@ import {
   Facebook,
   KanbanSquare,
   Building2,
+  ListChecks,
   Menu,
   X,
 } from "lucide-react";
@@ -65,6 +66,7 @@ export function MobileMenuButton() {
 const items = [
   { to: "/dashboard", label: "Dashboard", icon: BarChart3 },
   { to: "/conversas", label: "Conversas", icon: MessageSquare },
+  { to: "/tarefas", label: "Tarefas", icon: ListChecks },
   { to: "/ias", label: "IAS — Agente", icon: Bot },
   { to: "/whatsapp", label: "Conectar WhatsApp", icon: QrCode },
   { to: "/canais", label: "Canais Conectados", icon: Inbox },
